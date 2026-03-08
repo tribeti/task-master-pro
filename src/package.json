@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.37.1",
     "@supabase/supabase-js": "^2.94.0",
     "next": "16.1.6",
     "react": "19.2.3",
