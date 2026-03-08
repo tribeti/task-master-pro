@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 import { TASKS, TEAM_MEMBERS, FILES } from '@/lib/constants';
 import { BoltIcon, GridIcon, ChartIcon, RocketIcon, SettingsIcon, SunIcon, PlusIcon, LinkIcon, CheckIcon, MoreIcon, PauseIcon, EditIcon, AlertIcon, TrashIcon, XIcon, BriefcaseIcon, ZapIcon, ChevronUp, UserIcon, FilterIcon, CalendarIcon, UploadCloudIcon, SearchIcon, SortIcon, ChatIcon } from '@/components/icons';
+import Image from 'next/image';
 
 export default function TaskFlowDashboard() {
   // --- STATES ---
@@ -182,7 +183,7 @@ export default function TaskFlowDashboard() {
             <div className="relative mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {member.avatar.includes('Alex') ?
-                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex`} alt={member.name} className="w-24 h-24 rounded-full bg-slate-800 border-4 border-white shadow-sm" /> :
+                <Image src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex`} alt={member.name} className="w-24 h-24 rounded-full bg-slate-800 border-4 border-white shadow-sm" /> :
                 <div className={`w-24 h-24 rounded-full ${member.bg} border-4 border-white shadow-sm flex items-center justify-center text-3xl font-black ${member.color}`}>{member.avatar.substring(0, 2).toUpperCase()}</div>
               }
               <div className={`absolute bottom-1 right-1 w-5 h-5 border-2 border-white rounded-full ${member.status} flex items-center justify-center`}>

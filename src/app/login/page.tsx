@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 // Import Supabase client (Thay đổi đường dẫn này theo file config của bạn nếu cần)
 import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+
 import {
     BoltIconLogin as BoltIcon,
     MailIcon,
@@ -18,6 +20,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
 type AuthView = 'login' | 'register' | 'forgot';
 
 export default function TaskFlowAuth() {
@@ -27,6 +30,7 @@ export default function TaskFlowAuth() {
     const [fullName, setFullName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const router = useRouter();
 
     // Hàm xử lý Đăng nhập bằng Google
     const handleGoogleLogin = async () => {
@@ -49,7 +53,7 @@ export default function TaskFlowAuth() {
         setErrorMsg('');
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setErrorMsg(error.message);
-        else window.location.href = '/'; // Đăng nhập thành công thì chuyển trang
+        else router.push('/'); // Đăng nhập thành công thì chuyển trang
         setIsLoading(false);
     };
 
