@@ -1,13 +1,43 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 import { TASKS, TEAM_MEMBERS, FILES } from '@/lib/constants';
 import { BoltIcon, GridIcon, ChartIcon, RocketIcon, SettingsIcon, SunIcon, PlusIcon, LinkIcon, CheckIcon, MoreIcon, PauseIcon, EditIcon, AlertIcon, TrashIcon, XIcon, BriefcaseIcon, ZapIcon, ChevronUp, UserIcon, FilterIcon, CalendarIcon, UploadCloudIcon, SearchIcon, SortIcon, ChatIcon } from '@/components/icons';
 import Image from 'next/image';
 
 export default function TaskFlowDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/dashboard');
+      } else {
+        setUser(session.user);
+      }
+      setIsLoadingUser(false);
+    };
+    fetchSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        router.push('/dashboard');
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
+
   // --- STATES ---
   const [activeTab, setActiveTab] = useState<'Command' | 'Projects'>('Command');
   const [projectTab, setProjectTab] = useState<'Tasks' | 'Timeline' | 'Files' | 'Team'>('Timeline');
@@ -183,7 +213,7 @@ export default function TaskFlowDashboard() {
             <div className="relative mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {member.avatar.includes('Alex') ?
-                <Image src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex`} alt={member.name} className="w-24 h-24 rounded-full bg-slate-800 border-4 border-white shadow-sm" /> :
+                <Image src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex`} width={96} height={96} alt={member.name} className="w-24 h-24 rounded-full bg-slate-800 border-4 border-white shadow-sm" /> :
                 <div className={`w-24 h-24 rounded-full ${member.bg} border-4 border-white shadow-sm flex items-center justify-center text-3xl font-black ${member.color}`}>{member.avatar.substring(0, 2).toUpperCase()}</div>
               }
               <div className={`absolute bottom-1 right-1 w-5 h-5 border-2 border-white rounded-full ${member.status} flex items-center justify-center`}>
@@ -215,6 +245,18 @@ export default function TaskFlowDashboard() {
     </div>
   );
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (isLoadingUser) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full bg-[#F8FAFC] font-sans overflow-hidden">
 
@@ -226,10 +268,10 @@ export default function TaskFlowDashboard() {
               <BoltIcon />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="font-['Barlow_Condensed'] font-extrabold italic text-[22px] text-slate-900 tracking-wide ">
+              <span className="font-bold text-xl tracking-tight text-slate-900 italic">
                 TASKMASTER
               </span>
-              <span className="font-['Barlow_Condensed'] text-black font-extrabold text-[10px] tracking-widest bg-gradient-to-br from-cyan-400 to-cyan-600 px-1.5 py-0.5 rounded-md">
+              <span className="font-bold text-black italic text-[10px] tracking-widest bg-gradient-to-br from-cyan-400 to-cyan-600 px-1.5 py-0.5 rounded-md">
                 PRO
               </span>
             </div>
@@ -259,13 +301,18 @@ export default function TaskFlowDashboard() {
             <SettingsIcon /> Config
           </button>
 
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex" alt="Avatar" className="w-10 h-10 rounded-full bg-slate-200" />
-            <div className="flex flex-col text-left">
-              <span className="text-sm font-bold text-slate-800">Alex Morgan</span>
-              <span className="text-[10px] font-bold text-[#34D399] tracking-wider uppercase">Peak Flow</span>
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 transition-colors">
+            <div className="flex items-center gap-3 cursor-pointer group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'User'}`} alt="Avatar" className="w-10 h-10 rounded-full bg-slate-200 group-hover:scale-105 transition-transform" />
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+                <span className="text-[10px] font-bold text-[#34D399] tracking-wider uppercase">Peak Flow</span>
+              </div>
             </div>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2 rounded-xl border border-slate-100 shadow-sm" title="Log out">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
           </div>
         </div>
       </aside>

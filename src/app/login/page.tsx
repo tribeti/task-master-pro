@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-// Import Supabase client (Thay đổi đường dẫn này theo file config của bạn nếu cần)
+// Import Supabase client
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
@@ -15,11 +15,10 @@ import {
     CheckIconLogin as CheckIcon
 } from '@/components/icons';
 
-// Khởi tạo Supabase (Bạn nên đưa cái này ra file utils riêng sau này)
+// Khởi tạo Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
-
 
 type AuthView = 'login' | 'register' | 'forgot';
 
@@ -32,40 +31,34 @@ export default function TaskFlowAuth() {
     const [errorMsg, setErrorMsg] = useState('');
     const router = useRouter();
 
-    // Hàm xử lý Đăng nhập bằng Google
+    // --- CÁC HÀM XỬ LÝ AUTH ---
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         setErrorMsg('');
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
-            },
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
         });
         if (error) setErrorMsg(error.message);
         setIsLoading(false);
     };
 
-    // Hàm xử lý Đăng nhập bằng Email/Password
     const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setErrorMsg('');
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setErrorMsg(error.message);
-        else router.push('/'); // Đăng nhập thành công thì chuyển trang
+        else router.push('/');
         setIsLoading(false);
     };
 
-    // Hàm xử lý Đăng ký
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setErrorMsg('');
         const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName } }
+            email, password, options: { data: { full_name: fullName } }
         });
         if (error) setErrorMsg(error.message);
         else {
@@ -75,10 +68,35 @@ export default function TaskFlowAuth() {
         setIsLoading(false);
     };
 
-    return (
-        <div className="flex min-h-screen w-full bg-[#F8FAFC] font-sans">
+    // --- COMPONENT LOGO THÔNG MINH ---
+    // isDarkTheme = true -> Chữ trắng (dùng cho Desktop bên trái)
+    // isDarkTheme = false -> Chữ đen (dùng cho Mobile nền sáng)
+    const BrandLogo = ({ isDarkTheme = false }) => (
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setView('login')}>
+            <div className="w-10 h-10 lg:w-12 lg:h-12 shrink-0 rounded-xl bg-[#28B8FA] flex items-center justify-center shadow-lg shadow-cyan-500/30 transition-transform group-hover:scale-105">
+                <BoltIcon />
+            </div>
+            <div className="flex items-center gap-1.5 focus:outline-none">
+                <span className={`font-black text-xl lg:text-2xl tracking-tight italic ${isDarkTheme ? 'text-slate-100' : 'text-slate-900'}`}>
+                    TASKMASTER
+                </span>
+                <span className="font-bold text-slate-900 italic text-[10px] tracking-widest bg-gradient-to-br from-cyan-300 to-[#28B8FA] px-1.5 py-0.5 rounded-md shadow-sm">
+                    PRO
+                </span>
+            </div>
+        </div>
+    );
 
-            {/* 1. LEFT PANEL - Giữ nguyên không thay đổi */}
+    return (
+        <div className="flex min-h-screen w-full bg-[#F8FAFC] font-sans relative">
+
+            {/* --- LOGO CHO MOBILE/TABLET --- */}
+            {/* Sẽ hiển thị nổi bật ở giữa màn hình trên cùng, tự động ẩn khi lên Desktop */}
+            <div className="absolute top-8 left-0 w-full flex justify-center lg:hidden z-20 animate-in fade-in slide-in-from-top-4 duration-700">
+                <BrandLogo isDarkTheme={false} />
+            </div>
+
+            {/* 1. LEFT PANEL (DESKTOP) */}
             <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between overflow-hidden bg-[#1E293B]">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#020617] z-0"></div>
                 <div className="absolute inset-0 opacity-10 z-0" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
@@ -86,18 +104,10 @@ export default function TaskFlowAuth() {
                 <div className="absolute bottom-0 right-0 w-full h-1/2 bg-[#34D399] opacity-10 blur-[120px] rounded-full z-0 translate-y-1/2 translate-x-1/4"></div>
 
                 <div className="relative z-10 p-12 flex flex-col h-full">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('login')}>
-                        <div className="w-12 h-12 shrink-0 rounded-xl bg-[#28B8FA] flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                            <BoltIcon />
-                        </div>
-                        <div className="flex items-center gap-1.5 focus:outline-none">
-                            <span className="font-['Barlow_Condensed'] font-extrabold italic text-[22px] text-slate-100 tracking-wide ">
-                                TASKMASTER
-                            </span>
-                            <span className="font-['Barlow_Condensed'] text-black font-extrabold text-[10px] tracking-widest bg-gradient-to-br from-cyan-400 to-cyan-600 px-1.5 py-0.5 rounded-md">
-                                PRO
-                            </span>
-                        </div>
+
+                    {/* --- LOGO CHO DESKTOP --- */}
+                    <div className="animate-in fade-in slide-in-from-left-4 duration-700">
+                        <BrandLogo isDarkTheme={true} />
                     </div>
 
                     <div className="mt-auto mb-auto">
@@ -129,13 +139,13 @@ export default function TaskFlowAuth() {
             </div>
 
             {/* 2. RIGHT PANEL - AUTH FORMS */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto">
-                <div className="w-full max-w-md rounded-[2.5rem] bg-white p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden mt-12 lg:mt-0">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto min-h-screen">
+                <div className="w-full max-w-md rounded-[2.5rem] bg-white p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden mt-16 lg:mt-0">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#28B8FA] opacity-[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
-                    {/* Hiển thị lỗi chung nếu có */}
                     {errorMsg && (
-                        <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                        <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-medium rounded-2xl border border-red-100 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                             {errorMsg}
                         </div>
                     )}
@@ -148,12 +158,7 @@ export default function TaskFlowAuth() {
                                 <p className="text-slate-500 text-sm font-medium">Sign in to continue your streak.</p>
                             </div>
 
-                            {/* NÚT ĐĂNG NHẬP GOOGLE */}
-                            <button
-                                onClick={handleGoogleLogin}
-                                disabled={isLoading}
-                                className="w-full mb-6 py-3.5 px-6 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 focus:outline-none"
-                            >
+                            <button onClick={handleGoogleLogin} disabled={isLoading} className="w-full mb-6 py-3.5 px-6 bg-white border-2 border-slate-100 hover:border-[#28B8FA]/30 hover:bg-[#EAF7FF] text-slate-700 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 focus:outline-none">
                                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -163,73 +168,39 @@ export default function TaskFlowAuth() {
                                 Continue with Google
                             </button>
 
-                            {/* Divider */}
                             <div className="flex items-center mb-6">
-                                <div className="flex-grow border-t border-slate-200"></div>
-                                <span className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Or email</span>
-                                <div className="flex-grow border-t border-slate-200"></div>
+                                <div className="flex-grow border-t border-slate-100"></div>
+                                <span className="px-4 text-xs font-bold text-slate-300 uppercase tracking-wider">Or email</span>
+                                <div className="flex-grow border-t border-slate-100"></div>
                             </div>
 
-                            <form className="space-y-6" onSubmit={handleEmailLogin}>
-                                <div className="space-y-4">
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#28B8FA] transition-colors">
-                                            <MailIcon />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="Email address"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:ring-4 focus:ring-[#28B8FA]/10 transition-all placeholder:text-slate-400"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#28B8FA] transition-colors">
-                                            <LockIcon />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="Password"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:ring-4 focus:ring-[#28B8FA]/10 transition-all placeholder:text-slate-400"
-                                            required
-                                        />
-                                    </div>
+                            <form className="space-y-4" onSubmit={handleEmailLogin}>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#28B8FA] transition-colors"><MailIcon /></div>
+                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-all placeholder:text-slate-400" required />
                                 </div>
 
-                                <div className="flex items-center justify-between mt-2">
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#28B8FA] transition-colors"><LockIcon /></div>
+                                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-all placeholder:text-slate-400" required />
+                                </div>
+
+                                <div className="flex items-center justify-between pt-1 pb-2">
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div className="relative flex items-center justify-center">
-                                            <input type="checkbox" className="peer sr-only" />
-                                            <div className="w-5 h-5 border-2 border-slate-300 rounded-md bg-white peer-checked:bg-[#28B8FA] peer-checked:border-[#28B8FA] transition-all flex items-center justify-center">
-                                                <svg className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                            </div>
-                                        </div>
-                                        <span className="text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors">Remember me</span>
+                                        <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA]" />
+                                        <span className="text-sm font-medium text-slate-500 group-hover:text-slate-800 transition-colors">Remember me</span>
                                     </label>
-
-                                    <button type="button" onClick={() => setView('forgot')} className="text-sm font-bold text-[#28B8FA] hover:text-[#0C98D6] transition-colors focus:outline-none">
-                                        Forgot password?
-                                    </button>
+                                    <button type="button" onClick={() => setView('forgot')} className="text-sm font-bold text-[#28B8FA] hover:text-cyan-600 transition-colors focus:outline-none">Forgot password?</button>
                                 </div>
 
-                                <button type="submit" disabled={isLoading} className="w-full py-4 px-6 bg-[#1E293B] hover:bg-black text-white rounded-2xl font-bold text-sm tracking-wide shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-70">
+                                <button type="submit" disabled={isLoading} className="w-full py-4 px-6 bg-[#1E293B] hover:bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-70">
                                     {isLoading ? 'Processing...' : 'Sign In'}
-                                    <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
+                                    <ArrowRightIcon />
                                 </button>
                             </form>
 
                             <div className="mt-8 pt-8 border-t border-slate-100 text-center">
-                                <p className="text-slate-500 text-sm font-medium">
-                                    Don&apos;t have an account?{' '}
-                                    <button onClick={() => setView('register')} className="text-[#34D399] font-bold hover:text-[#059669] transition-colors focus:outline-none">
-                                        Sign up now
-                                    </button>
-                                </p>
+                                <p className="text-slate-500 text-sm font-medium">Don&apos;t have an account? <button onClick={() => setView('register')} className="text-[#34D399] font-bold hover:text-emerald-600 transition-colors">Sign up now</button></p>
                             </div>
                         </div>
                     )}
@@ -237,7 +208,7 @@ export default function TaskFlowAuth() {
                     {/* --- REGISTER VIEW --- */}
                     {view === 'register' && (
                         <div className="animate-in fade-in slide-in-from-right-8 duration-500 relative z-10">
-                            <button onClick={() => setView('login')} className="absolute -top-2 -left-2 p-2 text-slate-400 hover:text-slate-800 transition-colors focus:outline-none rounded-lg hover:bg-slate-50">
+                            <button onClick={() => setView('login')} className="absolute -top-2 -left-2 p-2 text-slate-400 hover:text-slate-800 transition-colors rounded-xl hover:bg-slate-50">
                                 <ArrowLeftIcon />
                             </button>
                             <div className="mb-8 text-center mt-2">
@@ -247,30 +218,24 @@ export default function TaskFlowAuth() {
 
                             <form className="space-y-4" onSubmit={handleRegister}>
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors">
-                                        <UserIcon />
-                                    </div>
-                                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full Name" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:ring-4 focus:ring-[#34D399]/10 transition-all placeholder:text-slate-400" required />
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors"><UserIcon /></div>
+                                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full Name" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:bg-white transition-all placeholder:text-slate-400" required />
                                 </div>
 
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors">
-                                        <MailIcon />
-                                    </div>
-                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:ring-4 focus:ring-[#34D399]/10 transition-all placeholder:text-slate-400" required />
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors"><MailIcon /></div>
+                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:bg-white transition-all placeholder:text-slate-400" required />
                                 </div>
 
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors">
-                                        <LockIcon />
-                                    </div>
-                                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create Password" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:ring-4 focus:ring-[#34D399]/10 transition-all placeholder:text-slate-400" required />
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#34D399] transition-colors"><LockIcon /></div>
+                                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create Password" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:bg-white transition-all placeholder:text-slate-400" required />
                                 </div>
 
                                 <div className="pt-2">
-                                    <button type="submit" disabled={isLoading} className="w-full py-4 px-6 bg-[#34D399] hover:bg-[#059669] text-white rounded-2xl font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 group disabled:opacity-70">
+                                    <button type="submit" disabled={isLoading} className="w-full py-4 px-6 bg-[#34D399] hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 group disabled:opacity-70">
                                         {isLoading ? 'Creating...' : 'Create Free Account'}
-                                        <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRightIcon />
                                     </button>
                                 </div>
                             </form>
@@ -278,26 +243,26 @@ export default function TaskFlowAuth() {
                     )}
 
                     {/* --- FORGOT PASSWORD VIEW --- */}
-                    {/* Phần này mình giữ nguyên UI của bạn, chỉ thêm submit form */}
                     {view === 'forgot' && (
                         <div className="animate-in fade-in zoom-in-95 duration-500 relative z-10">
-                            {/* ... (Các thẻ button back và tiêu đề giữ nguyên) ... */}
-                            <button onClick={() => setView('login')} className="absolute -top-2 -left-2 p-2 text-slate-400 hover:text-slate-800 transition-colors focus:outline-none rounded-lg hover:bg-slate-50">
+                            <button onClick={() => setView('login')} className="absolute -top-2 -left-2 p-2 text-slate-400 hover:text-slate-800 transition-colors rounded-xl hover:bg-slate-50">
                                 <ArrowLeftIcon />
                             </button>
-                            <div className="mb-10 text-center mt-2">
+                            <div className="mb-10 text-center mt-6">
+                                <div className="w-16 h-16 bg-[#FFF2DE] rounded-full flex items-center justify-center text-[#FF8B5E] mx-auto mb-6">
+                                    <LockIcon />
+                                </div>
                                 <h2 className="text-2xl font-black text-slate-800 mb-2">Reset Password</h2>
+                                <p className="text-slate-500 text-sm font-medium px-4">Enter your email and we'll send a recovery link.</p>
                             </div>
 
                             <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); alert("Đã gửi link reset vào email!"); setView('login'); }}>
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#28B8FA] transition-colors">
-                                        <MailIcon />
-                                    </div>
-                                    <input type="email" placeholder="Email address" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:ring-4 focus:ring-[#28B8FA]/10 transition-all" required />
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#FF8B5E] transition-colors"><MailIcon /></div>
+                                    <input type="email" placeholder="Email address" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#FF8B5E] focus:bg-white transition-all placeholder:text-slate-400" required />
                                 </div>
 
-                                <button type="submit" className="w-full py-4 px-6 bg-slate-800 hover:bg-black text-white rounded-2xl font-bold text-sm tracking-wide shadow-lg shadow-slate-900/20 transition-all">
+                                <button type="submit" className="w-full py-4 px-6 bg-[#FF8B5E] hover:bg-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-orange-500/30 transition-all">
                                     Send Reset Link
                                 </button>
                             </form>
