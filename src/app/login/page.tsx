@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import React, { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 import Logo from "@/components/logo";
 
 import {

@@ -1,37 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { TASKS, TEAM_MEMBERS, FILES } from '@/lib/constants';
+import { BoardList } from '@/components/board/BoardList';
+import { BoardCard } from '@/components/board/BoardCard';
+import { BoltIcon, GridIcon, ChartIcon, RocketIcon, SettingsIcon, SunIcon, PlusIcon, LinkIcon, CheckIcon, MoreIcon, PauseIcon, EditIcon, AlertIcon, TrashIcon, XIcon, BriefcaseIcon, ZapIcon, ChevronUp, UserIcon, FilterIcon, CalendarIcon, UploadCloudIcon, SearchIcon, SortIcon, ChatIcon } from '@/components/icons';
 import { User } from "@supabase/supabase-js";
-import { TASKS, TEAM_MEMBERS, FILES } from "@/lib/constants";
-import {
-  BoltIcon,
-  GridIcon,
-  ChartIcon,
-  RocketIcon,
-  SettingsIcon,
-  SunIcon,
-  PlusIcon,
-  LinkIcon,
-  CheckIcon,
-  MoreIcon,
-  PauseIcon,
-  EditIcon,
-  AlertIcon,
-  TrashIcon,
-  XIcon,
-  BriefcaseIcon,
-  ZapIcon,
-  ChevronUp,
-  UserIcon,
-  FilterIcon,
-  CalendarIcon,
-  UploadCloudIcon,
-  SearchIcon,
-  SortIcon,
-  ChatIcon,
-} from "@/components/icons";
 import Image from "next/image";
 
 export default function TaskFlowDashboard() {
@@ -70,10 +46,10 @@ export default function TaskFlowDashboard() {
   }, [router]);
 
   // --- STATES ---
-  const [activeTab, setActiveTab] = useState<"Command" | "Projects">("Command");
-  const [projectTab, setProjectTab] = useState<
-    "Tasks" | "Timeline" | "Files" | "Team"
-  >("Timeline");
+  const [activeTab, setActiveTab] = useState<'Command' | 'Projects'>('Command');
+  const [projectTab, setProjectTab] = useState<'Tasks' | 'Timeline' | 'Files' | 'Team'>('Timeline');
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
   // Dashboard states
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isQueueExpanded, setIsQueueExpanded] = useState(false);
@@ -105,50 +81,36 @@ export default function TaskFlowDashboard() {
         }}
       >
         {/* Column 1: TO DO */}
-        <div className="w-80 flex flex-col gap-4 bg-white/50 backdrop-blur-sm p-2 rounded-2xl">
-          <h3 className="font-bold text-xs tracking-widest text-slate-400 uppercase flex items-center justify-between px-2">
-            To Do{" "}
-            <span className="bg-slate-200 text-slate-600 px-2 rounded-md">
-              4
-            </span>
-          </h3>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3 cursor-pointer hover:shadow-md transition-shadow">
-            <span className="text-[10px] font-bold text-[#FF8B5E] bg-[#FFF2DE] w-max px-2 py-1 rounded-md uppercase">
-              High Priority
-            </span>
-            <h4 className="font-bold text-slate-800">
-              User Onboarding Flow Sketches
-            </h4>
-            <p className="text-xs text-slate-500 line-clamp-2">
-              Initial wireframes for the new login sequence including social
-              auth.
-            </p>
-          </div>
-        </div>
+        <BoardList title="To Do" count={4}>
+          <BoardCard
+            tagLabel="High Priority"
+            tagColorClass="text-[#FF8B5E]"
+            tagBgClass="bg-[#FFF2DE]"
+            title="User Onboarding Flow Sketches"
+            description="Initial wireframes for the new login sequence including social auth."
+          />
+        </BoardList>
 
         {/* Column 2: IN PROGRESS */}
-        <div className="w-80 flex flex-col gap-4 bg-white/50 backdrop-blur-sm p-2 rounded-2xl border-l-2 border-[#28B8FA]">
-          <h3 className="font-bold text-xs tracking-widest text-[#28B8FA] uppercase flex items-center justify-between px-2">
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-[#28B8FA] rounded-full"></div> In
-              Progress
-            </span>
-            <span className="bg-[#EAF7FF] text-[#28B8FA] px-2 rounded-md">
-              2
-            </span>
-          </h3>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4 border-t-4 border-t-[#28B8FA] cursor-pointer hover:shadow-md transition-shadow">
-            <span className="text-[10px] font-bold text-[#34D399] bg-[#D1FAE5] w-max px-2 py-1 rounded-md uppercase">
-              Dev
-            </span>
-            <h4 className="font-bold text-slate-800">
-              Home Screen React Components
-            </h4>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-[#28B8FA] w-[60%] h-full"></div>
-            </div>
-          </div>
-        </div>
+        <BoardList
+          title="In Progress"
+          count={2}
+          containerClass="border-l-2 border-[#28B8FA]"
+          titleClass="text-[#28B8FA]"
+          badgeClass="bg-[#EAF7FF] text-[#28B8FA]"
+          showDot={true}
+          dotClass="bg-[#28B8FA]"
+        >
+          <BoardCard
+            tagLabel="Dev"
+            tagColorClass="text-[#34D399]"
+            tagBgClass="bg-[#D1FAE5]"
+            title="Home Screen React Components"
+            progressValue={60}
+            progressColorClass="bg-[#28B8FA]"
+            containerClass="border-t-4 border-t-[#28B8FA]"
+          />
+        </BoardList>
       </div>
     </div>
   );
@@ -515,6 +477,48 @@ export default function TaskFlowDashboard() {
     </div>
   );
 
+  const renderAllProjects = () => (
+    <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {[
+          { id: '1', title: 'Orbital Launch System', progress: 75, color: '#FF8B5E', tag: 'Core', team: 5 },
+          { id: '2', title: 'Nebula Launch', progress: 45, color: '#28B8FA', tag: 'Marketing', team: 3 },
+          { id: '3', title: 'Q4 Website Redesign', progress: 90, color: '#34D399', tag: 'Design', team: 4 },
+        ].map(proj => (
+          <div key={proj.id} onClick={() => setSelectedProject(proj.title)} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <span className={`text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase`} style={{ backgroundColor: proj.color }}>{proj.tag}</span>
+              <button className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 h-max transition-colors"><MoreIcon /></button>
+            </div>
+            <h3 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-[#28B8FA] transition-colors tracking-tight">{proj.title}</h3>
+            <p className="text-sm text-slate-500 font-medium mb-8 flex-1 leading-relaxed">A comprehensive sub-project focusing on delivering specific objectives for the next sprint iteration.</p>
+            <div className="w-full mb-8">
+              <div className="flex justify-between text-xs font-bold mb-3"><span className="text-slate-500">Progress</span><span style={{ color: proj.color }}>{proj.progress}%</span></div>
+              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${proj.progress}%`, backgroundColor: proj.color }}></div></div>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+              <div className="flex -space-x-2">
+                {Array.from({ length: proj.team }).map((_, i) => (
+                  <img key={i} src={`https://api.dicebear.com/7.x/notionists/svg?seed=P${proj.id}${i}`} className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm" alt="Team" />
+                ))}
+              </div>
+              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#28B8FA] group-hover:text-white transition-colors shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Create New Project Card */}
+        <div className="bg-transparent rounded-[2rem] p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[300px] group h-full">
+          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform"><PlusIcon /></div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">New Portfolio</h3>
+          <p className="text-sm text-slate-400 font-medium px-4">Start a fresh collaborative team workspace.</p>
+        </div>
+      </div>
+    </div>
+  );
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -640,34 +644,23 @@ export default function TaskFlowDashboard() {
             ) : (
               <>
                 {/* Project Context Breadcrumbs */}
-                {projectTab === "Timeline" && (
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                    <span className="text-[#34D399] bg-[#D1FAE5] px-2 py-0.5 rounded-md mr-2">
-                      ON TRACK
-                    </span>{" "}
-                    Sprint 4 • Oct 15 - Nov 15
-                  </p>
-                )}
-                {projectTab === "Files" && (
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                    PROJECT <span className="text-[#28B8FA] mx-1">/</span>{" "}
-                    WEBSITE REDESIGN
-                  </p>
-                )}
-                {(projectTab === "Team" || projectTab === "Tasks") && (
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                    <span className="text-[#28B8FA]">ACTIVE SPRINT</span>{" "}
-                    <span className="mx-2 text-slate-300">&gt;</span> Q4
-                    INITIATIVES
-                  </p>
+                {selectedProject ? (
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"><span className="text-[#28B8FA]">ACTIVE SPRINT</span> <span className="mx-2 text-slate-300">&gt;</span> Q4 INITIATIVES</p>
+                ) : (
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"><span className="text-[#34D399]">PORTFOLIO</span> <span className="mx-2 text-slate-300">&gt;</span> OVERVIEW</p>
                 )}
 
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {projectTab === "Timeline"
-                    ? "Nebula Launch"
-                    : projectTab === "Files"
-                      ? "Q4 Website Redesign"
-                      : "Orbital Launch System"}
+                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                  {selectedProject ? (
+                    <>
+                      <button onClick={() => setSelectedProject(null)} className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1" title="Back to all projects">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                      </button>
+                      {selectedProject}
+                    </>
+                  ) : (
+                    'All Projects'
+                  )}
                 </h1>
               </>
             )}
@@ -742,7 +735,7 @@ export default function TaskFlowDashboard() {
             )}
 
             {/* Project Buttons (Only visible in Projects Tab) */}
-            {activeTab === "Projects" && (
+            {activeTab === 'Projects' && selectedProject && (
               <>
                 {projectTab === "Files" && (
                   <div className="flex -space-x-2 mr-4">
@@ -1006,63 +999,45 @@ export default function TaskFlowDashboard() {
         ) : (
           /* --- PROJECTS TAB CONTENT --- */
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Project Sub-Tabs */}
-            <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
-              {PROJECT_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setProjectTab(tab)}
-                  className={`pb-4 font-bold text-sm transition-colors relative ${projectTab === tab ? "text-[#28B8FA]" : "text-slate-400 hover:text-slate-600"}`}
-                >
-                  {tab}
-                  {projectTab === tab && (
-                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#28B8FA] rounded-t-full"></div>
-                  )}
-                </button>
-              ))}
-            </div>
+            {!selectedProject ? (
+              renderAllProjects()
+            ) : (
+              <>
+                {/* Project Sub-Tabs */}
+                <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
+                  {['Tasks', 'Timeline', 'Files', 'Team'].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setProjectTab(tab as any)}
+                      className={`pb-4 font-bold text-sm transition-colors relative ${projectTab === tab ? 'text-[#28B8FA]' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {tab}
+                      {projectTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#28B8FA] rounded-t-full"></div>}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Project Dynamic View */}
-            <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10">
-              {projectTab === "Tasks" && renderTasksBoard()}
-              {projectTab === "Timeline" && renderTimeline()}
-              {projectTab === "Files" && renderFiles()}
-              {projectTab === "Team" && renderTeam()}
-            </div>
+                {/* Project Dynamic View */}
+                <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10">
+                  {projectTab === 'Tasks' && renderTasksBoard()}
+                  {projectTab === 'Timeline' && renderTimeline()}
+                  {projectTab === 'Files' && renderFiles()}
+                  {projectTab === 'Team' && renderTeam()}
+                </div>
+              </>
+            )}
           </div>
         )}
 
         {/* FLOATING ACTION BUTTON (DYNAMIC) */}
-        {activeTab === "Projects" ? (
-          <button
-            className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
-              projectTab === "Timeline"
-                ? "bg-[#1E293B] shadow-slate-400"
-                : projectTab === "Files"
-                  ? "bg-[#34D399] shadow-emerald-200"
-                  : "bg-[#34D399] shadow-emerald-200"
-            }`}
-          >
-            {projectTab === "Timeline" ? (
-              <ChatIcon />
-            ) : projectTab === "Files" ? (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-            ) : (
-              <PlusIcon />
-            )}
+        {activeTab === 'Projects' && selectedProject ? (
+          <button className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === 'Timeline' ? 'bg-[#1E293B] shadow-slate-400' :
+            projectTab === 'Files' ? 'bg-[#34D399] shadow-emerald-200' :
+              'bg-[#34D399] shadow-emerald-200'
+            }`}>
+            {projectTab === 'Timeline' ? <ChatIcon /> :
+              projectTab === 'Files' ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> :
+                <PlusIcon />}
           </button>
         ) : (
           <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
