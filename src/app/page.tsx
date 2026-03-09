@@ -58,12 +58,27 @@ export default function TaskFlowDashboard() {
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [selectedColor, setSelectedColor] = useState('#FF8B5E');
+  const [projectDeadline, setProjectDeadline] = useState('');
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
 
   // Toggle Tag in Modal
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
+  };
+
+  const handleCreateProject = () => {
+    // Handle project creation logic here
+    console.log('Creating project:', { projectName, selectedColor, projectDeadline, selectedTeamMembers });
+    setIsCreateProjectOpen(false);
+    setProjectName('');
+    setSelectedColor('#FF8B5E');
+    setProjectDeadline('');
+    setSelectedTeamMembers([]);
   };
 
   const visibleTasks = isQueueExpanded ? TASKS : TASKS.slice(0, 3);
@@ -510,7 +525,7 @@ export default function TaskFlowDashboard() {
         ))}
 
         {/* Create New Project Card */}
-        <div className="bg-transparent rounded-[2rem] p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[300px] group h-full">
+        <div onClick={() => setIsCreateProjectOpen(true)} className="bg-transparent rounded-[2rem] p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[300px] group h-full">
           <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform"><PlusIcon /></div>
           <h3 className="text-xl font-bold text-slate-800 mb-2">New Portfolio</h3>
           <p className="text-sm text-slate-400 font-medium px-4">Start a fresh collaborative team workspace.</p>
@@ -1127,6 +1142,110 @@ export default function TaskFlowDashboard() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE PROJECT MODAL */}
+      {isCreateProjectOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
+          {/* Modal Container */}
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-2 relative mx-4 animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setIsCreateProjectOpen(false);
+                setProjectName('');
+                setSelectedColor('#FF8B5E');
+                setProjectDeadline('');
+                setSelectedTeamMembers([]);
+              }}
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <XIcon />
+            </button>
+
+            <div className="p-8 flex flex-col gap-6">
+              {/* Title */}
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Create New Project</h2>
+                <p className="text-sm text-slate-400 font-medium">Let's set up your next win.</p>
+              </div>
+
+              {/* Project Name Input */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Project Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Q4 Brand Sprint"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors"
+                />
+              </div>
+
+              {/* Accent Color Selector */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Accent Color</label>
+                <div className="flex gap-3">
+                  {['#FF8B5E', '#28B8FA', '#34D399', '#FBBF24'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-10 h-10 rounded-full transition-transform ${selectedColor === color ? 'scale-110 ring-2 ring-offset-2' : 'hover:scale-105'}`}
+                      style={{
+                        backgroundColor: color,
+                      }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Deadline Input */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Set Deadline</label>
+                <input
+                  type="date"
+                  value={projectDeadline}
+                  onChange={(e) => setProjectDeadline(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#FF8B5E] transition-colors"
+                />
+              </div>
+
+              {/* Team Members */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Assign Team Members</label>
+                <div className="flex items-center gap-2">
+                  {selectedTeamMembers.map((member, idx) => (
+                    <img
+                      key={idx}
+                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${member}`}
+                      alt="Team member"
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                    />
+                  ))}
+                  <button
+                    onClick={() => setSelectedTeamMembers([...selectedTeamMembers, `member${Date.now()}`])}
+                    className="w-10 h-10 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 hover:border-[#FF8B5E] hover:text-[#FF8B5E] transition-colors"
+                    title="Add team member"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Launch Project Button */}
+              <button
+                onClick={handleCreateProject}
+                className="w-full py-3 rounded-full bg-gradient-to-r from-[#FF8B5E] to-[#FFB088] text-white font-bold text-base hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 mt-4"
+              >
+                Launch Project
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
