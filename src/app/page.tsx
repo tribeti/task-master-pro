@@ -10,6 +10,20 @@ import { BoltIcon, GridIcon, ChartIcon, RocketIcon, SettingsIcon, SunIcon, PlusI
 import { User } from "@supabase/supabase-js";
 import Image from "next/image";
 
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+  <button
+    type="button"
+    onClick={onChange}
+    className={`w-14 h-8 rounded-full transition-colors flex items-center px-1 ${checked ? "bg-[#34D399]" : "bg-slate-200"
+      }`}
+  >
+    <div
+      className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${checked ? "translate-x-6" : "translate-x-0"
+        }`}
+    ></div>
+  </button>
+);
+
 export default function TaskFlowDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -46,9 +60,15 @@ export default function TaskFlowDashboard() {
   }, [router]);
 
   // --- STATES ---
-  const [activeTab, setActiveTab] = useState<'Command' | 'Projects'>('Command');
+  const [activeTab, setActiveTab] = useState<'Command' | 'Projects' | 'Config'>('Command');
   const [projectTab, setProjectTab] = useState<'Tasks' | 'Timeline' | 'Files' | 'Team'>('Timeline');
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
+  // Settings states
+  const [fanfareAlert, setFanfareAlert] = useState(true);
+  const [visualRewards, setVisualRewards] = useState(true);
+  const [dailyDigest, setDailyDigest] = useState(false);
+  const [themeSetting, setThemeSetting] = useState<'energetic' | 'cozy'>('energetic');
 
   // Dashboard states
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -519,6 +539,312 @@ export default function TaskFlowDashboard() {
     </div>
   );
 
+  const renderConfig = () => (
+    <div className="flex-1 overflow-y-auto px-10 pb-20 mt-6 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column Strategy: Profile Info */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-32 bg-slate-50 border-b border-slate-100/50"></div>
+
+            {/* Avatar Section */}
+            <div className="relative mb-5 mt-8 z-10 w-28 h-28">
+              <div className="w-full h-full rounded-[2rem] bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden">
+                <img
+                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"
+                    }`}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <button className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] hover:scale-105 transition-transform z-20">
+                <EditIcon className="w-4 h-4 text-[#28B8FA]" />
+              </button>
+            </div>
+
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10">
+              {user?.user_metadata?.full_name ||
+                user?.email?.split("@")[0] ||
+                "Alex Morgan"}
+            </h2>
+            <p className="text-[10px] font-bold text-[#34D399] tracking-widest uppercase mt-1 mb-8 z-10">
+              Peak Flow Master
+            </p>
+
+            <div className="w-full space-y-4 z-10">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                  defaultValue={
+                    user?.user_metadata?.full_name ||
+                    user?.email?.split("@")[0] ||
+                    "Alex Morgan"
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
+                  Title / Role
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                  defaultValue="Product Designer"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                  defaultValue={user?.email || "alex@taskflow.com"}
+                  disabled
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer hover:bg-red-50/50 hover:border-red-100 transition-colors group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                <TrashIcon />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Danger Zone
+                </h3>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">
+                  Delete account
+                </p>
+              </div>
+            </div>
+            <div className="text-slate-300 group-hover:text-red-400 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column Strategy: Notification Vibes & Theme Settings */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-5 mb-10">
+              <div className="w-14 h-14 rounded-[1.25rem] bg-[#D1FAE5] flex items-center justify-center text-[#34D399]">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Notification Vibes
+                </h2>
+                <p className="text-sm font-medium text-slate-500 mt-0.5">
+                  Control your dopamine hits
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-base">
+                    Completion Fanfare
+                  </h4>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    Play a satisfying sound when a task is checked.
+                  </p>
+                </div>
+                <Toggle
+                  checked={fanfareAlert}
+                  onChange={() => setFanfareAlert(!fanfareAlert)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 pt-8">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-base">
+                    Visual Rewards
+                  </h4>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    Show confetti and starbursts for major milestones.
+                  </p>
+                </div>
+                <Toggle
+                  checked={visualRewards}
+                  onChange={() => setVisualRewards(!visualRewards)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 pt-8">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-base">
+                    Daily Digest
+                  </h4>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    Receive a morning summary of your goals.
+                  </p>
+                </div>
+                <Toggle
+                  checked={dailyDigest}
+                  onChange={() => setDailyDigest(!dailyDigest)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 flex-1">
+            <div className="flex items-center gap-5 mb-10">
+              <div className="w-14 h-14 rounded-[1.25rem] bg-[#FFF2DE] flex items-center justify-center text-[#FF8B5E]">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Theme Sync
+                </h2>
+                <p className="text-sm font-medium text-slate-500 mt-0.5">
+                  Match the interface to your mental state
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Theme 1: Energetic Flow */}
+              <div
+                onClick={() => setThemeSetting("energetic")}
+                className={`border-[3px] rounded-[2rem] p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "energetic"
+                    ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
+                    : "border-slate-100 hover:border-slate-200"
+                  }`}
+              >
+                <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
+                  <div className="w-full flex items-center justify-between mb-2.5">
+                    <div className="w-16 h-2.5 bg-[#28B8FA] rounded-full opacity-80"></div>
+                    <div className="px-2 py-0.5 bg-[#28B8FA] text-white text-[7px] font-black tracking-widest uppercase rounded">
+                      ACTIVE
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-center mt-auto pb-1 px-1">
+                    <div className="w-7 h-7 rounded-full bg-[#34D399]"></div>
+                    <div className="flex-1 h-5 bg-slate-50 border-[1.5px] border-slate-100 rounded-lg"></div>
+                  </div>
+                  <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
+                    <span className="text-[7px] font-black text-slate-400 tracking-[0.2em]">
+                      ENERGETIC
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between w-full mt-auto">
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-base">
+                      Energetic Flow
+                    </h4>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                      High contrast, vibrant
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "energetic"
+                        ? "border-[#28B8FA]"
+                        : "border-slate-200"
+                      }`}
+                  >
+                    {themeSetting === "energetic" && (
+                      <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Theme 2: Cozy Focus */}
+              <div
+                onClick={() => setThemeSetting("cozy")}
+                className={`border-[3px] rounded-[2rem] p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "cozy"
+                    ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
+                    : "border-slate-100 hover:border-slate-200"
+                  }`}
+              >
+                <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
+                  <div className="w-full flex items-center justify-between mb-2">
+                    <div className="w-16 h-2.5 bg-slate-600 rounded-full opacity-60"></div>
+                  </div>
+                  <div className="flex gap-3 items-center mt-auto pb-1 px-1">
+                    <div className="w-7 h-7 rounded-full bg-[#FF8B5E]"></div>
+                    <div className="flex-1 h-5 bg-[#0F172A] rounded-lg"></div>
+                  </div>
+                  <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
+                    <span className="text-[7px] font-black text-slate-500 tracking-[0.2em]">
+                      COZY MODE
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between w-full mt-auto">
+                  <div>
+                    <h4
+                      className={`font-extrabold text-base ${themeSetting === "cozy"
+                          ? "text-white"
+                          : "text-slate-900"
+                        }`}
+                    >
+                      Cozy Focus
+                    </h4>
+                    <p
+                      className={`text-[10px] font-bold mt-0.5 ${themeSetting === "cozy"
+                          ? "text-slate-400"
+                          : "text-slate-500"
+                        }`}
+                    >
+                      Dark mode, warmer tones
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "cozy"
+                        ? "border-[#FF8B5E]"
+                        : "border-slate-200"
+                      }`}
+                  >
+                    {themeSetting === "cozy" && (
+                      <div className="w-2.5 h-2.5 bg-[#FF8B5E] rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -572,52 +898,38 @@ export default function TaskFlowDashboard() {
           </nav>
         </div>
 
-        <div className="px-4 pb-6 flex flex-col gap-4">
-          <button className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition-colors text-left">
+        <div className="px-4 pb-6 flex flex-col gap-2 border-t border-slate-100 pt-5">
+          <button
+            onClick={() => setActiveTab("Config")}
+            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${activeTab === "Config"
+                ? "bg-[#EAF7FF] text-[#28B8FA]"
+                : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
+              }`}
+          >
             <SettingsIcon /> Config
           </button>
 
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 transition-colors">
-            <div className="flex items-center gap-3 cursor-pointer group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full bg-slate-200 group-hover:scale-105 transition-transform"
-              />
-              <div className="flex flex-col text-left">
-                <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">
-                  {user?.user_metadata?.full_name ||
-                    user?.email?.split("@")[0] ||
-                    "User"}
-                </span>
-                <span className="text-[10px] font-bold text-[#34D399] tracking-wider uppercase">
-                  Peak Flow
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="text-slate-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2 rounded-xl border border-slate-100 shadow-sm"
-              title="Log out"
+          <button
+            onClick={handleLogout}
+            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors text-slate-400 hover:text-red-500 hover:bg-red-50`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </button>
-          </div>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Log Out
+          </button>
         </div>
       </aside>
 
@@ -639,6 +951,15 @@ export default function TaskFlowDashboard() {
                   Daily productivity is at{" "}
                   <span className="text-[#34D399] font-bold">84%</span>.
                   You&apos;re crushing it!
+                </p>
+              </>
+            ) : activeTab === "Config" ? (
+              <>
+                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Configuration & Settings
+                </h1>
+                <p className="text-slate-500 text-sm mt-1.5 font-medium">
+                  Customize your <span className="text-[#28B8FA] font-bold">Energetic Command Center</span> experience.
                 </p>
               </>
             ) : (
@@ -713,8 +1034,8 @@ export default function TaskFlowDashboard() {
                       console.log("Fetched data:", data);
                       alert(
                         "Fetched " +
-                          (data?.length || 0) +
-                          " tasks. Check console.",
+                        (data?.length || 0) +
+                        " tasks. Check console.",
                       );
                     }
                   }}
@@ -732,6 +1053,14 @@ export default function TaskFlowDashboard() {
                   <span className="text-sm font-semibold">Quick Entry</span>
                 </button>
               </>
+            )}
+
+            {/* Config Save Button */}
+            {activeTab === "Config" && (
+              <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg shadow-orange-300/30 flex items-center gap-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Save Changes
+              </button>
             )}
 
             {/* Project Buttons (Only visible in Projects Tab) */}
@@ -996,6 +1325,8 @@ export default function TaskFlowDashboard() {
               </div>
             </div>
           </div>
+        ) : activeTab === "Config" ? (
+          renderConfig()
         ) : (
           /* --- PROJECTS TAB CONTENT --- */
           <div className="flex-1 flex flex-col overflow-hidden">
