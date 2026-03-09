@@ -40,7 +40,7 @@ export default function TaskFlowAuth() {
     setIsLoading(false);
   };
 
-  const handleEmailLogin = async (e: React.SubmitEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
@@ -53,7 +53,7 @@ export default function TaskFlowAuth() {
     setIsLoading(false);
   };
 
-  const handleRegister = async (e: React.SubmitEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
