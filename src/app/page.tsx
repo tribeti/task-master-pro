@@ -160,7 +160,7 @@ export default function TaskMasterLandingPage() {
             </div>
 
             {/* Floating Widget 2: Gamification XP */}
-            <div className="absolute -right-4 sm:-right-12 bottom-20 bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] p-6 rounded-[2rem] shadow-xl shadow-orange-200 text-white animate-[floatUp_5s_ease-in-out_infinite_alternate_reverse]">
+            <div className="absolute -right-4 sm:-right-12 bottom-20 bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] p-6 rounded-4xl shadow-xl shadow-orange-200 text-white animate-[floatUp_5s_ease-in-out_infinite_alternate_reverse]">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                   <ZapIcon />

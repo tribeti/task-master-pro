@@ -64,52 +64,6 @@ export default function CommandPage() {
                         </span>
                     </div>
                     <button
-                        onClick={async () => {
-                            const { data, error } = await supabase
-                                .from("tasks")
-                                .insert([
-                                    {
-                                        title: "Test Task from Next.js",
-                                        description: "Mô tả test tự động",
-                                        position: 1,
-                                    },
-                                ])
-                                .select();
-                            if (error) {
-                                console.error("Insert error:", error);
-                                alert("Insert failed: " + error.message);
-                            } else {
-                                console.log("Inserted data:", data);
-                                alert("Inserted successfully! Check console.");
-                            }
-                        }}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                    >
-                        <span className="text-sm font-semibold">Test DB Insert</span>
-                    </button>
-                    <button
-                        onClick={async () => {
-                            const { data, error } = await supabase
-                                .from("tasks")
-                                .select("*")
-                                .limit(5);
-                            if (error) {
-                                console.error("Fetch error:", error);
-                                alert("Fetch failed: " + error.message);
-                            } else {
-                                console.log("Fetched data:", data);
-                                alert(
-                                    "Fetched " +
-                                    (data?.length || 0) +
-                                    " tasks. Check console.",
-                                );
-                            }
-                        }}
-                        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                    >
-                        <span className="text-sm font-semibold">Test DB Fetch</span>
-                    </button>
-                    <button
                         onClick={() => setIsQuickEntryOpen(true)}
                         className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 transition-colors text-white px-5 py-2.5 rounded-full shadow-md shadow-slate-300"
                     >
