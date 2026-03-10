@@ -1,1109 +1,566 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import React from "react";
 import { useRouter } from "next/navigation";
-import { TASKS } from "@/lib/constants";
 import {
   BoltIcon,
   GridIcon,
-  ChartIcon,
-  RocketIcon,
-  SettingsIcon,
-  SunIcon,
-  PlusIcon,
-  LinkIcon,
   CheckIcon,
-  MoreIcon,
-  PauseIcon,
-  EditIcon,
-  AlertIcon,
-  TrashIcon,
-  XIcon,
-  BriefcaseIcon,
   ZapIcon,
-  ChevronUp,
-  UserIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  UsersIcon,
+  FlameIcon,
+  TrophyIcon,
 } from "@/components/icons";
-import { User } from "@supabase/supabase-js";
-import Link from "next/link";
 
-const Toggle = ({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) => (
-  <button
-    type="button"
-    onClick={onChange}
-    className={`w-14 h-8 rounded-full transition-colors flex items-center px-1 ${
-      checked ? "bg-[#34D399]" : "bg-slate-200"
-    }`}
-  >
-    <div
-      className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${
-        checked ? "translate-x-6" : "translate-x-0"
-      }`}
-    ></div>
-  </button>
-);
-
-export default function TaskFlowDashboard() {
+export default function TaskMasterLandingPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/dashboard");
-      } else {
-        setUser(session.user);
-      }
-      setIsLoadingUser(false);
-    };
-    fetchSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_OUT" || !session) {
-          router.push("/dashboard");
-        } else {
-          setUser(session.user);
-        }
-      },
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router]);
-
-  // --- STATES ---
-  const [activeTab, setActiveTab] = useState<"Command" | "Config">("Command");
-
-  // Settings states
-  const [fanfareAlert, setFanfareAlert] = useState(true);
-  const [visualRewards, setVisualRewards] = useState(true);
-  const [dailyDigest, setDailyDigest] = useState(false);
-  const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">(
-    "energetic",
-  );
-
-  // Dashboard states
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [isQueueExpanded, setIsQueueExpanded] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-
-  // Modal states
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [selectedColor, setSelectedColor] = useState('#FF8B5E');
-  const [projectDeadline, setProjectDeadline] = useState('');
-  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
-
-  // Toggle Tag in Modal
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  };
-
-  const handleCreateProject = () => {
-    // Handle project creation logic here
-    console.log('Creating project:', { projectName, selectedColor, projectDeadline, selectedTeamMembers });
-    setIsCreateProjectOpen(false);
-    setProjectName('');
-    setSelectedColor('#FF8B5E');
-    setProjectDeadline('');
-    setSelectedTeamMembers([]);
-  };
-
-  const visibleTasks = isQueueExpanded ? TASKS : TASKS.slice(0, 3);
-
-  const renderConfig = () => (
-    <div className="flex-1 overflow-y-auto px-10 pb-20 mt-6 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column Strategy: Profile Info */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-32 bg-slate-50 border-b border-slate-100/50"></div>
-
-            {/* Avatar Section */}
-            <div className="relative mb-5 mt-8 z-10 w-28 h-28">
-              <div className="w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden">
-                <img
-                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${
-                    user?.email || "User"
-                  }`}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] hover:scale-105 transition-transform z-20">
-                <EditIcon className="w-4 h-4 text-[#28B8FA]" />
-              </button>
-            </div>
-
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10">
-              {user?.user_metadata?.full_name ||
-                user?.email?.split("@")[0] ||
-                "Alex Morgan"}
-            </h2>
-            <p className="text-[10px] font-bold text-[#34D399] tracking-widest uppercase mt-1 mb-8 z-10">
-              Peak Flow Master
-            </p>
-
-            <div className="w-full space-y-4 z-10">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                  defaultValue={
-                    user?.user_metadata?.full_name ||
-                    user?.email?.split("@")[0] ||
-                    "Alex Morgan"
-                  }
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
-                  Title / Role
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                  defaultValue="Product Designer"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                  defaultValue={user?.email || "alex@taskflow.com"}
-                  disabled
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer hover:bg-red-50/50 hover:border-red-100 transition-colors group">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
-                <TrashIcon />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">
-                  Danger Zone
-                </h3>
-                <p className="text-xs font-medium text-slate-500 mt-0.5">
-                  Delete account
-                </p>
-              </div>
-            </div>
-            <div className="text-slate-300 group-hover:text-red-400 transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column Strategy: Notification Vibes & Theme Settings */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-5 mb-10">
-              <div className="w-14 h-14 rounded-[1.25rem] bg-[#D1FAE5] flex items-center justify-center text-[#34D399]">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Notification Vibes
-                </h2>
-                <p className="text-sm font-medium text-slate-500 mt-0.5">
-                  Control your dopamine hits
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">
-                    Completion Fanfare
-                  </h4>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
-                    Play a satisfying sound when a task is checked.
-                  </p>
-                </div>
-                <Toggle
-                  checked={fanfareAlert}
-                  onChange={() => setFanfareAlert(!fanfareAlert)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-8">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">
-                    Visual Rewards
-                  </h4>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
-                    Show confetti and starbursts for major milestones.
-                  </p>
-                </div>
-                <Toggle
-                  checked={visualRewards}
-                  onChange={() => setVisualRewards(!visualRewards)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-8">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">
-                    Daily Digest
-                  </h4>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
-                    Receive a morning summary of your goals.
-                  </p>
-                </div>
-                <Toggle
-                  checked={dailyDigest}
-                  onChange={() => setDailyDigest(!dailyDigest)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 flex-1">
-            <div className="flex items-center gap-5 mb-10">
-              <div className="w-14 h-14 rounded-[1.25rem] bg-[#FFF2DE] flex items-center justify-center text-[#FF8B5E]">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Theme Sync
-                </h2>
-                <p className="text-sm font-medium text-slate-500 mt-0.5">
-                  Match the interface to your mental state
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Theme 1: Energetic Flow */}
-              <div
-                onClick={() => setThemeSetting("energetic")}
-                className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
-                  themeSetting === "energetic"
-                    ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
-                    : "border-slate-100 hover:border-slate-200"
-                }`}
-              >
-                <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
-                  <div className="w-full flex items-center justify-between mb-2.5">
-                    <div className="w-16 h-2.5 bg-[#28B8FA] rounded-full opacity-80"></div>
-                    <div className="px-2 py-0.5 bg-[#28B8FA] text-white text-[7px] font-black tracking-widest uppercase rounded">
-                      ACTIVE
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-center mt-auto pb-1 px-1">
-                    <div className="w-7 h-7 rounded-full bg-[#34D399]"></div>
-                    <div className="flex-1 h-5 bg-slate-50 border-[1.5px] border-slate-100 rounded-lg"></div>
-                  </div>
-                  <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
-                    <span className="text-[7px] font-black text-slate-400 tracking-[0.2em]">
-                      ENERGETIC
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between w-full mt-auto">
-                  <div>
-                    <h4 className="font-extrabold text-slate-900 text-base">
-                      Energetic Flow
-                    </h4>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                      High contrast, vibrant
-                    </p>
-                  </div>
-                  <div
-                    className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
-                      themeSetting === "energetic"
-                        ? "border-[#28B8FA]"
-                        : "border-slate-200"
-                    }`}
-                  >
-                    {themeSetting === "energetic" && (
-                      <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full"></div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Theme 2: Cozy Focus */}
-              <div
-                onClick={() => setThemeSetting("cozy")}
-                className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
-                  themeSetting === "cozy"
-                    ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
-                    : "border-slate-100 hover:border-slate-200"
-                }`}
-              >
-                <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
-                  <div className="w-full flex items-center justify-between mb-2">
-                    <div className="w-16 h-2.5 bg-slate-600 rounded-full opacity-60"></div>
-                  </div>
-                  <div className="flex gap-3 items-center mt-auto pb-1 px-1">
-                    <div className="w-7 h-7 rounded-full bg-[#FF8B5E]"></div>
-                    <div className="flex-1 h-5 bg-[#0F172A] rounded-lg"></div>
-                  </div>
-                  <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
-                    <span className="text-[7px] font-black text-slate-500 tracking-[0.2em]">
-                      COZY MODE
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between w-full mt-auto">
-                  <div>
-                    <h4
-                      className={`font-extrabold text-base ${
-                        themeSetting === "cozy"
-                          ? "text-white"
-                          : "text-slate-900"
-                      }`}
-                    >
-                      Cozy Focus
-                    </h4>
-                    <p
-                      className={`text-[10px] font-bold mt-0.5 ${
-                        themeSetting === "cozy"
-                          ? "text-slate-400"
-                          : "text-slate-500"
-                      }`}
-                    >
-                      Dark mode, warmer tones
-                    </p>
-                  </div>
-                  <div
-                    className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
-                      themeSetting === "cozy"
-                        ? "border-[#FF8B5E]"
-                        : "border-slate-200"
-                    }`}
-                  >
-                    {themeSetting === "cozy" && (
-                      <div className="w-2.5 h-2.5 bg-[#FF8B5E] rounded-full"></div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Create New Project Card */}
-        <div onClick={() => setIsCreateProjectOpen(true)} className="bg-transparent rounded-[2rem] p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[300px] group h-full">
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform"><PlusIcon /></div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">New Portfolio</h3>
-          <p className="text-sm text-slate-400 font-medium px-4">Start a fresh collaborative team workspace.</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  if (isLoadingUser) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex h-screen w-full bg-[#F8FAFC] font-sans overflow-hidden">
-      {/* 1. SIDEBAR */}
-      <aside className="w-auto bg-white border-r border-slate-100 flex flex-col justify-between md:flex z-10">
-        <div>
+    <div className="min-h-screen bg-[#F8FAFC] font-sans overflow-x-hidden selection:bg-[#28B8FA] selection:text-white">
+      {/* --- BACKGROUND PATTERN --- */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-40"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      ></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-200 h-100 bg-[#28B8FA] opacity-[0.08] blur-[120px] rounded-full pointer-events-none z-0"></div>
+
+      {/* --- NAVBAR --- */}
+      <nav className="fixed top-0 w-full z-50 bg-[#F8FAFC]/80 backdrop-blur-md border-b border-slate-200/50">
+        <div className="mx-auto px-6 h-20 flex items-center justify-between">
+          {/* LOGO CHUẨN TASKMASTER PRO */}
           <div
-            className="w-full h-24 flex items-center px-8 gap-3 cursor-pointer"
-            onClick={() => setActiveTab("Command")}
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => router.push("/")}
           >
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-[#28B8FA] flex items-center justify-center shadow-md shadow-cyan-200">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-[#28B8FA] flex items-center justify-center shadow-md shadow-cyan-500/30 transition-transform group-hover:scale-105">
               <BoltIcon />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-xl tracking-tight text-slate-900 italic">
+            <div className="flex items-center gap-1.5 focus:outline-none">
+              <span className="font-black text-xl tracking-tight text-slate-900 italic">
                 TASKMASTER
               </span>
-              <span className="font-bold text-black italic text-[10px] tracking-widest bg-linear-to-br from-cyan-400 to-cyan-600 px-1.5 py-0.5 rounded-md">
+              <span className="font-bold text-slate-900 italic text-[10px] tracking-widest bg-gradient-to-br from-cyan-300 to-[#28B8FA] px-1.5 py-0.5 rounded-md shadow-sm">
                 PRO
               </span>
             </div>
           </div>
 
-          <nav className="px-4 flex flex-col gap-2 mt-4">
-            <button
-              onClick={() => setActiveTab("Command")}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${activeTab === "Command" ? "bg-[#EAF7FF] text-[#28B8FA]" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
+          <div className="hidden md:flex items-center gap-8 font-bold text-sm text-slate-500">
+            <a
+              href="#features"
+              className="hover:text-slate-900 transition-colors"
             >
-              <GridIcon /> Command
-            </button>
-            <button className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-              <ChartIcon /> Insights
-            </button>
-            <Link
-              href="/projects"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              Features
+            </a>
+            <a
+              href="#gamification"
+              className="hover:text-slate-900 transition-colors"
             >
-              <RocketIcon /> Projects
-            </Link>
-          </nav>
-        </div>
-
-        <div className="px-4 pb-6 flex flex-col gap-2 border-t border-slate-100 pt-5">
-          <button
-            onClick={() => setActiveTab("Config")}
-            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${
-              activeTab === "Config"
-                ? "bg-[#EAF7FF] text-[#28B8FA]"
-                : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
-            }`}
-          >
-            <SettingsIcon /> Config
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors text-slate-400 hover:text-red-500 hover:bg-red-50`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              Gamification
+            </a>
+            <a
+              href="#pricing"
+              className="hover:text-slate-900 transition-colors"
             >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            Log Out
-          </button>
-        </div>
-      </aside>
-
-      {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto">
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#28B8FA] via-[#34D399] to-transparent absolute top-0 left-0 z-20"></div>
-
-        {/* DYNAMIC HEADER */}
-        <header
-          className={`px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 ${activeTab === "Command" ? "py-10" : "pt-10 pb-6"}`}
-        >
-          <div>
-            {activeTab === "Command" ? (
-              <>
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Command Center
-                </h1>
-                <p className="text-slate-500 text-sm mt-1.5 font-medium">
-                  Daily productivity is at{" "}
-                  <span className="text-[#34D399] font-bold">84%</span>.
-                  You&apos;re crushing it!
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Configuration &amp; Settings
-                </h1>
-                <p className="text-slate-500 text-sm mt-1.5 font-medium">
-                  Customize your{" "}
-                  <span className="text-[#28B8FA] font-bold">
-                    Energetic Command Center
-                  </span>{" "}
-                  experience.
-                </p>
-              </>
-            )}
+              Pricing
+            </a>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Supabase Test Buttons (Only visible in Command Tab) */}
-            {activeTab === "Command" && (
-              <>
-                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border border-slate-100 shadow-sm shadow-slate-200/50">
-                  <SunIcon />
-                  <span className="text-xs font-bold text-slate-800 tracking-wider">
-                    MORNING SESSION
-                  </span>
-                </div>
-                <button
-                  onClick={async () => {
-                    const { data, error } = await supabase
-                      .from("tasks")
-                      .insert([
-                        {
-                          title: "Test Task from Next.js",
-                          description: "Mô tả test tự động",
-                          position: 1,
-                        },
-                      ])
-                      .select();
-                    if (error) {
-                      console.error("Insert error:", error);
-                      alert("Insert failed: " + error.message);
-                    } else {
-                      console.log("Inserted data:", data);
-                      alert("Inserted successfully! Check console.");
-                    }
-                  }}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                >
-                  <span className="text-sm font-semibold">Test DB Insert</span>
-                </button>
-                <button
-                  onClick={async () => {
-                    const { data, error } = await supabase
-                      .from("tasks")
-                      .select("*")
-                      .limit(5);
-                    if (error) {
-                      console.error("Fetch error:", error);
-                      alert("Fetch failed: " + error.message);
-                    } else {
-                      console.log("Fetched data:", data);
-                      alert(
-                        "Fetched " +
-                          (data?.length || 0) +
-                          " tasks. Check console.",
-                      );
-                    }
-                  }}
-                  className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                >
-                  <span className="text-sm font-semibold">Test DB Fetch</span>
-                </button>
-                <button
-                  onClick={() => setIsQuickEntryOpen(true)}
-                  className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 transition-colors text-white px-5 py-2.5 rounded-full shadow-md shadow-slate-300"
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                    <PlusIcon />
-                  </div>
-                  <span className="text-sm font-semibold">Quick Entry</span>
-                </button>
-              </>
-            )}
-
-            {/* Config Save Button */}
-            {activeTab === "Config" && (
-              <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg shadow-orange-300/30 flex items-center gap-2.5">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Save Changes
-              </button>
-            )}
+            <button
+              onClick={() => router.push("/login")}
+              className="hidden sm:block font-bold text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => router.push("/login")}
+              className="bg-[#1E293B] hover:bg-slate-800 transition-transform hover:scale-105 text-white font-bold text-sm px-6 py-2.5 rounded-full shadow-lg shadow-slate-300"
+            >
+              Get Started
+            </button>
           </div>
-        </header>
+        </div>
+      </nav>
 
-        {/* CONTENT SWITCHER */}
-        {activeTab === "Command" ? (
-          /* --- COMMAND TAB CONTENT --- */
-          <div className="px-10 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* LEFT WIDGETS */}
-            <div className="lg:col-span-3 flex flex-col gap-6">
-              <div
-                className={`rounded-4xl p-6 shadow-sm border border-slate-100 relative overflow-hidden transition-colors duration-500 ${isTimerRunning ? "bg-blue-50/50" : "bg-white"}`}
-              >
-                {isTimerRunning && (
-                  <div className="absolute top-6 right-6 w-2.5 h-2.5 bg-[#28B8FA] rounded-full animate-pulse"></div>
-                )}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10"></div>
-                <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">
-                  Deep Focus
-                </h3>
-                <div
-                  className={`text-5xl font-black tracking-tighter mb-6 transition-colors ${isTimerRunning ? "text-[#28B8FA]" : "text-slate-800"}`}
-                >
-                  {isTimerRunning ? "23:59" : "24:00"}
-                </div>
-                <button
-                  onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${isTimerRunning ? "bg-[#FFF2DE] text-[#FF8B5E] shadow-orange-100 hover:bg-orange-100" : "bg-[#28B8FA] text-white shadow-cyan-200 hover:bg-cyan-400"}`}
-                >
-                  {isTimerRunning ? (
-                    <>
-                      <PauseIcon /> Pause Sprint
-                    </>
-                  ) : (
-                    "Start Sprint"
-                  )}
-                </button>
-              </div>
+      <main className="relative z-10 pt-32 pb-20">
+        {/* --- HERO SECTION --- */}
+        <section className="max-w-7xl mx-auto px-6 pt-12 pb-24 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></span>
+            <span className="text-xs font-bold text-slate-600 tracking-widest uppercase">
+              Task Master Pro 2.0 is live
+            </span>
+          </div>
 
-              <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
-                <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-6 w-full text-left">
-                  Energy Sync
-                </h3>
-                <div className="flex items-end gap-2 h-20 mb-4">
-                  <div className="w-6 h-8 bg-[#D1FAE5] rounded-t-md"></div>
-                  <div className="w-6 h-12 bg-[#D1FAE5] rounded-t-md"></div>
-                  <div className="w-6 h-20 bg-[#34D399] rounded-t-md shadow-sm shadow-emerald-200"></div>
-                  <div className="w-6 h-10 bg-[#D1FAE5] rounded-t-md"></div>
-                  <div className="w-6 h-6 bg-[#D1FAE5] rounded-t-md"></div>
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            Crush your tasks. <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#28B8FA] via-[#34D399] to-[#34D399]">
+              Achieve peak state.
+            </span>
+          </h1>
+
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+            The first project management tool that uses{" "}
+            <strong className="text-slate-800">gamification</strong> to turn
+            your daily workflow into a rewarding experience. Build streaks, earn
+            XP, and get things done.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-200">
+            <button
+              onClick={() => router.push("/login")}
+              className="w-full sm:w-auto bg-[#34D399] hover:bg-emerald-500 transition-all hover:scale-105 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl shadow-emerald-200 flex items-center justify-center gap-2"
+            >
+              Start Free Trial <ArrowRightIcon />
+            </button>
+            <button
+              onClick={() => router.push("/login")}
+              className="w-full sm:w-auto bg-white hover:bg-slate-50 transition-colors text-slate-700 font-bold text-lg px-8 py-4 rounded-full shadow-sm border border-slate-200 flex items-center justify-center gap-2"
+            >
+              View Demo
+            </button>
+          </div>
+
+          {/* Floating UI Elements (Hero Graphic) */}
+          <div className="relative mt-24 max-w-4xl mx-auto h-100 sm:h-125 w-full animate-in fade-in zoom-in duration-1000 delay-300">
+            {/* Main App Window Mockup */}
+            <div className="absolute inset-0 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+              <div className="h-1.5 w-full bg-linear-to-r from-[#28B8FA] to-[#34D399]"></div>
+              <div className="p-8 flex-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')]">
+                <div className="flex gap-6">
+                  <div className="w-1/3 h-64 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 p-4">
+                    <div className="w-1/2 h-4 bg-slate-200 rounded-full mb-4"></div>
+                    <div className="w-full h-24 bg-white rounded-xl shadow-sm mb-3"></div>
+                    <div className="w-full h-24 bg-white rounded-xl shadow-sm"></div>
+                  </div>
+                  <div className="w-1/3 h-64 bg-[#EAF7FF] rounded-2xl border-2 border-dashed border-[#28B8FA]/30 p-4">
+                    <div className="w-1/2 h-4 bg-[#28B8FA] rounded-full mb-4 opacity-50"></div>
+                    <div className="w-full h-24 bg-white rounded-xl shadow-sm border-l-4 border-[#28B8FA]"></div>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-[#34D399]">
-                  Peak state reached
-                </span>
               </div>
             </div>
 
-            {/* CENTER WIDGET */}
-            <div className="lg:col-span-6 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-bold text-slate-900">
-                  Primary Objectives
-                </h2>
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#FF8B5E]"></div>
-                  <div className="w-2 h-2 rounded-full bg-[#28B8FA]"></div>
-                  <div className="w-2 h-2 rounded-full bg-[#34D399]"></div>
+            {/* Floating Widget 1: Focus Timer */}
+            <div className="absolute -left-4 sm:-left-12 top-10 bg-white p-6 rounded-4xl shadow-xl border border-slate-100 animate-[floatUp_4s_ease-in-out_infinite_alternate]">
+              <h3 className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">
+                Deep Focus
+              </h3>
+              <div className="text-4xl font-black text-[#28B8FA] tracking-tighter mb-4">
+                24:00
+              </div>
+              <div className="w-32 h-10 bg-slate-100 rounded-xl"></div>
+            </div>
+
+            {/* Floating Widget 2: Gamification XP */}
+            <div className="absolute -right-4 sm:-right-12 bottom-20 bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] p-6 rounded-[2rem] shadow-xl shadow-orange-200 text-white animate-[floatUp_5s_ease-in-out_infinite_alternate_reverse]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <ZapIcon />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-white/80">
+                    Current Streak
+                  </p>
+                  <p className="text-3xl font-black tracking-tighter">
+                    12 Days
+                  </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="flex flex-col gap-2">
-                {visibleTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`flex items-center gap-4 group p-2 rounded-2xl transition-colors relative ${openDropdownId === task.id ? "bg-slate-50" : "hover:bg-slate-50/50"}`}
+        {/* --- FEATURES BENTO GRID --- */}
+        <section id="features" className="max-w-7xl mx-auto px-6 py-24">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+              Everything you need to stay in flow.
+            </h2>
+            <p className="text-slate-500 font-medium text-lg">
+              Powerful features wrapped in an interface you&apos;ll actually
+              enjoy using.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Feature 1: Gamification */}
+            <div className="md:col-span-2 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#34D399] opacity-10 blur-[80px] rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="w-14 h-14 bg-[#D1FAE5] rounded-2xl flex items-center justify-center mb-6">
+                <CheckCircleIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                Gamified Productivity
+              </h3>
+              <p className="text-slate-500 font-medium max-w-md mb-8">
+                Earn XP for completing tasks, unlock badges, and maintain your
+                daily streak. Work feels less like a chore and more like a game.
+              </p>
+
+              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
+                <div className="w-12 h-12 rounded-full bg-[#34D399] flex items-center justify-center shadow-md shadow-emerald-200">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3"
                   >
-                    {task.status === "done" ? (
-                      <div className="w-10 h-10 rounded-full bg-[#34D399] flex items-center justify-center shrink-0 shadow-md shadow-emerald-200">
-                        <CheckIcon />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-full border-2 border-slate-200 shrink-0 group-hover:border-cyan-400 transition-colors cursor-pointer flex items-center justify-center">
-                        <div className="w-4 h-4 rounded-full bg-cyan-400 opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                      </div>
-                    )}
-                    <div
-                      className={`flex-1 ${task.status === "done" ? "opacity-60" : ""}`}
-                    >
-                      <h4
-                        className={`text-lg font-bold ${task.status === "done" ? "text-slate-400 line-through" : "text-slate-800"}`}
-                      >
-                        {task.title}
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 line-through opacity-60">
+                    Morning Calibration
+                  </h4>
+                  <div className="text-xs font-bold text-[#10B981] bg-[#D1FAE5] px-2 py-0.5 rounded-full w-max mt-1">
+                    +50 XP Earned
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 2: Kanban Boards */}
+            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#28B8FA] opacity-10 blur-[80px] rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="w-14 h-14 bg-[#EAF7FF] rounded-2xl flex items-center justify-center mb-6">
+                <GridIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                Visual Kanban
+              </h3>
+              <p className="text-slate-500 font-medium">
+                Drag and drop your way to a clearer mind. Intuitive boards that
+                adapt to your workflow.
+              </p>
+            </div>
+
+            {/* Feature 3: Deep Focus Timer */}
+            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF8B5E] opacity-10 blur-[80px] rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="w-14 h-14 bg-[#FFF2DE] rounded-2xl flex items-center justify-center mb-6">
+                <ZapIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                Deep Focus Mode
+              </h3>
+              <p className="text-slate-500 font-medium">
+                Built-in Pomodoro timers to help you reach the peak flow state
+                without leaving the app.
+              </p>
+            </div>
+
+            {/* Feature 4: Collaboration */}
+            <div className="md:col-span-2 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 opacity-10 blur-[80px] rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6">
+                <UsersIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                Seamless Collaboration
+              </h3>
+              <p className="text-slate-500 font-medium max-w-md mb-8">
+                Invite members, assign tasks, and monitor team workload in
+                real-time. Built for high-performing teams.
+              </p>
+
+              <div className="flex -space-x-4">
+                <img
+                  src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex"
+                  alt="U"
+                  className="w-16 h-16 rounded-full bg-slate-800 border-4 border-white shadow-md z-30"
+                />
+                <div className="w-16 h-16 rounded-full bg-[#FFF2DE] border-4 border-white shadow-md flex items-center justify-center font-black text-xl text-[#FF8B5E] z-20">
+                  JD
+                </div>
+                <div className="w-16 h-16 rounded-full bg-[#D1FAE5] border-4 border-white shadow-md flex items-center justify-center font-black text-xl text-[#34D399] z-10">
+                  MK
+                </div>
+                <div className="w-16 h-16 rounded-full bg-white border-4 border-slate-100 shadow-md flex items-center justify-center font-bold text-slate-400 z-0 hover:bg-slate-50 cursor-pointer">
+                  +
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- NEW: GAMIFICATION DEEP DIVE --- */}
+        <section id="gamification" className="max-w-7xl mx-auto px-6 py-24">
+          <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col lg:flex-row items-center">
+            {/* Visual Side */}
+            <div className="w-full lg:w-1/2 p-10 lg:p-16 bg-[#F8FAFC] relative overflow-hidden flex items-center justify-center min-h-[400px]">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF8B5E] opacity-10 blur-[100px] rounded-full"></div>
+
+              <div className="relative z-10 w-full max-w-sm flex flex-col gap-6">
+                {/* Profile Level Card */}
+                <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 transform -rotate-2 hover:rotate-0 transition-transform">
+                  <div className="flex items-center gap-4 mb-6">
+                    <img
+                      src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex"
+                      alt="Avatar"
+                      className="w-16 h-16 rounded-full bg-slate-200 border-2 border-slate-100"
+                    />
+                    <div>
+                      <h4 className="font-black text-xl text-slate-800">
+                        Alex Morgan
                       </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p
-                          className={`text-[10px] font-bold tracking-wider uppercase ${task.color}`}
-                        >
-                          {task.tag}
-                        </p>
-                        {task.avatars && (
-                          <div className="flex -space-x-1.5">
-                            {task.avatars.map((av, i) => (
-                              <img
-                                key={i}
-                                src={`https://api.dicebear.com/7.x/notionists/svg?seed=${av}`}
-                                alt="U"
-                                className="w-4 h-4 rounded-full bg-slate-200 border border-white"
-                              />
-                            ))}
-                          </div>
-                        )}
+                      <p className="text-sm font-bold text-[#FF8B5E]">
+                        Level 12 Workflow Master
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full">
+                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                      <span>XP Progress</span>
+                      <span>2,450 / 3,000</span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="bg-gradient-to-r from-[#FF8B5E] to-[#FF6B3E] w-[80%] h-full rounded-full relative">
+                        <div className="absolute top-0 right-0 bottom-0 left-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[pulse_2s_linear_infinite]"></div>
                       </div>
                     </div>
-                    {task.xp ? (
-                      <div className="px-3 py-1 rounded-full bg-[#D1FAE5] text-[#10B981] text-xs font-bold opacity-60">
-                        {task.xp}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() =>
-                          setOpenDropdownId(
-                            openDropdownId === task.id ? null : task.id,
-                          )
-                        }
-                        className={`p-2 rounded-full transition-colors ${openDropdownId === task.id ? "bg-slate-200 text-slate-700" : "text-slate-300 hover:text-slate-600 hover:bg-slate-200"}`}
-                      >
-                        <MoreIcon />
-                      </button>
-                    )}
-                    {openDropdownId === task.id && (
-                      <div
-                        className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-xl shadow-slate-200 border border-slate-100 py-2 z-20 animate-float-up"
-                        style={{ animation: "floatUp 0.2s ease-out forwards" }}
-                      >
-                        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
-                          <EditIcon /> Edit Task
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
-                          <AlertIcon /> Change Priority
-                        </button>
-                        <hr className="my-1 border-slate-100" />
-                        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors text-left">
-                          <TrashIcon /> Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
-                ))}
+                </div>
+
+                {/* Streaks & Badges */}
+                <div className="flex gap-4 transform translate-x-8 hover:translate-x-4 transition-transform">
+                  <div className="flex-1 bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 bg-[#FFF2DE] rounded-full flex items-center justify-center mb-2">
+                      <FlameIcon />
+                    </div>
+                    <span className="font-black text-2xl text-slate-800">
+                      14
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Day Streak
+                    </span>
+                  </div>
+                  <div className="flex-1 bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 bg-yellow-50 rounded-full flex items-center justify-center mb-2">
+                      <TrophyIcon />
+                    </div>
+                    <span className="font-black text-2xl text-slate-800">
+                      6
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Badges Won
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Text Side */}
+            <div className="w-full lg:w-1/2 p-10 lg:p-16 lg:pl-20">
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-6">
+                Work should feel rewarding.
+              </h2>
+              <p className="text-lg text-slate-500 font-medium mb-8">
+                We've combined proven productivity frameworks with game design
+                mechanics. Stay motivated by leveling up your profile,
+                maintaining daily streaks, and earning badges for completing
+                tough projects.
+              </p>
+              <ul className="flex flex-col gap-5">
+                <li className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-[#EAF7FF] flex items-center justify-center shrink-0 mt-1">
+                    <CheckIcon />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-lg">
+                      XP for every task
+                    </h4>
+                    <p className="text-slate-500 text-sm font-medium">
+                      Big tasks yield big rewards. Watch your level climb as you
+                      clear your Kanban board.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-[#FFF2DE] flex items-center justify-center shrink-0 mt-1">
+                    <CheckIcon />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-lg">
+                      Unbreakable Streaks
+                    </h4>
+                    <p className="text-slate-500 text-sm font-medium">
+                      Complete at least one task a day to keep your fire
+                      burning. Don't break the chain.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-[#D1FAE5] flex items-center justify-center shrink-0 mt-1">
+                    <CheckIcon />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-lg">
+                      Unlockable Badges
+                    </h4>
+                    <p className="text-slate-500 text-sm font-medium">
+                      Earn unique badges for special achievements like "Deep
+                      Work Master" or "Early Bird".
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* --- NEW: PRICING SECTION --- */}
+        <section
+          id="pricing"
+          className="max-w-7xl mx-auto px-6 py-24 border-t border-slate-200/60"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+              Simple, transparent pricing.
+            </h2>
+            <p className="text-slate-500 font-medium text-lg">
+              Start for free, upgrade when your team grows.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Card 1: Starter (Free) */}
+            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Starter</h3>
+              <p className="text-sm font-medium text-slate-500 mb-6">
+                Perfect for individuals wanting to level up.
+              </p>
+              <div className="flex items-baseline gap-1 mb-8">
+                <span className="text-5xl font-black text-slate-900">$0</span>
+                <span className="text-slate-500 font-bold">/ forever</span>
               </div>
               <button
-                onClick={() => setIsQueueExpanded(!isQueueExpanded)}
-                className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
+                onClick={() => router.push("/login")}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 rounded-2xl transition-colors mb-8"
               >
-                {isQueueExpanded ? (
-                  <>
-                    <ChevronUp /> Collapse Queue
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon /> Expand Queue
-                  </>
-                )}
+                Get Started Free
               </button>
+              <ul className="flex flex-col gap-4 text-sm font-medium text-slate-600">
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> 3 Active Projects
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Basic Kanban Boards
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Standard Focus Timer
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Personal Gamification Profile
+                </li>
+              </ul>
             </div>
 
-            {/* RIGHT WIDGETS */}
-            <div className="lg:col-span-3 flex flex-col gap-6">
-              <div className="bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] rounded-4xl p-6 shadow-md shadow-orange-200 text-white">
-                <h3 className="text-xs font-bold text-white/80 tracking-widest uppercase mb-4">
-                  Coming Up
-                </h3>
-                <h2 className="text-2xl font-bold tracking-tight mb-1">
-                  Design Sync
-                </h2>
-                <p className="text-sm text-white/80 font-medium mb-6">
-                  11:00 AM — Main Lounge
-                </p>
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors text-white text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                  <LinkIcon /> meet.taskmasterpro.co...
-                </button>
+            {/* Card 2: Peak Flow (Pro) - Highlighted */}
+            <div className="bg-[#1E293B] rounded-[2.5rem] p-10 border border-[#28B8FA]/30 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-[#28B8FA]/10 to-[#34D399]/10 pointer-events-none"></div>
+              <div className="absolute top-6 right-6 bg-gradient-to-r from-[#28B8FA] to-[#34D399] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md">
+                Most Popular
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-3xl p-5 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
-                  <span className="text-xs font-bold text-slate-400 mb-1">
-                    Streak
-                  </span>
-                  <span className="text-3xl font-black text-[#FF8B5E]">12</span>
-                </div>
-                <div className="bg-white rounded-3xl p-5 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
-                  <span className="text-xs font-bold text-slate-400 mb-1">
-                    Tasks
-                  </span>
-                  <span className="text-3xl font-black text-[#28B8FA]">48</span>
-                </div>
+              <h3 className="text-xl font-bold text-white mb-2 relative z-10">
+                Peak Flow Pro
+              </h3>
+              <p className="text-sm font-medium text-slate-400 mb-6 relative z-10">
+                For power users and high-performing teams.
+              </p>
+              <div className="flex items-baseline gap-1 mb-8 relative z-10">
+                <span className="text-5xl font-black text-white">$9</span>
+                <span className="text-slate-400 font-bold">/ user / month</span>
               </div>
-
-              <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">
-                  Calendar
-                </h3>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-stretch gap-3">
-                    <div className="w-1 bg-[#34D399] rounded-full"></div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">
-                        Project Launch
-                      </h4>
-                      <p className="text-[10px] font-medium text-slate-400 mt-0.5">
-                        Oct 26 • 2:00 PM
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-stretch gap-3">
-                    <div className="w-1 bg-[#28B8FA] rounded-full"></div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">
-                        Feedback Loop
-                      </h4>
-                      <p className="text-[10px] font-medium text-slate-400 mt-0.5">
-                        Oct 27 • 10:00 AM
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={() => router.push("/login")}
+                className="w-full bg-[#34D399] hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-colors mb-8 relative z-10"
+              >
+                Start 14-Day Free Trial
+              </button>
+              <ul className="flex flex-col gap-4 text-sm font-medium text-slate-300 relative z-10">
+                <li className="flex items-center gap-3">
+                  <CheckIcon />{" "}
+                  <strong className="text-white">Unlimited</strong> Projects &
+                  Tasks
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Team Collaboration & Chat
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Advanced Gamification Insights
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon /> Priority Support
+                </li>
+              </ul>
             </div>
           </div>
-        ) : (
-          renderConfig()
-        )}
+        </section>
 
-        {/* FLOATING ACTION BUTTON */}
-        <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
-          <PlusIcon />
-        </button>
+        {/* --- BOTTOM CTA (Dark Mode) --- */}
+        <section className="max-w-7xl mx-auto px-6 mt-10">
+          <div className="bg-[#1E293B] rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden shadow-2xl">
+            {/* Background Glows */}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#28B8FA]/20 to-[#34D399]/20 z-0 mix-blend-overlay"></div>
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#34D399] opacity-20 blur-[100px] rounded-full z-0"></div>
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#28B8FA] opacity-20 blur-[100px] rounded-full z-0"></div>
+
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
+                Ready to level up your work?
+              </h2>
+              <p className="text-slate-400 text-lg font-medium max-w-xl mx-auto mb-10">
+                Join Task Master Pro today and experience the future of project
+                management. Free for individuals and small teams.
+              </p>
+              <button
+                onClick={() => router.push("/login")}
+                className="bg-[#34D399] hover:bg-emerald-400 transition-transform hover:scale-105 text-white font-bold text-lg px-10 py-5 rounded-full shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto"
+              >
+                Create Free Account <ArrowRightIcon />
+              </button>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* 3. QUICK ENTRY MODAL OVERLAY */}
-      {isQuickEntryOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-          {/* Modal Container */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setIsQuickEntryOpen(false);
-                setSelectedTags([]);
-              }}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <XIcon />
-            </button>
-
-            <div className="p-8 flex flex-col gap-8">
-              {/* Input Area */}
-              <input
-                type="text"
-                placeholder="What's on your mind?"
-                className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
-                autoFocus
-              />
-
-              {/* Dynamic Bottom Section based on Selected Tags */}
-              <div className="flex items-center justify-between mt-4 h-24">
-                <div className="flex items-center gap-3">
-                  {selectedTags.length > 0 && (
-                    <span className="text-xs font-bold text-slate-400 tracking-wider uppercase mr-2">
-                      Quick Tag:
-                    </span>
-                  )}
-                  <button
-                    onClick={() => toggleTag("Work")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Work") ? "bg-[#EAF7FF] text-[#28B8FA]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <BriefcaseIcon /> Work
-                  </button>
-                  <button
-                    onClick={() => toggleTag("Personal")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Personal") ? "bg-[#D1FAE5] text-[#34D399]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <UserIcon /> Personal
-                  </button>
-                  <button
-                    onClick={() => toggleTag("Urgent")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Urgent") ? "bg-[#FFF2DE] text-[#FF8B5E]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <ZapIcon /> Urgent
-                  </button>
-                </div>
-                <div className="ml-auto">
-                  {selectedTags.length === 0 ? (
-                    <button className="bg-[#34D399] hover:bg-emerald-500 transition-colors text-white font-bold rounded-[2rem] w-32 h-32 flex flex-col items-center justify-center gap-2 shadow-lg shadow-emerald-200">
-                      <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
-                        <CheckIcon />
-                      </div>
-                      Create Task
-                    </button>
-                  ) : (
-                    <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-all text-white font-bold rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-lg shadow-orange-200 animate-in slide-in-from-right-4">
-                      Add Task{" "}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
+      {/* --- FOOTER --- */}
+      <footer className="border-t border-slate-200/60 bg-white mt-20 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3 opacity-50 grayscale">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+              <BoltIcon />
             </div>
+            <span className="font-bold text-lg tracking-tight text-slate-800 italic">
+              TASKMASTER PRO
+            </span>
           </div>
+          <p className="text-slate-400 font-medium text-sm">
+            © 2026 Apex Developers. Built for peak productivity.
+          </p>
         </div>
-      )}
+      </footer>
 
-      {/* CREATE PROJECT MODAL */}
-      {isCreateProjectOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-          {/* Modal Container */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-2 relative mx-4 animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setIsCreateProjectOpen(false);
-                setProjectName('');
-                setSelectedColor('#FF8B5E');
-                setProjectDeadline('');
-                setSelectedTeamMembers([]);
-              }}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <XIcon />
-            </button>
-
-            <div className="p-8 flex flex-col gap-6">
-              {/* Title */}
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Create New Project</h2>
-                <p className="text-sm text-slate-400 font-medium">Let's set up your next win.</p>
-              </div>
-
-              {/* Project Name Input */}
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Project Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Q4 Brand Sprint"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors"
-                />
-              </div>
-
-              {/* Accent Color Selector */}
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Accent Color</label>
-                <div className="flex gap-3">
-                  {['#FF8B5E', '#28B8FA', '#34D399', '#FBBF24'].map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-10 h-10 rounded-full transition-transform ${selectedColor === color ? 'scale-110 ring-2 ring-offset-2' : 'hover:scale-105'}`}
-                      style={{
-                        backgroundColor: color,
-                      }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Deadline Input */}
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Set Deadline</label>
-                <input
-                  type="date"
-                  value={projectDeadline}
-                  onChange={(e) => setProjectDeadline(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#FF8B5E] transition-colors"
-                />
-              </div>
-
-              {/* Team Members */}
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Assign Team Members</label>
-                <div className="flex items-center gap-2">
-                  {selectedTeamMembers.map((member, idx) => (
-                    <img
-                      key={idx}
-                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${member}`}
-                      alt="Team member"
-                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
-                    />
-                  ))}
-                  <button
-                    onClick={() => setSelectedTeamMembers([...selectedTeamMembers, `member${Date.now()}`])}
-                    className="w-10 h-10 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 hover:border-[#FF8B5E] hover:text-[#FF8B5E] transition-colors"
-                    title="Add team member"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Launch Project Button */}
-              <button
-                onClick={handleCreateProject}
-                className="w-full py-3 rounded-full bg-gradient-to-r from-[#FF8B5E] to-[#FFB088] text-white font-bold text-base hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 mt-4"
-              >
-                Launch Project
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Global Style for dropdown animation */}
+      {/* --- CSS ANIMATIONS --- */}
       <style
         dangerouslySetInnerHTML={{
-          __html: `@keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`,
+          __html: `
+        @keyframes floatUp {
+          0% { transform: translateY(0px); }
+          100% { transform: translateY(-20px); }
+        }
+      `,
         }}
       />
     </div>

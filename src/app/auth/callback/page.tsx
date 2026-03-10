@@ -11,7 +11,7 @@ export default function AuthCallbackPage() {
         // Lắng nghe sự kiện xác thực từ Supabase
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') {
-                router.push('/');
+                router.push('/command');
             }
         });
 
@@ -19,7 +19,7 @@ export default function AuthCallbackPage() {
         // và xử lý đăng nhập dưới nền khi trang này được load.
         // Fallback dự phòng: Nới lỏng thời gian đẩy về trang chủ để Supabase kịp xử lý session.
         const timeout = setTimeout(() => {
-            router.push('/');
+            router.push('/command');
         }, 2000);
 
         return () => {
