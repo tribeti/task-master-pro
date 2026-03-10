@@ -66,7 +66,7 @@ export default function InsightsPage() {
     const totalHours = 42.5;
 
     // SVG Donut chart angles
-    const donutSegments = (() => {
+    const donutSegments = React.useMemo(() => {
         let cumulative = 0;
         return ACTIVITY_DATA.map((item) => {
             const startAngle = cumulative * 3.6;
@@ -74,7 +74,7 @@ export default function InsightsPage() {
             const endAngle = cumulative * 3.6;
             return { ...item, startAngle, endAngle };
         });
-    })();
+    }, []);
 
     const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
         const start = polarToCartesian(cx, cy, r, endAngle - 0.5);
@@ -112,8 +112,8 @@ export default function InsightsPage() {
                     <button
                         onClick={() => setTimePeriod("Daily")}
                         className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${timePeriod === "Daily"
-                                ? "bg-[#1E293B] text-white shadow-md"
-                                : "text-slate-500 hover:text-slate-700"
+                            ? "bg-[#1E293B] text-white shadow-md"
+                            : "text-slate-500 hover:text-slate-700"
                             }`}
                     >
                         Daily
@@ -121,8 +121,8 @@ export default function InsightsPage() {
                     <button
                         onClick={() => setTimePeriod("Weekly")}
                         className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${timePeriod === "Weekly"
-                                ? "bg-[#1E293B] text-white shadow-md"
-                                : "text-slate-500 hover:text-slate-700"
+                            ? "bg-[#1E293B] text-white shadow-md"
+                            : "text-slate-500 hover:text-slate-700"
                             }`}
                     >
                         Weekly
@@ -156,7 +156,7 @@ export default function InsightsPage() {
                                 <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
                                     {donutSegments.map((seg, i) => (
                                         <path
-                                            key={i}
+                                            key={seg.label}
                                             d={describeArc(100, 100, 75, seg.startAngle, seg.endAngle)}
                                             fill="none"
                                             stroke={seg.color}

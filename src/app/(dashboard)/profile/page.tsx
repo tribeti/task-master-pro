@@ -6,26 +6,7 @@ import {
     EditIcon,
     TrashIcon,
 } from "@/components/icons";
-
-const Toggle = ({
-    checked,
-    onChange,
-}: {
-    checked: boolean;
-    onChange: () => void;
-}) => (
-    <button
-        type="button"
-        onClick={onChange}
-        className={`w-14 h-8 rounded-full transition-colors flex items-center px-1 ${checked ? "bg-[#34D399]" : "bg-slate-200"
-            }`}
-    >
-        <div
-            className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${checked ? "translate-x-6" : "translate-x-0"
-                }`}
-        ></div>
-    </button>
-);
+import Toggle from "@/components/Toggle";
 
 export default function ProfilePage() {
     const { user } = useDashboardUser();
@@ -287,8 +268,8 @@ export default function ProfilePage() {
                                 <div
                                     onClick={() => setThemeSetting("energetic")}
                                     className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "energetic"
-                                            ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
-                                            : "border-slate-100 hover:border-slate-200"
+                                        ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
+                                        : "border-slate-100 hover:border-slate-200"
                                         }`}
                                 >
                                     <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
@@ -319,8 +300,8 @@ export default function ProfilePage() {
                                         </div>
                                         <div
                                             className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "energetic"
-                                                    ? "border-[#28B8FA]"
-                                                    : "border-slate-200"
+                                                ? "border-[#28B8FA]"
+                                                : "border-slate-200"
                                                 }`}
                                         >
                                             {themeSetting === "energetic" && (
@@ -334,8 +315,8 @@ export default function ProfilePage() {
                                 <div
                                     onClick={() => setThemeSetting("cozy")}
                                     className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "cozy"
-                                            ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
-                                            : "border-slate-100 hover:border-slate-200"
+                                        ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
+                                        : "border-slate-100 hover:border-slate-200"
                                         }`}
                                 >
                                     <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
@@ -356,16 +337,16 @@ export default function ProfilePage() {
                                         <div>
                                             <h4
                                                 className={`font-extrabold text-base ${themeSetting === "cozy"
-                                                        ? "text-white"
-                                                        : "text-slate-900"
+                                                    ? "text-white"
+                                                    : "text-slate-900"
                                                     }`}
                                             >
                                                 Cozy Focus
                                             </h4>
                                             <p
                                                 className={`text-[10px] font-bold mt-0.5 ${themeSetting === "cozy"
-                                                        ? "text-slate-400"
-                                                        : "text-slate-500"
+                                                    ? "text-slate-400"
+                                                    : "text-slate-500"
                                                     }`}
                                             >
                                                 Dark mode, warmer tones
@@ -373,8 +354,8 @@ export default function ProfilePage() {
                                         </div>
                                         <div
                                             className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "cozy"
-                                                    ? "border-[#FF8B5E]"
-                                                    : "border-slate-200"
+                                                ? "border-[#FF8B5E]"
+                                                : "border-slate-200"
                                                 }`}
                                         >
                                             {themeSetting === "cozy" && (

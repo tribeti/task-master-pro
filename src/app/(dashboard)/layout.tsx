@@ -18,23 +18,8 @@ const DashboardContext = createContext<{ user: User | null }>({ user: null });
 export const useDashboardUser = () => useContext(DashboardContext);
 
 // --- Logout Icon SVG ---
-const LogOutIcon = () => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-        <polyline points="16 17 21 12 16 7"></polyline>
-        <line x1="21" y1="12" x2="9" y2="12"></line>
-    </svg>
-);
+import { LogOutIcon } from "@/components/icons";
+
 
 // --- NAV ITEMS ---
 const NAV_ITEMS = [
@@ -163,7 +148,7 @@ export default function DashboardLayout({
                             <div className="flex items-center gap-3 px-4 pt-4 mt-2 border-t border-slate-100">
                                 <img
                                     src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user.email || "User"}`}
-                                    alt="Avatar"
+                                    alt={user.user_metadata?.full_name || user.email || 'User Avatar'}
                                     className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm"
                                 />
                                 <div className="flex-1 min-w-0">
