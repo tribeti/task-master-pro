@@ -63,61 +63,6 @@ export default function CommandPage() {
                             MORNING SESSION
                         </span>
                     </div>
-                    <button
-                        onClick={async () => {
-                            const { data, error } = await supabase
-                                .from("tasks")
-                                .insert([
-                                    {
-                                        title: "Test Task from Next.js",
-                                        description: "Mô tả test tự động",
-                                        position: 1,
-                                    },
-                                ])
-                                .select();
-                            if (error) {
-                                console.error("Insert error:", error);
-                                alert("Insert failed: " + error.message);
-                            } else {
-                                console.log("Inserted data:", data);
-                                alert("Inserted successfully! Check console.");
-                            }
-                        }}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                    >
-                        <span className="text-sm font-semibold">Test DB Insert</span>
-                    </button>
-                    <button
-                        onClick={async () => {
-                            const { data, error } = await supabase
-                                .from("tasks")
-                                .select("*")
-                                .limit(5);
-                            if (error) {
-                                console.error("Fetch error:", error);
-                                alert("Fetch failed: " + error.message);
-                            } else {
-                                console.log("Fetched data:", data);
-                                alert(
-                                    "Fetched " +
-                                    (data?.length || 0) +
-                                    " tasks. Check console.",
-                                );
-                            }
-                        }}
-                        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 transition-colors text-white px-4 py-2.5 rounded-full shadow-md shadow-slate-300"
-                    >
-                        <span className="text-sm font-semibold">Test DB Fetch</span>
-                    </button>
-                    <button
-                        onClick={() => setIsQuickEntryOpen(true)}
-                        className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 transition-colors text-white px-5 py-2.5 rounded-full shadow-md shadow-slate-300"
-                    >
-                        <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                            <PlusIcon />
-                        </div>
-                        <span className="text-sm font-semibold">Quick Entry</span>
-                    </button>
                 </div>
             </header>
 
@@ -368,6 +313,8 @@ export default function CommandPage() {
                                 placeholder="What's on your mind?"
                                 className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
                                 autoFocus
+                                required
+                                maxLength={200}
                             />
 
                             <div className="flex items-center justify-between mt-4 h-24">
@@ -437,11 +384,6 @@ export default function CommandPage() {
             />
 
             {/* Global Style for dropdown animation */}
-            <style
-                dangerouslySetInnerHTML={{
-                    __html: `@keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`,
-                }}
-            />
         </>
     );
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TASKS, TEAM_MEMBERS, FILES } from "@/lib/constants";
+import { supabase } from "@/lib/supabase";
+import { useDashboardUser } from "../layout";
 import { BoardList } from "@/components/board/BoardList";
 import { BoardCard } from "@/components/board/BoardCard";
 import {
@@ -22,7 +24,19 @@ import {
 import Image from "next/image";
 import CreateProjectModal from "@/components/CreateProjectModal";
 
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  is_private: boolean;
+  created_at: string;
+  owner_id: string;
+  color: string;
+  tag: string | null;
+}
+
 export default function ProjectsPage() {
+  const { user } = useDashboardUser();
 
   // --- STATES ---
   const [projectTab, setProjectTab] = useState<
@@ -30,10 +44,64 @@ export default function ProjectsPage() {
   >("Timeline");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
+  // Projects data
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // --- FETCH PROJECTS ---
+  const fetchProjects = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingProjects(true);
+    const { data, error } = await supabase
+      .from('boards')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching projects:', error);
+    } else {
+      setProjects(data || []);
+    }
+    setIsLoadingProjects(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  // --- CREATE PROJECT ---
+  const handleCreateProject = async (data: {
+    title: string;
+    color: string;
+    tag: string;
+    deadline: string;
+  }) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    const { error } = await supabase.from('boards').insert([{
+      title: data.title,
+      color: data.color,
+      tag: data.tag,
+      description: '',
+      is_private: false,
+      owner_id: user.id,
+    }]);
+    if (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project: ' + error.message);
+    } else {
+      setIsCreateProjectOpen(false);
+      await fetchProjects();
+    }
+    setIsSubmitting(false);
+  };
 
   // Toggle Tag in Modal
   const toggleTag = (tag: string) => {
@@ -452,113 +520,149 @@ export default function ProjectsPage() {
 
   const renderAllProjects = () => (
     <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[
-          {
-            id: "1",
-            title: "Orbital Launch System",
-            progress: 75,
-            color: "#FF8B5E",
-            tag: "Core",
-            team: 5,
-          },
-          {
-            id: "2",
-            title: "Nebula Launch",
-            progress: 45,
-            color: "#28B8FA",
-            tag: "Marketing",
-            team: 3,
-          },
-          {
-            id: "3",
-            title: "Q4 Website Redesign",
-            progress: 90,
-            color: "#34D399",
-            tag: "Design",
-            team: 4,
-          },
-        ].map((proj) => (
-          <div
-            key={proj.id}
-            onClick={() => setSelectedProject(proj.title)}
-            className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span
-                className={`text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase`}
-                style={{ backgroundColor: proj.color }}
-              >
-                {proj.tag}
-              </span>
-              <button className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 h-max transition-colors">
-                <MoreIcon />
-              </button>
-            </div>
-            <h3 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-[#28B8FA] transition-colors tracking-tight">
-              {proj.title}
-            </h3>
-            <p className="text-sm text-slate-500 font-medium mb-8 flex-1 leading-relaxed">
-              A comprehensive sub-project focusing on delivering specific
-              objectives for the next sprint iteration.
-            </p>
-            <div className="w-full mb-8">
-              <div className="flex justify-between text-xs font-bold mb-3">
-                <span className="text-slate-500">Progress</span>
-                <span style={{ color: proj.color }}>{proj.progress}%</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${proj.progress}%`,
-                    backgroundColor: proj.color,
-                  }}
-                ></div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-              <div className="flex -space-x-2">
-                {Array.from({ length: proj.team }).map((_, i) => (
-                  <img
-                    key={i}
-                    src={`https://api.dicebear.com/7.x/notionists/svg?seed=P${proj.id}${i}`}
-                    className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm"
-                    alt="Team"
-                  />
-                ))}
-              </div>
-              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#28B8FA] group-hover:text-white transition-colors shadow-sm">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Create New Project Card */}
-        <div onClick={() => setIsCreateProjectOpen(true)} className="bg-transparent rounded-4xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[300px] group h-full">
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform">
-            <PlusIcon />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
-            New Portfolio
-          </h3>
-          <p className="text-sm text-slate-400 font-medium px-4">
-            Start a fresh collaborative team workspace.
-          </p>
+      {isLoadingProjects ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
         </div>
-      </div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-6">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="3" y1="9" x2="21" y2="9" /></svg>
+          </div>
+          <h3 className="text-xl font-bold text-slate-700 mb-2">No projects yet</h3>
+          <p className="text-sm text-slate-400 font-medium mb-6">Create your first project to get started.</p>
+          <button onClick={() => setIsCreateProjectOpen(true)} className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-sm transition-colors shadow-lg">
+            <PlusIcon /> New Project
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-1">
+          {projects.map((proj) => {
+            const accentColor = proj.color || '#94a3b8';
+            // Placeholder progress data (will be replaced when tasks are linked)
+            const progress = 0;
+            const completedTasks = 0;
+            const totalTasks = 0;
+            // SVG ring calculations
+            const radius = 22;
+            const circumference = 2 * Math.PI * radius;
+            const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+            return (
+              <div
+                key={proj.id}
+                onClick={() => setSelectedProject(proj.title)}
+                className="relative bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
+                style={{ border: `2px solid ${accentColor}` }}
+              >
+                {/* Tag + Menu */}
+                <div className="flex items-center justify-between mb-4">
+                  {proj.tag && (
+                    <span
+                      className="text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
+                      style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                    >
+                      {proj.tag}
+                    </span>
+                  )}
+                  <div className="relative ml-auto">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === proj.id ? null : proj.id); }}
+                      className="text-slate-300 hover:text-slate-500 rounded-full p-1.5 hover:bg-slate-50 transition-colors"
+                    >
+                      <MoreIcon />
+                    </button>
+                    {openMenuId === proj.id && (
+                      <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-48 z-30 animate-in fade-in zoom-in-95 duration-150">
+                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                          Project Settings
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                          Duplicate
+                        </button>
+                        <div className="border-t border-slate-100 my-1"></div>
+                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8" /><path d="M1 4h22" /><path d="M10 4V2h4v2" /></svg>
+                          Archive
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-2xl font-black text-slate-800 mb-6 tracking-tight leading-tight">
+                  {proj.title}
+                </h3>
+
+                {/* Progress Ring + Task Count */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative w-14 h-14 shrink-0">
+                    <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                      <circle cx="28" cy="28" r={radius} fill="none" stroke="#F1F5F9" strokeWidth="5" />
+                      <circle
+                        cx="28" cy="28" r={radius} fill="none"
+                        stroke={accentColor} strokeWidth="5"
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-slate-600">
+                      {progress}%
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-3xl font-black text-slate-800">{completedTasks}</span>
+                      <span className="text-lg font-bold text-slate-300">/{totalTasks}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tasks Complete</p>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Avatars + Date */}
+                <div className="flex items-center justify-between mt-auto pt-4">
+                  <div className="flex -space-x-2">
+                    <img
+                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${proj.id}a`}
+                      className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"
+                      alt="Team"
+                    />
+                    <img
+                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${proj.id}b`}
+                      className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"
+                      alt="Team"
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {new Date(proj.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Create New Project Card */}
+          <div
+            onClick={() => setIsCreateProjectOpen(true)}
+            className="bg-transparent rounded-3xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-[#28B8FA] hover:shadow-lg transition-all min-h-[280px] group h-full"
+          >
+            <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-[#EAF7FF] flex items-center justify-center text-slate-300 group-hover:text-[#28B8FA] mb-4 group-hover:scale-110 transition-all">
+              <PlusIcon />
+            </div>
+            <h3 className="text-lg font-bold text-slate-600 mb-1 group-hover:text-slate-800 transition-colors">
+              New Project
+            </h3>
+            <p className="text-xs text-slate-400 font-medium px-4">
+              Start a fresh workspace
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -568,53 +672,38 @@ export default function ProjectsPage() {
       {/* DYNAMIC HEADER */}
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
-          {/* Project Context Breadcrumbs */}
           {selectedProject ? (
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              <span className="text-[#28B8FA]">ACTIVE SPRINT</span>{" "}
-              <span className="mx-2 text-slate-300">&gt;</span> Q4 INITIATIVES
-            </p>
-          ) : (
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              <span className="text-[#34D399]">PORTFOLIO</span>{" "}
-              <span className="mx-2 text-slate-300">&gt;</span> OVERVIEW
-            </p>
-          )}
-
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-            {selectedProject ? (
-              <>
+            <>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                <span className="text-[#28B8FA]">ACTIVE SPRINT</span>{" "}
+                <span className="mx-2 text-slate-300">&gt;</span> Q4 INITIATIVES
+              </p>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
                   onClick={() => setSelectedProject(null)}
                   className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
                   title="Back to all projects"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                   </svg>
                 </button>
                 {selectedProject}
-              </>
-            ) : (
-              "All Projects"
-            )}
-          </h1>
+              </h1>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Active Projects</h1>
+              <p className="text-sm text-slate-500 font-medium mt-1">
+                You have <span className="text-[#34D399] font-bold">{projects.length} active</span> projects pushing forward.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Project Buttons (Only visible when project selected) */}
-          {selectedProject && (
+          {selectedProject ? (
             <>
               {projectTab === "Files" && (
                 <div className="flex -space-x-2 mr-4">
@@ -648,6 +737,16 @@ export default function ProjectsPage() {
                 )}
               </button>
             </>
+          ) : (
+            <button
+              onClick={() => setIsCreateProjectOpen(true)}
+              className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-slate-300 hover:scale-105"
+            >
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                <PlusIcon />
+              </div>
+              New Project
+            </button>
           )}
         </div>
       </header>
@@ -746,6 +845,8 @@ export default function ProjectsPage() {
                 placeholder="What's on your mind?"
                 className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
                 autoFocus
+                required
+                maxLength={200}
               />
 
               {/* Dynamic Bottom Section based on Selected Tags */}
@@ -813,14 +914,11 @@ export default function ProjectsPage() {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
+        onSubmit={handleCreateProject}
+        isSubmitting={isSubmitting}
       />
 
       {/* Global Style for dropdown animation */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `@keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`,
-        }}
-      />
     </>
   );
 }
