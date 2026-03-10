@@ -49,7 +49,7 @@ export default function TaskFlowAuth() {
       password,
     });
     if (error) setErrorMsg(error.message);
-    else router.push("/");
+    else router.push("/command");
     setIsLoading(false);
   };
 
