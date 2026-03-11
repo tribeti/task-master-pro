@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/client";
 import { TASKS } from "@/lib/constants";
 import {
     SunIcon,
@@ -20,8 +20,13 @@ import {
     LinkIcon,
 } from "@/components/icons";
 import CreateProjectModal from "@/components/CreateProjectModal";
+import { useRouter } from "next/navigation";
+import { useDashboardUser } from "../provider";
 
-export default function CommandPage() {
+export default function CommandCenter() {
+    const { user } = useDashboardUser();
+    const supabase = createClient();
+    const router = useRouter();
     // --- STATES ---
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [isQueueExpanded, setIsQueueExpanded] = useState(false);

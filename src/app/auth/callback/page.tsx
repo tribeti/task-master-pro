@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AuthCallbackPage() {
     const router = useRouter();
+    const supabase = createClient();
 
     useEffect(() => {
         // Lắng nghe sự kiện xác thực từ Supabase
