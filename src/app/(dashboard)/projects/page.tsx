@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { TEAM_MEMBERS, FILES } from "@/lib/constants";
 import { BoardList } from "@/components/board/BoardList";
 import { BoardCard } from "@/components/board/BoardCard";
@@ -19,7 +19,12 @@ import {
   ChatIcon,
   CheckIcon,
 } from "@/components/icons";
-import { TasksTab, TimelineTab, FilesTab, TeamTab } from "@/components/project-tabs";
+import {
+  TasksTab,
+  TimelineTab,
+  FilesTab,
+  TeamTab,
+} from "@/components/project-tabs";
 import Image from "next/image";
 import CreateProjectModal from "@/components/CreateProjectModal";
 import { supabase } from "@/lib/supabase";
@@ -57,66 +62,13 @@ export default function ProjectsPage() {
   >("Timeline");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
-  // Projects data
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- FETCH PROJECTS ---
-  const fetchProjects = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingProjects(true);
-    const { data, error } = await supabase
-      .from('boards')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Error fetching projects:', error);
-    } else {
-      setProjects(data || []);
-    }
-    setIsLoadingProjects(false);
-  }, [user]);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  // --- CREATE PROJECT ---
-  const handleCreateProject = async (data: {
-    title: string;
-    color: string;
-    tag: string;
-    deadline: string;
-  }) => {
-    if (!user) return;
-    setIsSubmitting(true);
-    const { error } = await supabase.from('boards').insert([{
-      title: data.title,
-      color: data.color,
-      tag: data.tag,
-      description: '',
-      is_private: false,
-      owner_id: user.id,
-    }]);
-    if (error) {
-      console.error('Error creating project:', error);
-      alert('Failed to create project: ' + error.message);
-    } else {
-      setIsCreateProjectOpen(false);
-      await fetchProjects();
-    }
-    setIsSubmitting(false);
-  };
-
-  // Boards data from Supabase
+  // Boards data
   const [boards, setBoards] = useState<Board[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -124,44 +76,38 @@ export default function ProjectsPage() {
   );
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Confirm delete dialog state
+  // Confirm delete dialog
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     projectId: number | null;
     projectTitle: string;
-  }>({
-    isOpen: false,
-    projectId: null,
-    projectTitle: "",
-  });
+  }>({ isOpen: false, projectId: null, projectTitle: "" });
 
-  const fetchBoards = async () => {
+  // --- FETCH BOARDS ---
+  const fetchBoards = useCallback(async () => {
     if (!user?.id) {
       setBoards([]);
       setBoardsLoading(false);
       return;
     }
-
     setBoardsLoading(true);
-
     const { data, error } = await supabase
       .from("boards")
       .select("*")
-      .eq("owner_id", user.id);
-
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
     if (error) {
       console.error("Fetch boards error:", error);
       setBoards([]);
     } else {
       setBoards((data as Board[]) || []);
     }
-
     setBoardsLoading(false);
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchBoards();
-  }, [user?.id]);
+  }, [fetchBoards]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -173,40 +119,29 @@ export default function ProjectsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Show confirm dialog before deleting
+  // --- HANDLERS ---
   const handleDeleteProject = (projectId: number, projectTitle: string) => {
     setOpenMenuProjectId(null);
     setDeleteConfirm({ isOpen: true, projectId, projectTitle });
   };
 
-  // Actually delete board from Supabase
   const confirmDeleteProject = async () => {
-    if (!deleteConfirm.projectId) return;
-    if (!user?.id) return;
-
+    if (!deleteConfirm.projectId || !user?.id) return;
     const { error } = await supabase
       .from("boards")
       .delete()
       .eq("id", deleteConfirm.projectId)
       .eq("owner_id", user.id);
-
-    if (error) {
-      console.error("Delete board error:", error);
-    } else {
-      await fetchBoards();
-    }
-
+    if (error) console.error("Delete board error:", error);
+    else await fetchBoards();
     setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
   };
 
-  // Handle update project (placeholder - opens the card for now)
   const handleUpdateProject = (proj: Board) => {
     setOpenMenuProjectId(null);
-    // TODO: Open an edit modal or navigate to edit page
     setSelectedProject(proj.title);
   };
 
-  // Insert new board into Supabase
   const handleCreateProject = async (data: {
     title: string;
     description: string;
@@ -217,7 +152,7 @@ export default function ProjectsPage() {
     selectedTeamMembers: string[];
   }) => {
     if (!user?.id) return;
-
+    setIsSubmitting(true);
     const { error } = await supabase.from("boards").insert([
       {
         title: data.title,
@@ -225,274 +160,29 @@ export default function ProjectsPage() {
         is_private: data.is_private,
         color: data.color,
         tag: data.tag,
-        owner_id: user?.id,
+        owner_id: user.id,
       },
     ]);
-
-    if (error) {
-      console.error("Insert board error:", error);
-    } else {
+    if (error) console.error("Insert board error:", error);
+    else {
       await fetchBoards();
       setIsCreateProjectOpen(false);
     }
+    setIsSubmitting(false);
   };
 
-  // Toggle Tag in Modal
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
-  // --- RENDER PROJECT TABS ---
-
-
-  const renderAllProjects = () => (
-    <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
-      {isLoadingProjects ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-6">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="3" y1="9" x2="21" y2="9" /></svg>
-          </div>
-
-          <div className="relative h-100">
-            <div className="absolute top-5 left-[5%] w-[25%] h-10 bg-linear-to-r from-[#FF8B5E] to-[#FF6B3E] rounded-full shadow-md shadow-orange-200 flex items-center px-1 z-10">
-              <img
-                src="https://api.dicebear.com/7.x/notionists/svg?seed=A"
-                alt=""
-                className="w-8 h-8 rounded-full bg-white/20"
-              />
-              <span className="text-white text-xs font-bold ml-2">
-                3 days left
-              </span>
-            </div>
-            <div className="absolute top-25 left-[15%] w-[40%] h-10 bg-[#28B8FA] rounded-full shadow-md shadow-cyan-200 flex items-center justify-between px-4 z-10">
-              <span className="text-white text-xs font-bold flex items-center gap-1">
-                <span className="opacity-50">&lt;&gt;</span> In Progress
-              </span>
-              <span className="text-white/80 text-[10px] font-bold">45%</span>
-            </div>
-            <div className="absolute top-45 left-[45%] w-[25%] h-10 bg-[#34D399] rounded-full shadow-md shadow-emerald-200 flex items-center px-1 z-10">
-              <div className="flex -space-x-2">
-                <img
-                  src="https://api.dicebear.com/7.x/notionists/svg?seed=X"
-                  alt=""
-                  className="w-8 h-8 rounded-full bg-white/30 border-2 border-[#34D399]"
-                />
-                <img
-                  src="https://api.dicebear.com/7.x/notionists/svg?seed=Y"
-                  alt=""
-                  className="w-8 h-8 rounded-full bg-white/30 border-2 border-[#34D399]"
-                />
-              </div>
-            </div>
-            <div className="absolute top-[260px] left-[60%] w-[12%] h-10 bg-indigo-300 rounded-full flex items-center justify-center z-10 opacity-70">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-              >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-            </div>
-            <div className="absolute top-85 left-[5%] w-[15%] h-10 bg-slate-200 rounded-full flex items-center justify-center z-10">
-              <span className="text-slate-500 text-xs font-bold flex items-center gap-1">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>{" "}
-                Done
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFiles = () => (
-    <div className="flex-1 flex flex-col mt-4">
-      <div className="w-full bg-white border-2 border-dashed border-[#28B8FA]/30 rounded-4xl h-40 flex flex-col items-center justify-center mb-8 cursor-pointer hover:bg-slate-50 transition-colors">
-        <div className="w-12 h-12 rounded-full bg-[#EAF7FF] flex items-center justify-center mb-2">
-          <UploadCloudIcon />
-        </div>
-        <h3 className="text-lg font-bold text-slate-800">
-          Drop files here to upload
-        </h3>
-        <p className="text-sm text-slate-400 font-medium">
-          or{" "}
-          <span className="text-[#28B8FA] underline decoration-dashed">
-            browse files
-          </span>{" "}
-          from your computer
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <div className="relative w-72">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search files..."
-            className="w-full bg-white border border-slate-200 rounded-full py-2.5 pl-11 pr-4 text-sm font-medium focus:outline-none focus:border-[#28B8FA] shadow-sm"
-          />
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-white border border-slate-200 px-4 py-2.5 rounded-full text-sm font-bold text-slate-600 flex items-center gap-2 hover:bg-slate-50 shadow-sm">
-            <FilterIcon /> Filter
-          </button>
-          <button className="bg-white border border-slate-200 px-4 py-2.5 rounded-full text-sm font-bold text-slate-600 flex items-center gap-2 hover:bg-slate-50 shadow-sm">
-            <SortIcon /> Sort
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-1">
-          {projects.map((proj) => {
-            const accentColor = proj.color || '#94a3b8';
-            // Placeholder progress data (will be replaced when tasks are linked)
-            const progress = 0;
-            const completedTasks = 0;
-            const totalTasks = 0;
-            // SVG ring calculations
-            const radius = 22;
-            const circumference = 2 * Math.PI * radius;
-            const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-            return (
-              <div
-                key={proj.id}
-                onClick={() => setSelectedProject(proj.title)}
-                className="relative bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
-                style={{ border: `2px solid ${accentColor}` }}
-              >
-                {/* Tag + Menu */}
-                <div className="flex items-center justify-between mb-4">
-                  {proj.tag && (
-                    <span
-                      className="text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider"
-                      style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
-                    >
-                      {proj.tag}
-                    </span>
-                  )}
-                  <div className="relative ml-auto">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === proj.id ? null : proj.id); }}
-                      className="text-slate-300 hover:text-slate-500 rounded-full p-1.5 hover:bg-slate-50 transition-colors"
-                    >
-                      <MoreIcon />
-                    </button>
-                    {openMenuId === proj.id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 w-48 z-30 animate-in fade-in zoom-in-95 duration-150">
-                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-                          Project Settings
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                          Duplicate
-                        </button>
-                        <div className="border-t border-slate-100 my-1"></div>
-                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8" /><path d="M1 4h22" /><path d="M10 4V2h4v2" /></svg>
-                          Archive
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-2xl font-black text-slate-800 mb-6 tracking-tight leading-tight">
-                  {proj.title}
-                </h3>
-
-                {/* Progress Ring + Task Count */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative w-14 h-14 shrink-0">
-                    <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
-                      <circle cx="28" cy="28" r={radius} fill="none" stroke="#F1F5F9" strokeWidth="5" />
-                      <circle
-                        cx="28" cy="28" r={radius} fill="none"
-                        stroke={accentColor} strokeWidth="5"
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        className="transition-all duration-500"
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-slate-600">
-                      {progress}%
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-3xl font-black text-slate-800">{completedTasks}</span>
-                      <span className="text-lg font-bold text-slate-300">/{totalTasks}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tasks Complete</p>
-                  </div>
-                </div>
-
-                {/* Bottom Row: Avatars + Date */}
-                <div className="flex items-center justify-between mt-auto pt-4">
-                  <div className="flex -space-x-2">
-                    <img
-                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${proj.id}a`}
-                      className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"
-                      alt="Team"
-                    />
-                    <img
-                      src={`https://api.dicebear.com/7.x/notionists/svg?seed=${proj.id}b`}
-                      className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"
-                      alt="Team"
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-400">
-                    {new Date(proj.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-              View Profile
-            </button>
-          </div>
-        ))}
-        <div className="bg-transparent rounded-4xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-100">
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4">
-            <PlusIcon />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Add Member</h3>
-          <p className="text-sm text-slate-400 font-medium px-4">
-            Invite a new collaborator to join the Orbital Launch System team.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
+  // --- RENDER ---
   const renderAllProjects = () => (
     <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {boardsLoading
-          ? // Loading skeleton
-            Array.from({ length: 3 }).map((_, i) => (
+          ? Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
                 className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
@@ -534,7 +224,7 @@ export default function ProjectsPage() {
                 >
                   <div className="flex items-center justify-between mb-4">
                     <span
-                      className={`text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase`}
+                      className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
                       style={{ backgroundColor: projColor }}
                     >
                       {projTag}
@@ -550,15 +240,12 @@ export default function ProjectsPage() {
                             openMenuProjectId === proj.id ? null : proj.id,
                           );
                         }}
-                        className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 h-max transition-colors"
+                        className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
                       >
                         <MoreIcon />
                       </button>
                       {openMenuProjectId === proj.id && (
-                        <div
-                          className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50"
-                          style={{ animation: "floatUp 0.15s ease-out" }}
-                        >
+                        <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -609,6 +296,7 @@ export default function ProjectsPage() {
                       )}
                     </div>
                   </div>
+
                   <h3 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-[#28B8FA] transition-colors tracking-tight">
                     {proj.title}
                   </h3>
@@ -616,6 +304,7 @@ export default function ProjectsPage() {
                     {proj.description ||
                       "A comprehensive sub-project focusing on delivering specific objectives for the next sprint iteration."}
                   </p>
+
                   <div className="w-full mb-8">
                     <div className="flex justify-between text-xs font-bold mb-3">
                       <span className="text-slate-500">Progress</span>
@@ -631,6 +320,7 @@ export default function ProjectsPage() {
                       ></div>
                     </div>
                   </div>
+
                   <div className="flex items-center justify-between border-t border-slate-100 pt-6">
                     <div className="flex -space-x-2">
                       {Array.from({ length: projTeam }).map((_, i) => (
@@ -669,14 +359,57 @@ export default function ProjectsPage() {
           <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform">
             <PlusIcon />
           </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">New Project</h3>
+          <p className="text-sm text-slate-400 font-medium px-4">
+            Start tracking a new initiative.
+          </p>
         </div>
-      )}
+      </div>
+    </div>
+  );
+
+  const renderFiles = () => (
+    <div className="flex-1 flex flex-col mt-4">
+      <div className="w-full bg-white border-2 border-dashed border-[#28B8FA]/30 rounded-4xl h-40 flex flex-col items-center justify-center mb-8 cursor-pointer hover:bg-slate-50 transition-colors">
+        <div className="w-12 h-12 rounded-full bg-[#EAF7FF] flex items-center justify-center mb-2">
+          <UploadCloudIcon />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800">
+          Drop files here to upload
+        </h3>
+        <p className="text-sm text-slate-400 font-medium">
+          or{" "}
+          <span className="text-[#28B8FA] underline decoration-dashed">
+            browse files
+          </span>{" "}
+          from your computer
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <div className="relative w-72">
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search files..."
+            className="w-full bg-white border border-slate-200 rounded-full py-2.5 pl-11 pr-4 text-sm font-medium focus:outline-none focus:border-[#28B8FA] shadow-sm"
+          />
+        </div>
+        <div className="flex gap-3">
+          <button className="bg-white border border-slate-200 px-4 py-2.5 rounded-full text-sm font-bold text-slate-600 flex items-center gap-2 hover:bg-slate-50 shadow-sm">
+            <FilterIcon /> Filter
+          </button>
+          <button className="bg-white border border-slate-200 px-4 py-2.5 rounded-full text-sm font-bold text-slate-600 flex items-center gap-2 hover:bg-slate-50 shadow-sm">
+            <SortIcon /> Sort
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   return (
     <>
-      {/* DYNAMIC HEADER */}
+      {/* HEADER */}
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
@@ -689,9 +422,18 @@ export default function ProjectsPage() {
                 <button
                   onClick={() => setSelectedProject(null)}
                   className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
-                  title="Back to all projects"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                   </svg>
@@ -701,9 +443,15 @@ export default function ProjectsPage() {
             </>
           ) : (
             <>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Active Projects</h1>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                Active Projects
+              </h1>
               <p className="text-sm text-slate-500 font-medium mt-1">
-                You have <span className="text-[#34D399] font-bold">{projects.length} active</span> projects pushing forward.
+                You have{" "}
+                <span className="text-[#34D399] font-bold">
+                  {boards.length} active
+                </span>{" "}
+                projects pushing forward.
               </p>
             </>
           )}
@@ -728,7 +476,6 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               )}
-
               <button
                 onClick={() => setIsQuickEntryOpen(true)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full shadow-md transition-transform hover:scale-105 text-sm font-semibold text-white ${projectTab === "Team" ? "bg-[#1E293B] shadow-slate-300" : "bg-[#28B8FA] shadow-cyan-200"}`}
@@ -764,7 +511,6 @@ export default function ProjectsPage() {
           renderAllProjects()
         ) : (
           <>
-            {/* Project Sub-Tabs */}
             <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
               {["Tasks", "Timeline", "Files", "Team"].map((tab) => (
                 <button
@@ -779,8 +525,6 @@ export default function ProjectsPage() {
                 </button>
               ))}
             </div>
-
-            {/* Project Dynamic View */}
             <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10">
               {projectTab === "Tasks" && <TasksTab />}
               {projectTab === "Timeline" && <TimelineTab />}
@@ -797,9 +541,7 @@ export default function ProjectsPage() {
           className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
             projectTab === "Timeline"
               ? "bg-[#1E293B] shadow-slate-400"
-              : projectTab === "Files"
-                ? "bg-[#34D399] shadow-emerald-200"
-                : "bg-[#34D399] shadow-emerald-200"
+              : "bg-[#34D399] shadow-emerald-200"
           }`}
         >
           {projectTab === "Timeline" ? (
@@ -829,12 +571,10 @@ export default function ProjectsPage() {
         </button>
       )}
 
-      {/* 3. QUICK ENTRY MODAL OVERLAY */}
+      {/* QUICK ENTRY MODAL */}
       {isQuickEntryOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-          {/* Modal Container */}
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
             <button
               onClick={() => {
                 setIsQuickEntryOpen(false);
@@ -844,9 +584,7 @@ export default function ProjectsPage() {
             >
               <XIcon />
             </button>
-
             <div className="p-8 flex flex-col gap-8">
-              {/* Input Area */}
               <input
                 type="text"
                 placeholder="What's on your mind?"
@@ -855,8 +593,6 @@ export default function ProjectsPage() {
                 required
                 maxLength={200}
               />
-
-              {/* Dynamic Bottom Section based on Selected Tags */}
               <div className="flex items-center justify-between mt-4 h-24">
                 <div className="flex items-center gap-3">
                   {selectedTags.length > 0 && (
@@ -864,24 +600,31 @@ export default function ProjectsPage() {
                       Quick Tag:
                     </span>
                   )}
-                  <button
-                    onClick={() => toggleTag("Work")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Work") ? "bg-[#EAF7FF] text-[#28B8FA]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <BriefcaseIcon /> Work
-                  </button>
-                  <button
-                    onClick={() => toggleTag("Personal")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Personal") ? "bg-[#D1FAE5] text-[#34D399]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <UserIcon /> Personal
-                  </button>
-                  <button
-                    onClick={() => toggleTag("Urgent")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Urgent") ? "bg-[#FFF2DE] text-[#FF8B5E]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
-                  >
-                    <ZapIcon /> Urgent
-                  </button>
+                  {[
+                    {
+                      label: "Work",
+                      icon: <BriefcaseIcon />,
+                      active: "bg-[#EAF7FF] text-[#28B8FA]",
+                    },
+                    {
+                      label: "Personal",
+                      icon: <UserIcon />,
+                      active: "bg-[#D1FAE5] text-[#34D399]",
+                    },
+                    {
+                      label: "Urgent",
+                      icon: <ZapIcon />,
+                      active: "bg-[#FFF2DE] text-[#FF8B5E]",
+                    },
+                  ].map(({ label, icon, active }) => (
+                    <button
+                      key={label}
+                      onClick={() => toggleTag(label)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes(label) ? active : "bg-slate-50 text-slate-500 hover:bg-slate-100"}`}
+                    >
+                      {icon} {label}
+                    </button>
+                  ))}
                 </div>
                 <div className="ml-auto">
                   {selectedTags.length === 0 ? (
@@ -921,7 +664,6 @@ export default function ProjectsPage() {
       {deleteConfirm.isOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
           <div className="bg-white rounded-4xl shadow-2xl w-full max-w-md p-8 relative mx-4 animate-in zoom-in-95 duration-200">
-            {/* Icon */}
             <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">
               <svg
                 width="28"
@@ -939,7 +681,6 @@ export default function ProjectsPage() {
                 <line x1="14" y1="11" x2="14" y2="17"></line>
               </svg>
             </div>
-            {/* Title */}
             <h3 className="text-xl font-extrabold text-slate-900 text-center mb-2">
               Delete Project
             </h3>
@@ -950,7 +691,6 @@ export default function ProjectsPage() {
               </span>
               ? This action cannot be undone.
             </p>
-            {/* Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() =>
@@ -982,8 +722,6 @@ export default function ProjectsPage() {
         onSubmit={handleCreateProject}
         isSubmitting={isSubmitting}
       />
-
-      {/* Global Style for dropdown animation */}
     </>
   );
 }
