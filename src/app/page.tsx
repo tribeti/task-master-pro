@@ -149,7 +149,7 @@ export default function TaskMasterLandingPage() {
             </div>
 
             {/* Floating Widget 1: Focus Timer */}
-            <div className="absolute -left-4 sm:-left-12 top-10 bg-white p-6 rounded-4xl shadow-xl border border-slate-100 animate-[floatUp_4s_ease-in-out_infinite_alternate]">
+            <div className="absolute -left-4 sm:-left-12 top-10 bg-white p-6 rounded-4xl shadow-xl border border-slate-100 animate-[floatUpBounce_4s_ease-in-out_infinite_alternate]">
               <h3 className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">
                 Deep Focus
               </h3>
@@ -160,7 +160,7 @@ export default function TaskMasterLandingPage() {
             </div>
 
             {/* Floating Widget 2: Gamification XP */}
-            <div className="absolute -right-4 sm:-right-12 bottom-20 bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] p-6 rounded-4xl shadow-xl shadow-orange-200 text-white animate-[floatUp_5s_ease-in-out_infinite_alternate_reverse]">
+            <div className="absolute -right-4 sm:-right-12 bottom-20 bg-gradient-to-br from-[#FF8B5E] to-[#FF6B3E] p-6 rounded-[2rem] shadow-xl shadow-orange-200 text-white animate-[floatUpBounce_5s_ease-in-out_infinite_alternate_reverse]">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                   <ZapIcon />
@@ -552,17 +552,6 @@ export default function TaskMasterLandingPage() {
         </div>
       </footer>
 
-      {/* --- CSS ANIMATIONS --- */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        @keyframes floatUp {
-          0% { transform: translateY(0px); }
-          100% { transform: translateY(-20px); }
-        }
-      `,
-        }}
-      />
     </div>
   );
 }

@@ -98,6 +98,8 @@ export default function ProfilePage() {
                                             user?.email?.split("@")[0] ||
                                             "Alex Morgan"
                                         }
+                                        required
+                                        maxLength={50}
                                     />
                                 </div>
 
@@ -109,6 +111,7 @@ export default function ProfilePage() {
                                         type="text"
                                         className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
                                         defaultValue="Product Designer"
+                                        maxLength={50}
                                     />
                                 </div>
 

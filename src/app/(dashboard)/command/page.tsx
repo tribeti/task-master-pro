@@ -322,6 +322,8 @@ export default function CommandPage() {
                                 placeholder="What's on your mind?"
                                 className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
                                 autoFocus
+                                required
+                                maxLength={200}
                             />
 
                             <div className="flex items-center justify-between mt-4 h-24">
@@ -391,11 +393,6 @@ export default function CommandPage() {
             />
 
             {/* Global Style for dropdown animation */}
-            <style
-                dangerouslySetInnerHTML={{
-                    __html: `@keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`,
-                }}
-            />
         </>
     );
 }

@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { XIcon } from "@/components/icons";
 
+const TAG_PRESETS = ["Core", "Marketing", "Design", "Dev", "QA"];
+
 interface CreateProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,12 +17,14 @@ interface CreateProjectModalProps {
         projectDeadline: string;
         selectedTeamMembers: string[];
     }) => void;
+    isSubmitting?: boolean;
 }
 
 export default function CreateProjectModal({
     isOpen,
     onClose,
     onSubmit,
+    isSubmitting = false,
 }: CreateProjectModalProps) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -28,7 +32,8 @@ export default function CreateProjectModal({
     const [selectedColor, setSelectedColor] = useState('#FF8B5E');
     const [tag, setTag] = useState('');
     const [projectDeadline, setProjectDeadline] = useState('');
-    const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+    const [selectedTag, setSelectedTag] = useState('Core');
+    const [nameError, setNameError] = useState(false);
 
     const resetAndClose = () => {
         setTitle('');
@@ -37,7 +42,8 @@ export default function CreateProjectModal({
         setSelectedColor('#FF8B5E');
         setTag('');
         setProjectDeadline('');
-        setSelectedTeamMembers([]);
+        setSelectedTag('Core');
+        setNameError(false);
         onClose();
     };
 
@@ -55,6 +61,9 @@ export default function CreateProjectModal({
         resetAndClose();
     };
 
+    // Get today's date as YYYY-MM-DD for min attribute
+    const today = new Date().toISOString().split('T')[0];
+
     if (!isOpen) return null;
 
     return (
@@ -62,7 +71,8 @@ export default function CreateProjectModal({
             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-2 relative mx-4 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 <button
                     onClick={resetAndClose}
-                    className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-10"
+                    disabled={isSubmitting}
+                    className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
                 >
                     <XIcon />
                 </button>
@@ -73,16 +83,48 @@ export default function CreateProjectModal({
                         <p className="text-sm text-slate-400 font-medium">Let&apos;s set up your next win.</p>
                     </div>
 
-                    {/* Project Name → maps to title */}
+                    {/* Project Name */}
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Project Name</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
+                            Project Name <span className="text-red-400">*</span>
+                        </label>
                         <input
                             type="text"
                             placeholder="e.g. Q4 Brand Sprint"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors"
+                            value={projectName}
+                            onChange={(e) => {
+                                setProjectName(e.target.value);
+                                if (e.target.value.trim()) setNameError(false);
+                            }}
+                            className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? 'border-red-400 focus:border-red-400' : 'border-slate-200 focus:border-[#FF8B5E]'}`}
+                            required
+                            maxLength={100}
+                            autoFocus
+                            disabled={isSubmitting}
                         />
+                        {nameError && (
+                            <p className="text-xs font-medium text-red-400 mt-2 ml-1">Project name is required.</p>
+                        )}
+                    </div>
+
+                    {/* Tag */}
+                    <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">Tag</label>
+                        <div className="flex flex-wrap gap-2">
+                            {TAG_PRESETS.map((tag) => (
+                                <button
+                                    key={tag}
+                                    onClick={() => setSelectedTag(tag)}
+                                    disabled={isSubmitting}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTag === tag
+                                        ? 'bg-[#1E293B] text-white'
+                                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    {tag}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Description → maps to description */}
@@ -113,10 +155,11 @@ export default function CreateProjectModal({
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Accent Color</label>
                         <div className="flex gap-3">
-                            {['#FF8B5E', '#28B8FA', '#34D399', '#FBBF24'].map((color) => (
+                            {['#FF8B5E', '#28B8FA', '#34D399'].map((color) => (
                                 <button
                                     key={color}
                                     onClick={() => setSelectedColor(color)}
+                                    disabled={isSubmitting}
                                     className={`w-10 h-10 rounded-full transition-transform ${selectedColor === color ? 'scale-110 ring-2 ring-offset-2' : 'hover:scale-105'}`}
                                     style={{ backgroundColor: color }}
                                     title={color}
@@ -148,7 +191,9 @@ export default function CreateProjectModal({
                             type="date"
                             value={projectDeadline}
                             onChange={(e) => setProjectDeadline(e.target.value)}
+                            min={today}
                             className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#FF8B5E] transition-colors"
+                            disabled={isSubmitting}
                         />
                     </div>
 
@@ -180,10 +225,19 @@ export default function CreateProjectModal({
                         disabled={!title.trim()}
                         className="w-full py-3 rounded-full bg-linear-to-r from-[#FF8B5E] to-[#FFB088] text-white font-bold text-base hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Launch Project
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
+                        {isSubmitting ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Creating...
+                            </>
+                        ) : (
+                            <>
+                                Launch Project
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
