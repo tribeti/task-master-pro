@@ -25,7 +25,7 @@ import { supabase } from "@/lib/supabase";
 import { useDashboardUser } from "../layout";
 
 interface Board {
-  id: string;
+  id: number;
   title: string;
   progress?: number;
   color?: string;
@@ -51,7 +51,7 @@ export default function ProjectsPage() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
   // Dropdown menu state for project cards
-  const [openMenuProjectId, setOpenMenuProjectId] = useState<string | null>(
+  const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
   const menuRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,7 @@ export default function ProjectsPage() {
   // Confirm delete dialog state
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
-    projectId: string | null;
+    projectId: number | null;
     projectTitle: string;
   }>({
     isOpen: false,
@@ -72,17 +72,33 @@ export default function ProjectsPage() {
   const [boardsLoading, setBoardsLoading] = useState(true);
 
   const fetchBoards = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("No user id");
+      setBoards([]);
+      setBoardsLoading(false);
+      return;
+    }
+
     setBoardsLoading(true);
+
     const { data, error } = await supabase
       .from("boards")
       .select("*")
-      .eq("owner_id", user.id);
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
+
+    console.log("Current user:", user);
+    console.log("Current user id:", user?.id);
+    console.log("Boards data:", data);
+    console.log("Boards error:", error);
+
     if (error) {
       console.error("Fetch boards error:", error);
+      setBoards([]);
     } else {
-      setBoards(data || []);
+      setBoards((data as Board[]) || []);
     }
+
     setBoardsLoading(false);
   };
 
@@ -101,7 +117,7 @@ export default function ProjectsPage() {
   }, []);
 
   // Show confirm dialog before deleting
-  const handleDeleteProject = (projectId: string, projectTitle: string) => {
+  const handleDeleteProject = (projectId: number, projectTitle: string) => {
     setOpenMenuProjectId(null);
     setDeleteConfirm({ isOpen: true, projectId, projectTitle });
   };
@@ -110,16 +126,19 @@ export default function ProjectsPage() {
   const confirmDeleteProject = async () => {
     if (!deleteConfirm.projectId) return;
     if (!user?.id) return;
+
     const { error } = await supabase
       .from("boards")
       .delete()
       .eq("id", deleteConfirm.projectId)
       .eq("owner_id", user.id);
+
     if (error) {
       console.error("Delete board error:", error);
     } else {
       await fetchBoards();
     }
+
     setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
   };
 
@@ -140,20 +159,22 @@ export default function ProjectsPage() {
     projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
+    if (!user?.id) return;
+
     const { error } = await supabase.from("boards").insert([
       {
         title: data.title,
         description: data.description,
         is_private: data.is_private,
-        color: data.color,
-        tag: data.tag,
-        owner_id: user?.id,
+        owner_id: user.id,
       },
     ]);
+
     if (error) {
       console.error("Insert board error:", error);
     } else {
       await fetchBoards();
+      setIsCreateProjectOpen(false);
     }
   };
 
