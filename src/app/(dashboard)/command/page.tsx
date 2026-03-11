@@ -63,6 +63,15 @@ export default function CommandPage() {
                             MORNING SESSION
                         </span>
                     </div>
+                    <button
+                        onClick={() => setIsQuickEntryOpen(true)}
+                        className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 transition-colors text-white px-5 py-2.5 rounded-full shadow-md shadow-slate-300"
+                    >
+                        <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                            <PlusIcon />
+                        </div>
+                        <span className="text-sm font-semibold">Quick Entry</span>
+                    </button>
                 </div>
             </header>
 
