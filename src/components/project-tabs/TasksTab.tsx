@@ -103,26 +103,29 @@ export function TasksTab({ projectId }: { projectId: number }) {
             assignee_id: user?.id,
         };
 
+        let error;
         if (editingTask) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from("tasks")
                 .update(taskPayload)
                 .eq("id", editingTask.id);
+            error = updateError;
         } else {
             const columnTasks = tasks.filter((t) => t.column_id === selectedColumnId);
             const nextPosition =
                 columnTasks.length > 0
                     ? Math.max(...columnTasks.map((t) => t.position)) + 1
                     : 0;
-            const { error } = await supabase
+            const { error: insertError } = await supabase
                 .from("tasks")
                 .insert([{ ...taskPayload, position: nextPosition }]);
+            error = insertError;
+        }
 
-            if (error) {
-                toast.error("Failed to save task");
-            } else {
-                toast.success(editingTask ? "Task updated" : "Task created");
-            }
+        if (error) {
+            toast.error(editingTask ? "Failed to update task" : "Failed to create task");
+        } else {
+            toast.success(editingTask ? "Task updated" : "Task created");
         }
 
         await fetchData();

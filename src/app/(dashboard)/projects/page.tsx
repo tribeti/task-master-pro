@@ -150,7 +150,6 @@ export default function ProjectsPage() {
       return;
     }
     setIsSubmitting(true);
-    
     const { data: boardData, error } = await supabase
       .from("boards")
       .insert([
