@@ -170,11 +170,14 @@ export default function ProjectsPage() {
       toast.success("Project created successfully!");
       // Create default columns for the new project
       const boardId = boardData[0].id;
-      await supabase.from("columns").insert([
+      const { error: columnsError } = await supabase.from("columns").insert([
         { title: "To Do", board_id: boardId, position: 0 },
         { title: "In Progress", board_id: boardId, position: 1 },
         { title: "Done", board_id: boardId, position: 2 },
       ]);
+      if (columnsError) {
+        toast.warning(`Project created, but failed to add default columns: ${columnsError.message}`);
+      }
 
       await fetchBoards();
       setIsCreateProjectOpen(false);
