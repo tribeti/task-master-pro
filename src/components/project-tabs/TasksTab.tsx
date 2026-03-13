@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { BoardList } from "@/components/board/BoardList";
-import { BoardCard } from "@/components/board/BoardCard";
+import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { createClient } from "@/utils/supabase/client";
-import { PlusIcon } from "@/components/icons";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 interface Column {
     id: number;
@@ -26,6 +25,7 @@ interface Task {
 
 export function TasksTab({ projectId }: { projectId: number }) {
     const supabase = createClient();
+    const { user } = useDashboardUser();
     const [columns, setColumns] = useState<Column[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,9 +36,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
     const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    /* ── Fetch data ── */
     const fetchData = useCallback(async () => {
         setIsLoading(true);
-        // Fetch Columns
         const { data: colsData, error: colsErr } = await supabase
             .from("columns")
             .select("*")
@@ -50,7 +50,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
         if (colsData && colsData.length > 0) {
             const colIds = colsData.map((c) => c.id);
-            // Fetch Tasks
             const { data: tasksData, error: tasksErr } = await supabase
                 .from("tasks")
                 .select("*")
@@ -59,23 +58,18 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
             if (tasksErr) console.error("Error fetching tasks:", tasksErr);
             else setTasks(tasksData || []);
+        } else {
+            setTasks([]);
         }
         setIsLoading(false);
-    }, [projectId, supabase]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [projectId]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case "High": return { text: "text-[#FF8B5E]", bg: "bg-[#FFF2DE]" };
-            case "Medium": return { text: "text-[#28B8FA]", bg: "bg-[#EAF7FF]" };
-            case "Low": return { text: "text-[#34D399]", bg: "bg-[#D1FAE5]" };
-            default: return { text: "text-slate-500", bg: "bg-slate-100" };
-        }
-    };
-
+    /* ── Task CRUD ── */
     const openCreateModal = (columnId: number) => {
         setEditingTask(null);
         setSelectedColumnId(columnId);
@@ -103,19 +97,21 @@ export function TasksTab({ projectId }: { projectId: number }) {
             priority: data.priority,
             deadline: data.deadline || null,
             column_id: selectedColumnId,
+            assignee_id: user?.id,
         };
 
         if (editingTask) {
-            // Update
             const { error } = await supabase
                 .from("tasks")
                 .update(taskPayload)
                 .eq("id", editingTask.id);
             if (error) console.error("Update error:", error);
         } else {
-            // Insert
             const columnTasks = tasks.filter((t) => t.column_id === selectedColumnId);
-            const nextPosition = columnTasks.length > 0 ? Math.max(...columnTasks.map(t => t.position)) + 1 : 0;
+            const nextPosition =
+                columnTasks.length > 0
+                    ? Math.max(...columnTasks.map((t) => t.position)) + 1
+                    : 0;
             const { error } = await supabase
                 .from("tasks")
                 .insert([{ ...taskPayload, position: nextPosition }]);
@@ -130,17 +126,14 @@ export function TasksTab({ projectId }: { projectId: number }) {
     const handleDeleteTask = async () => {
         if (!editingTask) return;
         setIsSubmitting(true);
-        const { error } = await supabase
-            .from("tasks")
-            .delete()
-            .eq("id", editingTask.id);
+        const { error } = await supabase.from("tasks").delete().eq("id", editingTask.id);
         if (error) console.error("Delete error:", error);
-
         await fetchData();
         setIsSubmitting(false);
         setIsModalOpen(false);
     };
 
+    /* ── Render ── */
     if (isLoading) {
         return (
             <div className="flex-1 overflow-x-auto mt-4 flex items-center justify-center">
@@ -151,66 +144,14 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     return (
         <div className="flex-1 overflow-x-auto mt-4">
-            {/* Grid background Pattern */}
-            <div
-                className="h-full w-max flex gap-6"
-                style={{
-                    backgroundImage:
-                        "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
-                    backgroundSize: "40px 40px",
-                }}
-            >
-                {columns.map((col, index) => {
-                    const columnTasks = tasks.filter((t) => t.column_id === col.id);
-                    // Cycle styles based on index for variety
-                    const styles = [
-                        { text: "text-slate-800", badge: "bg-slate-100 text-slate-800", border: "" },
-                        { text: "text-[#28B8FA]", badge: "bg-[#EAF7FF] text-[#28B8FA]", border: "border-l-2 border-[#28B8FA]" },
-                        { text: "text-[#34D399]", badge: "bg-[#D1FAE5] text-[#34D399]", border: "border-l-2 border-[#34D399]" }
-                    ];
-                    const st = styles[index % styles.length];
-
-                    return (
-                        <BoardList
-                            key={col.id}
-                            title={col.title}
-                            count={columnTasks.length}
-                            containerClass={st.border}
-                            titleClass={st.text}
-                            badgeClass={st.badge}
-                            showDot={index !== 0}
-                            dotClass={st.badge.split(" ")[0]} // fallback dot color to bg class
-                        >
-                            {columnTasks.map((task) => {
-                                const pColor = getPriorityColor(task.priority);
-                                return (
-                                    <div
-                                        key={task.id}
-                                        className="relative group cursor-pointer"
-                                        onClick={() => openEditModal(task)}
-                                    >
-                                        <BoardCard
-                                            tagLabel={task.priority}
-                                            tagColorClass={pColor.text}
-                                            tagBgClass={pColor.bg}
-                                            title={task.title}
-                                            description={task.description || undefined}
-                                        />
-                                    </div>
-                                );
-                            })}
-
-                            {/* Add Task Button per Column */}
-                            <button
-                                onClick={() => openCreateModal(col.id)}
-                                className="w-full mt-2 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
-                            >
-                                <PlusIcon /> Add Task
-                            </button>
-                        </BoardList>
-                    );
-                })}
-            </div>
+            <KanbanBoard
+                projectId={projectId}
+                columns={columns}
+                tasks={tasks}
+                onDataChange={fetchData}
+                onTaskClick={openEditModal}
+                onAddTask={openCreateModal}
+            />
 
             <TaskDetailsModal
                 isOpen={isModalOpen}
