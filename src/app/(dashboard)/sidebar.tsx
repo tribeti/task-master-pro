@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 export default function DashboardSidebar({ user }: { user: User }) {
     const pathname = usePathname();
     const router = useRouter();
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();

@@ -1,16 +1,6 @@
 import React from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import {
-    BoltIcon,
-    GridIcon,
-    ChartIcon,
-    RocketIcon,
-    SettingsIcon,
-    LogOutIcon,
-} from "@/components/icons";
-import Link from "next/link";
-import { headers } from "next/headers";
 import { DashboardProvider } from "./provider";
 import DashboardSidebar from "./sidebar";
 

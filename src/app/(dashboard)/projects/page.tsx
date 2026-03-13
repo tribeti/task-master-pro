@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   PlusIcon,
   MoreIcon,
@@ -21,6 +21,7 @@ import Image from "next/image";
 import CreateProjectModal from "@/components/CreateProjectModal";
 import { createClient } from "@/utils/supabase/client";
 import { useDashboardUser } from "../provider";
+import { toast } from "sonner";
 
 interface Board {
   id: number;
@@ -47,7 +48,7 @@ interface Project {
 
 export default function ProjectsPage() {
   const { user } = useDashboardUser();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // --- STATES ---
   const [projectTab, setProjectTab] = useState<
@@ -96,7 +97,7 @@ export default function ProjectsPage() {
       setBoards((data as Board[]) || []);
     }
     setBoardsLoading(false);
-  }, [user?.id]);
+  }, [user?.id, supabase]);
 
   useEffect(() => {
     fetchBoards();
@@ -145,15 +146,11 @@ export default function ProjectsPage() {
     selectedTeamMembers: string[];
   }) => {
     if (!user?.id) {
-      console.error("No user id found for creating board:", user);
       setIsSubmitting(false);
       return;
     }
     setIsSubmitting(true);
-    console.log("Attempting to create board with data:", {
-      ...data,
-      owner_id: user.id,
-    });
+    
     const { data: boardData, error } = await supabase
       .from("boards")
       .insert([
@@ -169,19 +166,16 @@ export default function ProjectsPage() {
       .select();
 
     if (error) {
-      console.error("Insert board error full object:", error);
-      console.error("Insert board error message:", error.message);
-      console.error("Insert board error code:", error.code);
-      alert(`Failed to create project: ${error.message || "Unknown error"}`);
+      toast.error(`Failed to create project: ${error.message || "Unknown error"}`);
     } else if (boardData && boardData.length > 0) {
+      toast.success("Project created successfully!");
       // Create default columns for the new project
       const boardId = boardData[0].id;
-      const { error: colError } = await supabase.from("columns").insert([
+      await supabase.from("columns").insert([
         { title: "To Do", board_id: boardId, position: 0 },
         { title: "In Progress", board_id: boardId, position: 1 },
         { title: "Done", board_id: boardId, position: 2 },
       ]);
-      if (colError) console.error("Error creating default columns:", colError);
 
       await fetchBoards();
       setIsCreateProjectOpen(false);

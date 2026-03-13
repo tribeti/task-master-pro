@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { createClient } from "@/utils/supabase/client";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
+import { toast } from "sonner";
 
 interface Column {
     id: number;
@@ -24,7 +25,7 @@ interface Task {
 }
 
 export function TasksTab({ projectId }: { projectId: number }) {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const { user } = useDashboardUser();
     const [columns, setColumns] = useState<Column[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -45,8 +46,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
             .eq("board_id", projectId)
             .order("position", { ascending: true });
 
-        if (colsErr) console.error("Error fetching columns:", colsErr);
-        else setColumns(colsData || []);
+        if (colsErr) {
+            setColumns([]);
+        } else setColumns(colsData || []);
 
         if (colsData && colsData.length > 0) {
             const colIds = colsData.map((c) => c.id);
@@ -56,14 +58,15 @@ export function TasksTab({ projectId }: { projectId: number }) {
                 .in("column_id", colIds)
                 .order("position", { ascending: true });
 
-            if (tasksErr) console.error("Error fetching tasks:", tasksErr);
-            else setTasks(tasksData || []);
+            if (tasksErr) {
+                setTasks([]);
+            } else setTasks(tasksData || []);
         } else {
             setTasks([]);
         }
         setIsLoading(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId]);
+    }, [projectId, supabase]);
 
     useEffect(() => {
         fetchData();
@@ -101,11 +104,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
         };
 
         if (editingTask) {
-            const { error } = await supabase
+            await supabase
                 .from("tasks")
                 .update(taskPayload)
                 .eq("id", editingTask.id);
-            if (error) console.error("Update error:", error);
         } else {
             const columnTasks = tasks.filter((t) => t.column_id === selectedColumnId);
             const nextPosition =
@@ -115,7 +117,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
             const { error } = await supabase
                 .from("tasks")
                 .insert([{ ...taskPayload, position: nextPosition }]);
-            if (error) console.error("Insert error:", error);
+
+            if (error) {
+                toast.error("Failed to save task");
+            } else {
+                toast.success(editingTask ? "Task updated" : "Task created");
+            }
         }
 
         await fetchData();
@@ -127,7 +134,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
         if (!editingTask) return;
         setIsSubmitting(true);
         const { error } = await supabase.from("tasks").delete().eq("id", editingTask.id);
-        if (error) console.error("Delete error:", error);
+        if (error) {
+            toast.error("Failed to delete task");
+        } else {
+            toast.success("Task deleted");
+        }
         await fetchData();
         setIsSubmitting(false);
         setIsModalOpen(false);

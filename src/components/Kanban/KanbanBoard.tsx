@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { KanbanColumn } from "./KanbanColumn";
 import { PlusIcon } from "@/components/icons";
 import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 interface Column {
     id: number;
@@ -39,7 +40,7 @@ export function KanbanBoard({
     onTaskClick,
     onAddTask,
 }: KanbanBoardProps) {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null);
 
     // Add column state
@@ -84,8 +85,10 @@ export function KanbanBoard({
             .from("tasks")
             .update({ column_id: targetColumnId, position: newPosition })
             .eq("id", taskId);
-
-        if (error) console.error("Move task error:", error);
+        
+        if (error) {
+            toast.error("Failed to move task");
+        }
 
         setDraggingTaskId(null);
         await onDataChange();
@@ -99,8 +102,8 @@ export function KanbanBoard({
         const { error } = await supabase.from("columns").insert([
             { title: newColumnTitle.trim(), board_id: projectId, position: nextPos },
         ]);
-        if (error) console.error("Error adding column:", error);
-        else {
+        if (!error) {
+            toast.success("Column added");
             setNewColumnTitle("");
             setIsAddingColumn(false);
             await onDataChange();

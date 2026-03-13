@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useDashboardUser } from "../provider";
-import { useRouter } from 'next/navigation';
 import {
     EditIcon,
     TrashIcon,
