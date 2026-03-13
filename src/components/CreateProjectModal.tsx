@@ -104,7 +104,7 @@ export default function CreateProjectModal({
                 setTitle(e.target.value);
                 if (e.target.value.trim()) setNameError(false);
               }}
-              className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium text-black placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#FF8B5E]"}`}
+              className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium !text-black placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#FF8B5E]"}`}
               required
               maxLength={100}
               autoFocus
@@ -151,7 +151,7 @@ export default function CreateProjectModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               disabled={isSubmitting}
-              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium text-black placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors resize-none"
+              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium !text-black placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors resize-none"
             />
           </div>
 
@@ -211,7 +211,7 @@ export default function CreateProjectModal({
               value={projectDeadline}
               onChange={(e) => setProjectDeadline(e.target.value)}
               min={today}
-              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium text-black focus:outline-none focus:border-[#FF8B5E] transition-colors"
+              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium !text-black focus:outline-none focus:border-[#FF8B5E] transition-colors"
               disabled={isSubmitting}
             />
           </div>
