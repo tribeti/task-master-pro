@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Logo from "@/components/logo";
 
@@ -14,10 +14,8 @@ import {
   CheckIconLogin as CheckIcon,
 } from "@/components/icons";
 
-// Khởi tạo Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Khởi tạo Supabase SSR client
+const supabase = createClient();
 type AuthView = "login" | "register" | "forgot";
 
 export default function TaskFlowAuth() {

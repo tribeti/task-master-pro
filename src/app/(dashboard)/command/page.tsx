@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { TASKS } from "@/lib/constants";
 import {
     SunIcon,
@@ -21,7 +20,8 @@ import {
 } from "@/components/icons";
 import CreateProjectModal from "@/components/CreateProjectModal";
 
-export default function CommandPage() {
+
+export default function CommandCenter() {
     // --- STATES ---
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [isQueueExpanded, setIsQueueExpanded] = useState(false);
@@ -354,7 +354,7 @@ export default function CommandPage() {
                                 </div>
                                 <div className="ml-auto">
                                     {selectedTags.length === 0 ? (
-                                        <button className="bg-[#34D399] hover:bg-emerald-500 transition-colors text-white font-bold rounded-[2rem] w-32 h-32 flex flex-col items-center justify-center gap-2 shadow-lg shadow-emerald-200">
+                                        <button className="bg-[#34D399] hover:bg-emerald-500 transition-colors text-white font-bold rounded-4xl w-32 h-32 flex flex-col items-center justify-center gap-2 shadow-lg shadow-emerald-200">
                                             <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
                                                 <CheckIcon />
                                             </div>

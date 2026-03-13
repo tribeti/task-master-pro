@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useDashboardUser } from "../layout";
+import { useState } from 'react';
+import { useDashboardUser } from "../provider";
 import {
     EditIcon,
     TrashIcon,
