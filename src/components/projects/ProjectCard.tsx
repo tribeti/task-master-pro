@@ -2,6 +2,7 @@ import React from "react";
 import { MoreIcon } from "@/components/icons";
 import { Board } from "@/types/project";
 
+
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
 interface ProjectCardProps {

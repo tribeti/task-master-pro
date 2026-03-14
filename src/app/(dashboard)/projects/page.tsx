@@ -110,47 +110,47 @@ export default function ProjectsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {boardsLoading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
-                  <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
-                </div>
-                <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
-                <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
-                <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
-                <div className="w-full mb-8">
-                  <div className="h-2.5 bg-slate-100 rounded-full"></div>
-                </div>
-                <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-                  <div className="flex -space-x-2">
-                    {Array.from({ length: 3 }).map((_, j) => (
-                      <div
-                        key={j}
-                        className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
-                      ></div>
-                    ))}
-                  </div>
+            <div
+              key={i}
+              className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
+                <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
+              </div>
+              <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
+              <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
+              <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
+              <div className="w-full mb-8">
+                <div className="h-2.5 bg-slate-100 rounded-full"></div>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+                <div className="flex -space-x-2">
+                  {Array.from({ length: 3 }).map((_, j) => (
+                    <div
+                      key={j}
+                      className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
+                    ></div>
+                  ))}
                 </div>
               </div>
-            ))
+            </div>
+          ))
           : boards.map((proj, index) => {
-              return (
-                <ProjectCard
-                  key={proj.id}
-                  proj={proj}
-                  index={index}
-                  openMenuProjectId={openMenuProjectId}
-                  setOpenMenuProjectId={setOpenMenuProjectId}
-                  menuRef={menuRef}
-                  handleUpdateProject={handleUpdateProject}
-                  handleDeleteProject={handleDeleteProject}
-                  setSelectedProject={setSelectedProject}
-                />
-              );
-            })}
+            return (
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+              />
+            );
+          })}
 
         {/* Create New Project Card */}
         <div
@@ -301,11 +301,10 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject ? (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
-            projectTab === "Timeline"
-              ? "bg-[#1E293B] shadow-slate-400"
-              : "bg-[#34D399] shadow-emerald-200"
-          }`}
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
+            ? "bg-[#1E293B] shadow-slate-400"
+            : "bg-[#34D399] shadow-emerald-200"
+            }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
