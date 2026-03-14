@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AuthCallbackPage() {
     const router = useRouter();
+    const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
         // Lắng nghe sự kiện xác thực từ Supabase
@@ -26,7 +27,7 @@ export default function AuthCallbackPage() {
             authListener.subscription.unsubscribe();
             clearTimeout(timeout);
         };
-    }, [router]);
+    }, [router, supabase]);
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
