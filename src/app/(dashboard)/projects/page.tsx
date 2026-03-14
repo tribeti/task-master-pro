@@ -563,7 +563,7 @@ export default function ProjectsPage() {
               <input
                 type="text"
                 placeholder="What's on your mind?"
-                className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
+                className="text-3xl md:text-4xl font-extrabold text-black placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
                 autoFocus
                 required
                 maxLength={200}

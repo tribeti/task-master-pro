@@ -108,7 +108,7 @@ export function TaskDetailsModal({
                                 setTitle(e.target.value);
                                 if (e.target.value.trim()) setNameError(false);
                             }}
-                            className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#28B8FA]"
+                            className={`w-full text-black px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#28B8FA]"
                                 }`}
                             required
                             autoFocus
@@ -161,7 +161,7 @@ export function TaskDetailsModal({
                             onChange={(e) => setDescription(e.target.value)}
                             rows={4}
                             disabled={isSubmitting}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
+                            className="w-full text-black px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
                         />
                     </div>
 
@@ -174,7 +174,7 @@ export function TaskDetailsModal({
                             type="date"
                             value={deadline}
                             onChange={(e) => setDeadline(e.target.value)}
-                            className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#28B8FA] transition-colors"
+                            className="w-full text-black px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#28B8FA] transition-colors"
                             disabled={isSubmitting}
                         />
                     </div>
