@@ -1,15 +1,6 @@
 import React from "react";
 import { MoreIcon } from "@/components/icons";
-
-export interface Board {
-  id: number;
-  title: string;
-  progress?: number;
-  color?: string;
-  tag?: string;
-  team?: number;
-  description?: string;
-}
+import { Board } from "@/types/project";
 
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
