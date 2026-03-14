@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { PlusIcon, UserIcon, ChatIcon } from "@/components/icons";
 import {
   TasksTab,
@@ -18,34 +12,21 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import QuickEntryModal from "@/components/projects/QuickEntryModal";
 import DeleteConfirmModal from "@/components/projects/DeleteConfirmModal";
 import CreateProjectModal from "@/components/CreateProjectModal";
-import { createClient } from "@/utils/supabase/client";
 import { useDashboardUser } from "../provider";
-import { toast } from "sonner";
-
-interface Board {
-  id: number;
-  title: string;
-  progress?: number;
-  color?: string;
-  tag?: string;
-  team?: number;
-  description?: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  is_private: boolean;
-  created_at: string;
-  owner_id: string;
-  color: string;
-  tag: string | null;
-}
+import { useProjects } from "@/hooks/useProjects";
+import { Board } from "@/types/project";
 
 export default function ProjectsPage() {
   const { user } = useDashboardUser();
-  const supabase = useMemo(() => createClient(), []);
+  const userId = user?.id;
+
+  const {
+    boards,
+    boardsLoading,
+    isSubmitting,
+    confirmDeleteProject,
+    handleCreateProject,
+  } = useProjects(userId);
 
   // --- STATES ---
   const [projectTab, setProjectTab] = useState<
@@ -57,11 +38,7 @@ export default function ProjectsPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Boards data
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [boardsLoading, setBoardsLoading] = useState(true);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
@@ -73,37 +50,6 @@ export default function ProjectsPage() {
     projectId: number | null;
     projectTitle: string;
   }>({ isOpen: false, projectId: null, projectTitle: "" });
-
-  const userId = user?.id;
-  // --- FETCH BOARDS ---
-  const fetchBoards = useCallback(async () => {
-    if (!userId) {
-      setBoards([]);
-      setBoardsLoading(false);
-      return;
-    }
-
-    setBoardsLoading(true);
-
-    const { data, error } = await supabase
-      .from("boards")
-      .select("*")
-      .eq("owner_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Fetch boards error:", error);
-      setBoards([]);
-    } else {
-      setBoards((data as Board[]) || []);
-    }
-
-    setBoardsLoading(false);
-  }, [userId, supabase]); // ✅ userId thay vì user?.id
-
-  useEffect(() => {
-    fetchBoards();
-  }, [fetchBoards]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -121,24 +67,15 @@ export default function ProjectsPage() {
     setDeleteConfirm({ isOpen: true, projectId, projectTitle });
   };
 
-  const confirmDeleteProject = async () => {
-    if (!deleteConfirm.projectId || !user?.id) return;
-    const { error } = await supabase
-      .from("boards")
-      .delete()
-      .eq("id", deleteConfirm.projectId)
-      .eq("owner_id", user.id);
-
-    if (error) {
-      console.error("Delete board error:", error);
-      toast.error(
-        `Failed to delete project: ${error.message || "Unknown error"}`,
-      );
-    } else {
-      toast.success("Project deleted successfully!");
-      await fetchBoards();
+  const onConfirmDelete = async () => {
+    if (!deleteConfirm.projectId) return;
+    const success = await confirmDeleteProject(deleteConfirm.projectId);
+    if (success) {
+      setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
+      if (selectedProject?.id === deleteConfirm.projectId) {
+        setSelectedProject(null);
+      }
     }
-    setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
   };
 
   const handleUpdateProject = (proj: Board) => {
@@ -146,7 +83,7 @@ export default function ProjectsPage() {
     setSelectedProject(proj);
   };
 
-  const handleCreateProject = async (data: {
+  const onCreateProject = async (data: {
     title: string;
     description: string;
     is_private: boolean;
@@ -155,48 +92,10 @@ export default function ProjectsPage() {
     projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
-    if (!user?.id) {
-      setIsSubmitting(false);
-      return;
-    }
-    setIsSubmitting(true);
-    const { data: boardData, error } = await supabase
-      .from("boards")
-      .insert([
-        {
-          title: data.title,
-          description: data.description || null,
-          is_private: data.is_private,
-          color: data.color,
-          tag: data.tag,
-          owner_id: user.id,
-        },
-      ])
-      .select();
-
-    if (error) {
-      toast.error(
-        `Failed to create project: ${error.message || "Unknown error"}`,
-      );
-    } else if (boardData && boardData.length > 0) {
-      toast.success("Project created successfully!");
-      // Create default columns for the new project
-      const boardId = boardData[0].id;
-      const { error: columnsError } = await supabase.from("columns").insert([
-        { title: "To Do", board_id: boardId, position: 0 },
-        { title: "In Progress", board_id: boardId, position: 1 },
-        { title: "Done", board_id: boardId, position: 2 },
-      ]);
-      if (columnsError) {
-        toast.warning(
-          `Project created, but failed to add default columns: ${columnsError.message}`,
-        );
-      }
-
-      await fetchBoards();
+    const success = await handleCreateProject(data);
+    if (success) {
       setIsCreateProjectOpen(false);
     }
-    setIsSubmitting(false);
   };
 
   const toggleTag = (tag: string) => {
@@ -451,7 +350,7 @@ export default function ProjectsPage() {
             projectTitle: "",
           })
         }
-        onConfirm={confirmDeleteProject}
+        onConfirm={onConfirmDelete}
         projectTitle={deleteConfirm.projectTitle}
       />
 
@@ -459,7 +358,7 @@ export default function ProjectsPage() {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
-        onSubmit={handleCreateProject}
+        onSubmit={onCreateProject}
         isSubmitting={isSubmitting}
       />
     </>
