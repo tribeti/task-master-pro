@@ -9,7 +9,7 @@ interface ProjectCardProps {
   proj: Board;
   index: number;
   openMenuProjectId: number | null;
-  menuRef: React.RefObject<HTMLDivElement | null>;
+  menuRef: React.RefObject<HTMLDivElement>;
   setOpenMenuProjectId: (id: number | null) => void;
   handleUpdateProject: (proj: Board) => void;
   handleDeleteProject: (id: number, title: string) => void;
