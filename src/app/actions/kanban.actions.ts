@@ -2,7 +2,6 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 
 interface Column {
   id: number;
@@ -104,7 +103,7 @@ export const fetchKanbanDataAction = async (projectId: number) => {
     .order("position", { ascending: true });
 
   if (colsErr) {
-    toast.error(`fetchKanbanDataAction columns error: ${colsErr.message}`);
+    console.error("fetchKanbanDataAction columns error:", colsErr.message);
     throw new Error("Failed to load board data.");
   }
 
@@ -118,7 +117,7 @@ export const fetchKanbanDataAction = async (projectId: number) => {
       .order("position", { ascending: true });
 
     if (tasksErr) {
-      toast.error(`fetchKanbanDataAction tasks error: ${tasksErr.message}`);
+      console.error("fetchKanbanDataAction tasks error:", tasksErr.message);
       throw new Error("Failed to load tasks.");
     }
     tasks = (tasksData as Task[]) || [];
@@ -153,7 +152,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
 
   const { error } = await supabase.from("tasks").insert([payload]);
   if (error) {
-    toast.error(`createTaskAction error: ${error.message}`);
+    console.error("createTaskAction error:", error.message);
     throw new Error("Failed to create task.");
   }
 
@@ -199,7 +198,7 @@ export const updateTaskAction = async (
     .eq("id", taskId);
 
   if (error) {
-    toast.error(`updateTaskAction error: ${error.message}`);
+    console.error("updateTaskAction error:", error.message);
     throw new Error("Failed to update task.");
   }
   revalidatePath("/projects");
@@ -217,7 +216,7 @@ export const deleteTaskAction = async (taskId: number) => {
 
   const { error } = await supabase.from("tasks").delete().eq("id", taskId);
   if (error) {
-    toast.error(`deleteTaskAction error: ${error.message}`);
+    console.error("deleteTaskAction error:", error.message);
     throw new Error("Failed to delete task.");
   }
 
@@ -245,7 +244,7 @@ export const createColumnAction = async (
     .from("columns")
     .insert([{ title: cleanTitle, board_id: projectId, position }]);
   if (error) {
-    toast.error(`createColumnAction error: ${error.message}`);
+    console.error("createColumnAction error:", error.message);
     throw new Error("Failed to create column.");
   }
 

@@ -3,7 +3,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { Board } from "@/types/project";
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 
 // ── Helper: Validate string input ──
 function validateString(
@@ -41,7 +40,7 @@ export const fetchUserBoardsAction = async (
     .order("created_at", { ascending: false });
 
   if (error) {
-    toast.error(`fetchUserBoardsAction error: ${error.message}`);
+    console.error("fetchUserBoardsAction error:", error.message);
     throw new Error("Failed to fetch projects.");
   }
   return (data as Board[]) || [];
@@ -68,7 +67,7 @@ export const deleteUserBoardAction = async (
     .eq("owner_id", userId); // Double check owner_id even if RLS is enabled
 
   if (error) {
-    toast.error(`deleteUserBoardAction error: ${error.message}`);
+    console.error("deleteUserBoardAction error:", error.message);
     throw new Error("Failed to delete project.");
   }
 
@@ -118,7 +117,7 @@ export const createNewBoardAction = async (
     .select();
 
   if (error) {
-    toast.error(`createNewBoardAction error: ${error.message}`);
+    console.error("createNewBoardAction error:", error.message);
     throw new Error("Failed to create project.");
   }
 
@@ -162,7 +161,7 @@ export const createDefaultColumnsAction = async (
   ]);
 
   if (error) {
-    toast.error(`createDefaultColumnsAction error: ${error.message}`);
+    console.error("createDefaultColumnsAction error:", error.message);
     throw new Error("Failed to create default columns.");
   }
 
