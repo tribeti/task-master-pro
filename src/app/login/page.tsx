@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Logo from "@/components/logo";
@@ -23,9 +23,19 @@ export default function TaskFlowAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("remembered_email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
   // --- CÁC HÀM XỬ LÝ AUTH ---
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -42,6 +52,14 @@ export default function TaskFlowAuth() {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
+
+    // Xử lý Remember Me
+    if (rememberMe) {
+      localStorage.setItem("remembered_email", email);
+    } else {
+      localStorage.removeItem("remembered_email");
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -232,6 +250,8 @@ export default function TaskFlowAuth() {
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA]"
                     />
                     <span className="text-sm font-medium text-slate-500 group-hover:text-slate-800 transition-colors">
