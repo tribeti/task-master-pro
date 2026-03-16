@@ -106,8 +106,8 @@ export default function ProjectsPage() {
 
   // --- RENDER ---
   const renderAllProjects = () => (
-    <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="flex-1 px-10 pb-20 overflow-y-auto mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
         {boardsLoading
           ? Array.from({ length: 3 }).map((_, i) => (
             <div
@@ -155,13 +155,13 @@ export default function ProjectsPage() {
         {/* Create New Project Card */}
         <div
           onClick={() => setIsCreateProjectOpen(true)}
-          className="bg-transparent rounded-4xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-75 group h-full"
+          className="bg-slate-50 rounded-[40px] p-8 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-100 transition-all min-h-[320px] group h-full hover:border-[#28B8FA]"
         >
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <div className="w-20 h-20 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-6 group-hover:scale-110 transition-transform">
             <PlusIcon />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">New Project</h3>
-          <p className="text-sm text-slate-400 font-medium px-4">
+          <h3 className="text-2xl font-black text-slate-800 mb-2">New Project</h3>
+          <p className="text-sm text-slate-400 font-bold px-4">
             Start tracking a new initiative.
           </p>
         </div>

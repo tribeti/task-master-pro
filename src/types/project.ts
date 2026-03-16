@@ -6,6 +6,7 @@ export interface Board {
   tag?: string;
   team?: number;
   description?: string;
+  created_at?: string;
 }
 
 export interface Project {

@@ -285,10 +285,7 @@ export default function InsightsPage() {
                 </div>
             </div>
 
-            {/* FLOATING ACTION BUTTON */}
-            <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
-                <PlusIcon />
-            </button>
+
         </>
     );
 }
