@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 import Logo from "@/components/logo";
 
 import {
@@ -122,7 +122,9 @@ export default function TaskFlowAuth() {
     if (error) {
       setErrorMsg(error.message);
     } else {
-      setSuccessMsg("Đã gửi link reset password vào email! Vui lòng kiểm tra inbox.");
+      setSuccessMsg(
+        "Đã gửi link reset password vào email! Vui lòng kiểm tra inbox.",
+      );
     }
     setIsLoading(false);
   };
@@ -434,10 +436,7 @@ export default function TaskFlowAuth() {
                 </p>
               </div>
 
-              <form
-                className="space-y-6"
-                onSubmit={handleForgotPassword}
-              >
+              <form className="space-y-6" onSubmit={handleForgotPassword}>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#FF8B5E] transition-colors">
                     <MailIcon />
