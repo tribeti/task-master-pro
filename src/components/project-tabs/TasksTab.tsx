@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
-import { createClient } from "@/utils/supabase/client";
+import { fetchKanbanDataAction, createTaskAction, updateTaskAction, deleteTaskAction } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
 
@@ -25,7 +25,6 @@ interface Task {
 }
 
 export function TasksTab({ projectId }: { projectId: number }) {
-    const supabase = useMemo(() => createClient(), []);
     const { user } = useDashboardUser();
     const [columns, setColumns] = useState<Column[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -40,33 +39,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
     /* ── Fetch data ── */
     const fetchData = useCallback(async () => {
         setIsLoading(true);
-        const { data: colsData, error: colsErr } = await supabase
-            .from("columns")
-            .select("*")
-            .eq("board_id", projectId)
-            .order("position", { ascending: true });
-
-        if (colsErr) {
+        try {
+            const { columns: colsData, tasks: tasksData } = await fetchKanbanDataAction(projectId);
+            setColumns(colsData);
+            setTasks(tasksData);
+        } catch (error) {
             setColumns([]);
-        } else setColumns(colsData || []);
-
-        if (colsData && colsData.length > 0) {
-            const colIds = colsData.map((c) => c.id);
-            const { data: tasksData, error: tasksErr } = await supabase
-                .from("tasks")
-                .select("*")
-                .in("column_id", colIds)
-                .order("position", { ascending: true });
-
-            if (tasksErr) {
-                setTasks([]);
-            } else setTasks(tasksData || []);
-        } else {
             setTasks([]);
         }
         setIsLoading(false);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, supabase]);
+    }, [projectId]);
 
     useEffect(() => {
         fetchData();
@@ -100,26 +82,27 @@ export function TasksTab({ projectId }: { projectId: number }) {
             priority: data.priority,
             deadline: data.deadline || null,
             column_id: selectedColumnId,
-            assignee_id: user?.id,
+            assignee_id: user?.id || null,
         };
 
-        let error;
+        let error = false;
         if (editingTask) {
-            const { error: updateError } = await supabase
-                .from("tasks")
-                .update(taskPayload)
-                .eq("id", editingTask.id);
-            error = updateError;
+            try {
+                await updateTaskAction(editingTask.id, taskPayload);
+            } catch (updateError) {
+                error = true;
+            }
         } else {
             const columnTasks = tasks.filter((t) => t.column_id === selectedColumnId);
             const nextPosition =
                 columnTasks.length > 0
                     ? Math.max(...columnTasks.map((t) => t.position)) + 1
                     : 0;
-            const { error: insertError } = await supabase
-                .from("tasks")
-                .insert([{ ...taskPayload, position: nextPosition }]);
-            error = insertError;
+            try {
+                await createTaskAction({ ...taskPayload, position: nextPosition });
+            } catch (insertError) {
+                error = true;
+            }
         }
 
         if (error) {
@@ -136,11 +119,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
     const handleDeleteTask = async () => {
         if (!editingTask) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from("tasks").delete().eq("id", editingTask.id);
-        if (error) {
-            toast.error("Failed to delete task");
-        } else {
+        try {
+            await deleteTaskAction(editingTask.id);
             toast.success("Task deleted");
+        } catch (error) {
+            toast.error("Failed to delete task");
         }
         await fetchData();
         setIsSubmitting(false);
