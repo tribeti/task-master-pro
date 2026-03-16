@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 import Logo from "@/components/logo";
 
 import {
@@ -14,9 +14,22 @@ import {
   CheckIconLogin as CheckIcon,
 } from "@/components/icons";
 
-// Khởi tạo Supabase SSR client
-const supabase = createClient();
 type AuthView = "login" | "register" | "forgot";
+
+// Password validation rules
+const PASSWORD_RULES = [
+  { test: (p: string) => p.length >= 6, label: "At least 6 characters" },
+  { test: (p: string) => /[0-9]/.test(p), label: "One number" },
+];
+
+function validatePassword(password: string): string | null {
+  for (const rule of PASSWORD_RULES) {
+    if (!rule.test(password)) {
+      return `Password must have: ${rule.label}`;
+    }
+  }
+  return null;
+}
 
 export default function TaskFlowAuth() {
   const [view, setView] = useState<AuthView>("login");
@@ -26,7 +39,9 @@ export default function TaskFlowAuth() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   // Load remembered email on mount
   useEffect(() => {
@@ -73,6 +88,16 @@ export default function TaskFlowAuth() {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
+    setSuccessMsg("");
+
+    // Validate password strength
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setErrorMsg(passwordError);
+      setIsLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -80,8 +105,26 @@ export default function TaskFlowAuth() {
     });
     if (error) setErrorMsg(error.message);
     else {
-      alert("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+      setSuccessMsg("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
       setView("login");
+    }
+    setIsLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    });
+    if (error) {
+      setErrorMsg(error.message);
+    } else {
+      setSuccessMsg(
+        "Đã gửi link reset password vào email! Vui lòng kiểm tra inbox.",
+      );
     }
     setIsLoading(false);
   };
@@ -149,6 +192,12 @@ export default function TaskFlowAuth() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto min-h-screen">
         <div className="w-full max-w-md rounded-[2.5rem] bg-white p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden mt-16 lg:mt-0">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#28B8FA] opacity-[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+
+          {successMsg && (
+            <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-medium rounded-2xl border border-emerald-100 flex items-center gap-2">
+              ✓ {successMsg}
+            </div>
+          )}
 
           {errorMsg && (
             <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-medium rounded-2xl border border-red-100 flex items-center gap-2">
@@ -387,20 +436,15 @@ export default function TaskFlowAuth() {
                 </p>
               </div>
 
-              <form
-                className="space-y-6"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert("Đã gửi link reset vào email!");
-                  setView("login");
-                }}
-              >
+              <form className="space-y-6" onSubmit={handleForgotPassword}>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#FF8B5E] transition-colors">
                     <MailIcon />
                   </div>
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email address"
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#FF8B5E] focus:bg-white transition-all placeholder:text-slate-400"
                     required
@@ -409,9 +453,10 @@ export default function TaskFlowAuth() {
 
                 <button
                   type="submit"
-                  className="w-full py-4 px-6 bg-[#FF8B5E] hover:bg-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-orange-500/30 transition-all"
+                  disabled={isLoading}
+                  className="w-full py-4 px-6 bg-[#FF8B5E] hover:bg-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-orange-500/30 transition-all disabled:opacity-70"
                 >
-                  Send Reset Link
+                  {isLoading ? "Sending..." : "Send Reset Link"}
                 </button>
               </form>
             </div>

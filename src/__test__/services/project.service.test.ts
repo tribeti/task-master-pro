@@ -1,9 +1,18 @@
 import { fetchUserBoards, deleteUserBoard, createNewBoard, createDefaultColumns } from '@/services/project.service';
 import { createClient } from '@/utils/supabase/client';
+import { createClient as createServerClient } from '@/utils/supabase/server';
 
-// Mock the Supabase client
+// Mock the Supabase clients
 jest.mock('@/utils/supabase/client', () => ({
   createClient: jest.fn(),
+}));
+
+jest.mock('@/utils/supabase/server', () => ({
+  createClient: jest.fn(),
+}));
+
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
 }));
 
 describe('project.service', () => {
@@ -17,8 +26,13 @@ describe('project.service', () => {
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      },
     };
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+    (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+    (createServerClient as jest.Mock).mockResolvedValue(mockSupabase);
   });
 
   afterEach(() => {
@@ -39,7 +53,7 @@ describe('project.service', () => {
 
     it('should throw an error if fetch fails', async () => {
       mockSupabase.order.mockResolvedValue({ data: null, error: { message: 'Fetch error' } });
-      await expect(fetchUserBoards('user-1')).rejects.toThrow('Fetch error');
+      await expect(fetchUserBoards('user-1')).rejects.toThrow('Failed to fetch projects.');
     });
   });
 
@@ -62,7 +76,7 @@ describe('project.service', () => {
       mockSupabase.eq.mockReturnValue({
         eq: jest.fn().mockResolvedValue({ error: { message: 'Delete error' } }),
       });
-      await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow('Delete error');
+      await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow('Failed to delete project.');
     });
   });
 
@@ -88,7 +102,7 @@ describe('project.service', () => {
 
     it('should throw an error if insert fails', async () => {
       mockSupabase.select.mockResolvedValue({ data: null, error: { message: 'Insert error' } });
-      await expect(createNewBoard('user-1', mockBoardData)).rejects.toThrow('Insert error');
+      await expect(createNewBoard('user-1', mockBoardData)).rejects.toThrow('Failed to create project.');
     });
 
     it('should throw an error if no data is returned', async () => {
@@ -113,7 +127,7 @@ describe('project.service', () => {
 
     it('should throw an error if columns insert fails', async () => {
       mockSupabase.insert.mockResolvedValue({ error: { message: 'Columns error' } });
-      await expect(createDefaultColumns(15)).rejects.toThrow('Columns error');
+      await expect(createDefaultColumns(15)).rejects.toThrow('Failed to create default columns.');
     });
   });
 });
