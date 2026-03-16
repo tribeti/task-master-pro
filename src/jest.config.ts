@@ -23,8 +23,17 @@ const config: Config = {
   collectCoverageFrom: [
     '<rootDir>/services/**/*.ts',
     '<rootDir>/hooks/**/*.ts',
-    '<rootDir>/hooks/**/*.tsx'
+    '<rootDir>/hooks/**/*.tsx',
+    '<rootDir>/app/actions/**/*.ts',
   ],
+  coverageThreshold: {
+    global: {
+      branches: 75,
+      functions: 75,
+      lines: 75,
+      statements: 75,
+    },
+  },
   coverageDirectory: '<rootDir>/coverage',
   coverageReporters: ['text', 'lcov'],
 }
