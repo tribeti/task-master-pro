@@ -4,6 +4,18 @@ import { createClient } from "@/utils/supabase/server";
 import { Board } from "@/types/project";
 import { revalidatePath } from "next/cache";
 
+// ── Helper: Validate string input ──
+function validateString(value: string, fieldName: string, maxLength: number = 500): string {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${fieldName} is required.`);
+  }
+  if (trimmed.length > maxLength) {
+    throw new Error(`${fieldName} must be ${maxLength} characters or less.`);
+  }
+  return trimmed;
+}
+
 export const fetchUserBoardsAction = async (userId: string): Promise<Board[]> => {
   const supabase = await createClient();
   
@@ -20,7 +32,8 @@ export const fetchUserBoardsAction = async (userId: string): Promise<Board[]> =>
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(error.message);
+    console.error("fetchUserBoardsAction error:", error.message);
+    throw new Error("Failed to fetch projects.");
   }
   return (data as Board[]) || [];
 };
@@ -41,7 +54,8 @@ export const deleteUserBoardAction = async (projectId: number, userId: string): 
     .eq("owner_id", userId); // Double check owner_id even if RLS is enabled
 
   if (error) {
-    throw new Error(error.message);
+    console.error("deleteUserBoardAction error:", error.message);
+    throw new Error("Failed to delete project.");
   }
   
   revalidatePath("/projects");
@@ -65,17 +79,31 @@ export const createNewBoardAction = async (
     throw new Error("Unauthorized access");
   }
 
+  // Validate input
+  const cleanTitle = validateString(boardData.title, "Project title", 100);
+  const cleanTag = validateString(boardData.tag, "Tag", 50);
+  const cleanColor = validateString(boardData.color, "Color", 20);
+  const cleanDescription = boardData.description ? boardData.description.trim().slice(0, 1000) : null;
+
   const { data, error } = await supabase
     .from("boards")
-    .insert([{ ...boardData, owner_id: userId }])
+    .insert([{ 
+      title: cleanTitle,
+      description: cleanDescription,
+      is_private: boardData.is_private,
+      color: cleanColor,
+      tag: cleanTag,
+      owner_id: userId 
+    }])
     .select();
 
   if (error) {
-    throw new Error(error.message);
+    console.error("createNewBoardAction error:", error.message);
+    throw new Error("Failed to create project.");
   }
 
   if (!data || data.length === 0) {
-    throw new Error("Failed to create project: No data returned");
+    throw new Error("Failed to create project: No data returned.");
   }
 
   revalidatePath("/projects");
@@ -91,7 +119,17 @@ export const createDefaultColumnsAction = async (boardId: number): Promise<void>
     throw new Error("Unauthorized access");
   }
   
-  // ideally we should also check if the user is the owner of the boardId but keeping it simple for now or assuming RLS
+  // SECURE: Verify the user is the owner of the boardId
+  const { data: board, error: boardError } = await supabase
+    .from("boards")
+    .select("id")
+    .eq("id", boardId)
+    .eq("owner_id", user.id)
+    .single();
+
+  if (boardError || !board) {
+    throw new Error("Access denied.");
+  }
 
   const { error } = await supabase.from("columns").insert([
     { title: "To Do", board_id: boardId, position: 0 },
@@ -100,7 +138,8 @@ export const createDefaultColumnsAction = async (boardId: number): Promise<void>
   ]);
 
   if (error) {
-    throw new Error(error.message);
+    console.error("createDefaultColumnsAction error:", error.message);
+    throw new Error("Failed to create default columns.");
   }
   
   revalidatePath("/projects");

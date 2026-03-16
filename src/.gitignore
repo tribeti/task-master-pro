@@ -40,5 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# reports (may contain source code)
+eslint-report.json
+
 # ai agent
 .agents/
