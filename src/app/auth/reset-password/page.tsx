@@ -40,6 +40,16 @@ export default function ResetPasswordPage() {
     });
   }, [router, supabase]);
 
+  useEffect(() => {
+    if (!successMsg) return;
+
+    const timer = setTimeout(() => {
+      router.push("/command");
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [successMsg, router]);
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -65,7 +75,6 @@ export default function ResetPasswordPage() {
       console.error("resetPassword error:", error.message);
     } else {
       setSuccessMsg("Mật khẩu đã được đổi thành công! Đang chuyển hướng...");
-      setTimeout(() => router.push("/command"), 2000);
     }
     setIsLoading(false);
   };
@@ -168,13 +177,12 @@ export default function ResetPasswordPage() {
               return (
                 <div
                   key={rule.label}
-                  className={`flex items-center gap-2 text-xs font-medium transition-colors ${
-                    newPassword.length === 0
+                  className={`flex items-center gap-2 text-xs font-medium transition-colors ${newPassword.length === 0
                       ? "text-slate-300"
                       : passed
                         ? "text-emerald-500"
                         : "text-red-400"
-                  }`}
+                    }`}
                 >
                   <span>{passed ? "✓" : "○"}</span>
                   {rule.label}
