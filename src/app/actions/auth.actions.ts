@@ -1,25 +1,6 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env variables",
-    );
-  }
-
-  return createAdminClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 function isValidEmailFormat(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,21 +15,18 @@ export async function checkEmailExistsAction(
   }
 
   try {
-    const adminClient = getAdminClient();
-    const { data, error } = await adminClient.auth.admin.listUsers({
-      perPage: 1000,
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc("check_email_exists", {
+      email_to_check: email.trim(),
     });
 
     if (error) {
-      console.error("checkEmailExistsAction error:", error.message);
+      console.error("checkEmailExistsAction RPC error:", error.message);
       return { exists: true };
     }
 
-    const userExists = data.users.some(
-      (user) => user.email?.toLowerCase() === email.trim().toLowerCase(),
-    );
-
-    return { exists: userExists };
+    return { exists: data === true };
   } catch (err) {
     console.error("checkEmailExistsAction unexpected error:", err);
     return { exists: true };
@@ -64,13 +42,7 @@ export async function requestPasswordResetAction(
 
   try {
     const supabase = await createClient();
-    const resetUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
-        /\.supabase\.co.*/,
-        "",
-      )?.replace("https://", "http://localhost:3000") ||
-      "http://localhost:3000";
+    const resetUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${resetUrl}/auth/reset-password`,
