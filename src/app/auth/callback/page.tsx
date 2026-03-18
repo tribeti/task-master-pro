@@ -17,14 +17,19 @@ export default function AuthCallbackPage() {
     }, 3000);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" && !hasNavigated) {
+      if (hasNavigated) return;
+
+      let destination: string | null = null;
+      if (event === "SIGNED_IN") {
+        destination = "/command";
+      } else if (event === "PASSWORD_RECOVERY") {
+        destination = "/auth/reset-password";
+      }
+
+      if (destination) {
         hasNavigated = true;
         clearTimeout(timeout);
-        router.push("/command");
-      } else if (event === "PASSWORD_RECOVERY" && !hasNavigated) {
-        hasNavigated = true;
-        clearTimeout(timeout);
-        router.push("/auth/reset-password");
+        router.push(destination);
       }
     });
 
