@@ -65,12 +65,7 @@ export async function requestPasswordResetAction(
   try {
     const supabase = await createClient();
     const resetUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
-        /\.supabase\.co.*/,
-        "",
-      )?.replace("https://", "http://localhost:3000") ||
-      "http://localhost:3000";
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${resetUrl}/auth/reset-password`,
