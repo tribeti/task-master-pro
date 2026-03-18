@@ -9,18 +9,24 @@ export default function AuthCallbackPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
+    let hasNavigated = false;
+    const timeout = setTimeout(() => {
+      if (!hasNavigated) {
         router.push("/command");
-      } else if (event === "PASSWORD_RECOVERY") {
+      }
+    }, 3000);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" && !hasNavigated) {
+        hasNavigated = true;
+        clearTimeout(timeout);
+        router.push("/command");
+      } else if (event === "PASSWORD_RECOVERY" && !hasNavigated) {
+        hasNavigated = true;
+        clearTimeout(timeout);
         router.push("/auth/reset-password");
       }
     });
-
-    // Fallback: nếu không có event nào được xử lý sau 3 giây, về trang chủ
-    const timeout = setTimeout(() => {
-      router.push("/command");
-    }, 3000);
 
     return () => {
       authListener.subscription.unsubscribe();
