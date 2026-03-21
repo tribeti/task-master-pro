@@ -25,6 +25,7 @@ describe('project.service', () => {
       insert: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
       auth: {
@@ -58,24 +59,152 @@ describe('project.service', () => {
   });
 
   describe('deleteUserBoard', () => {
-    it('should successfully delete a board', async () => {
-      const secondEqMock = jest.fn().mockResolvedValue({ error: null });
-      mockSupabase.eq.mockReturnValue({
-        eq: secondEqMock,
+    it('should successfully delete a board if all tasks are done', async () => {
+      const columns = [
+        { id: 1, title: 'To Do' },
+        { id: 2, title: 'Done' },
+      ];
+      let fromCallCount = 0;
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        fromCallCount += 1;
+        const chain: any = {
+          select: jest.fn().mockReturnThis(),
+          delete: jest.fn().mockReturnThis(),
+          eq: jest.fn(),
+          in: jest.fn(),
+        };
+
+        if (fromCallCount === 1 && table === 'columns') {
+          chain.eq.mockImplementation((field: string) => {
+            if (field === 'board_id') {
+              return Promise.resolve({ data: columns, error: null });
+            }
+            return Promise.resolve({ data: null, error: null });
+          });
+          return chain;
+        }
+
+        if (fromCallCount === 2 && table === 'tasks') {
+          chain.in.mockImplementation((field: string) => {
+            if (field === 'column_id') {
+              return Promise.resolve({ data: [], error: null });
+            }
+            return Promise.resolve({ data: null, error: null });
+          });
+          return chain;
+        }
+
+        if (fromCallCount === 3 && table === 'tasks') {
+          chain.in.mockImplementation((field: string) => {
+            if (field === 'column_id') {
+              return Promise.resolve({ error: null });
+            }
+            return Promise.resolve({ error: null });
+          });
+          return chain;
+        }
+
+        if (fromCallCount === 4 && table === 'columns') {
+          chain.eq.mockResolvedValue({ error: null });
+          return chain;
+        }
+
+        if (fromCallCount === 5 && table === 'boards') {
+          chain.eq.mockImplementation((field: string) => {
+            if (field === 'id') return chain;
+            if (field === 'owner_id') return Promise.resolve({ error: null });
+            return Promise.resolve({ error: null });
+          });
+          return chain;
+        }
+
+        return chain;
       });
 
       await deleteUserBoard(10, 'user-1');
 
+      expect(mockSupabase.from).toHaveBeenCalledWith('columns');
+      expect(mockSupabase.from).toHaveBeenCalledWith('tasks');
       expect(mockSupabase.from).toHaveBeenCalledWith('boards');
-      expect(mockSupabase.delete).toHaveBeenCalled();
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', 10);
-      expect(secondEqMock).toHaveBeenCalledWith('owner_id', 'user-1');
+    });
+
+    it('should block deletion when tasks exist outside Done column', async () => {
+      const columns = [
+        { id: 1, title: 'To Do' },
+        { id: 2, title: 'Done' },
+      ];
+      let fromCallCount = 0;
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        fromCallCount += 1;
+        const chain: any = {
+          select: jest.fn().mockReturnThis(),
+          delete: jest.fn().mockReturnThis(),
+          eq: jest.fn(),
+          in: jest.fn(),
+        };
+
+        if (fromCallCount === 1 && table === 'columns') {
+          chain.eq.mockImplementation((field: string) => {
+            if (field === 'board_id') {
+              return Promise.resolve({ data: columns, error: null });
+            }
+            return Promise.resolve({ data: null, error: null });
+          });
+          return chain;
+        }
+
+        if (fromCallCount === 2 && table === 'tasks') {
+          chain.in.mockResolvedValue({ data: [{ id: 123 }], error: null });
+          return chain;
+        }
+
+        return chain;
+      });
+
+      await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow(
+        'Cannot delete project while there are tasks outside the Done column',
+      );
     });
 
     it('should throw an error if delete fails', async () => {
-      mockSupabase.eq.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: { message: 'Delete error' } }),
+      const columns: Array<{id:number;title:string}> = [];
+      let fromCallCount = 0;
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        fromCallCount += 1;
+        const chain: any = {
+          select: jest.fn().mockReturnThis(),
+          delete: jest.fn().mockReturnThis(),
+          eq: jest.fn(),
+          in: jest.fn(),
+        };
+
+        if (fromCallCount === 1 && table === 'columns') {
+          chain.eq.mockImplementation((field: string) => {
+            if (field === 'board_id') {
+              return Promise.resolve({ data: columns, error: null });
+            }
+            return Promise.resolve({ data: null, error: null });
+          });
+          return chain;
+        }
+
+        if (fromCallCount === 2 && table === 'boards') {
+          chain.eq.mockImplementation((field: string) => {
+            if (field === 'id') return chain;
+            if (field === 'owner_id') {
+              return Promise.resolve({ error: { message: 'Delete error' } });
+            }
+            return Promise.resolve({ error: null });
+          });
+          return chain;
+        }
+
+        return chain;
       });
+
       await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow('Failed to delete project.');
     });
   });

@@ -60,6 +60,69 @@ export const deleteUserBoardAction = async (
     throw new Error("Unauthorized access");
   }
 
+  // Load columns for this board to determine DONE vs non-DONE locations
+  const { data: columns, error: columnsError } = await supabase
+    .from("columns")
+    .select("id,title")
+    .eq("board_id", projectId);
+
+  if (columnsError) {
+    console.error("deleteUserBoardAction error while fetching columns:", columnsError.message);
+    throw new Error("Failed to delete project.");
+  }
+
+  const boardColumns = (columns as Array<{ id: number; title: string }>) || [];
+  const doneColumnIds = boardColumns
+    .filter((c) => c.title?.trim().toLowerCase() === "done")
+    .map((c) => c.id);
+  const nonDoneColumnIds = boardColumns
+    .filter((c) => c.title?.trim().toLowerCase() !== "done")
+    .map((c) => c.id);
+
+  // Block if any task exists in non-DONE columns
+  if (nonDoneColumnIds.length > 0) {
+    const { data: nonDoneTasks, error: tasksError } = await supabase
+      .from("tasks")
+      .select("id")
+      .in("column_id", nonDoneColumnIds);
+
+    if (tasksError) {
+      console.error("deleteUserBoardAction error while fetching tasks:", tasksError.message);
+      throw new Error("Failed to delete project.");
+    }
+
+    if (nonDoneTasks && nonDoneTasks.length > 0) {
+      throw new Error(
+        "Cannot delete project while there are tasks outside the Done column. Please complete or move tasks to Done before deleting.",
+      );
+    }
+  }
+
+  // If we reach here, only DONE tasks may exist; clean up tasks and columns before deleting board.
+  if (doneColumnIds.length > 0) {
+    const { error: deleteTasksError } = await supabase
+      .from("tasks")
+      .delete()
+      .in("column_id", doneColumnIds);
+
+    if (deleteTasksError) {
+      console.error("deleteUserBoardAction error while deleting done tasks:", deleteTasksError.message);
+      throw new Error("Failed to delete project.");
+    }
+  }
+
+  if (boardColumns.length > 0) {
+    const { error: deleteColumnsError } = await supabase
+      .from("columns")
+      .delete()
+      .eq("board_id", projectId);
+
+    if (deleteColumnsError) {
+      console.error("deleteUserBoardAction error while deleting columns:", deleteColumnsError.message);
+      throw new Error("Failed to delete project.");
+    }
+  }
+
   const { error } = await supabase
     .from("boards")
     .delete()
