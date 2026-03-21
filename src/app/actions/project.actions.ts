@@ -4,6 +4,24 @@ import { createClient } from "@/utils/supabase/server";
 import { Board } from "@/types/project";
 import { revalidatePath } from "next/cache";
 
+// ── Helper: Verify user owns a board ──
+async function verifyBoardOwnership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  boardId: number,
+) {
+  const { data: board, error } = await supabase
+    .from("boards")
+    .select("id")
+    .eq("id", boardId)
+    .eq("owner_id", userId)
+    .single();
+
+  if (error || !board) {
+    throw new Error("Access denied.");
+  }
+}
+
 // ── Helper: Validate string input ──
 function validateString(
   value: string,
@@ -60,6 +78,9 @@ export const deleteUserBoardAction = async (
     throw new Error("Unauthorized access");
   }
 
+  // SECURE: Verify user owns this board before any mutations
+  await verifyBoardOwnership(supabase, userId, projectId);
+
   // Load columns for this board to determine DONE vs non-DONE locations
   const { data: columns, error: columnsError } = await supabase
     .from("columns")
@@ -70,14 +91,19 @@ export const deleteUserBoardAction = async (
     console.error("deleteUserBoardAction error while fetching columns:", columnsError.message);
     throw new Error("Failed to delete project.");
   }
-
+  const DONE_COLUMN_TITLE = 'done';
   const boardColumns = (columns as Array<{ id: number; title: string }>) || [];
-  const doneColumnIds = boardColumns
-    .filter((c) => c.title?.trim().toLowerCase() === "done")
-    .map((c) => c.id);
-  const nonDoneColumnIds = boardColumns
-    .filter((c) => c.title?.trim().toLowerCase() !== "done")
-    .map((c) => c.id);
+  const { doneColumnIds, nonDoneColumnIds } = boardColumns.reduce(
+    (acc, column) => {
+      if (column.title?.trim().toLowerCase() === DONE_COLUMN_TITLE) {
+        acc.doneColumnIds.push(column.id);
+      } else {
+        acc.nonDoneColumnIds.push(column.id);
+      }
+      return acc;
+    },
+    { doneColumnIds: [] as number[], nonDoneColumnIds: [] as number[] },
+  );
 
   // Block if any task exists in non-DONE columns
   if (nonDoneColumnIds.length > 0) {
