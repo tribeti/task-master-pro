@@ -8,9 +8,18 @@ import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
+  addLabelToTaskAction,
+  removeLabelFromTaskAction,
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
+
+interface Label {
+  id: number;
+  name: string;
+  color_hex: string;
+  board_id: number;
+}
 
 interface Column {
   id: number;
@@ -27,6 +36,7 @@ interface Task {
   position: number;
   column_id: number;
   assignee_id: string | null;
+  labels?: Label[];
 }
 
 export function TasksTab({ projectId }: { projectId: number }) {
@@ -34,33 +44,36 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [boardLabels, setBoardLabels] = useState<Label[]>([]);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /* ── Fetch data ── */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { columns: colsData, tasks: tasksData } =
-        await fetchKanbanDataAction(projectId);
-      setColumns(colsData);
-      setTasks(tasksData);
+      const data = await fetchKanbanDataAction(projectId);
+
+      setColumns(data.columns || []);
+      setTasks(data.tasks || []);
+      setBoardLabels(data.labels || []);
     } catch (error) {
+      console.error("Failed to fetch kanban data:", error);
       setColumns([]);
       setTasks([]);
+      setBoardLabels([]);
+      toast.error("Failed to load kanban data");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [projectId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  /* ── Task CRUD ── */
   const openCreateModal = (columnId: number) => {
     setEditingTask(null);
     setSelectedColumnId(columnId);
@@ -80,6 +93,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     deadline: string;
   }) => {
     if (!selectedColumnId) return;
+
     setIsSubmitting(true);
 
     const taskPayload = {
@@ -92,10 +106,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
     };
 
     let error = false;
+
     if (editingTask) {
       try {
         await updateTaskAction(editingTask.id, taskPayload);
       } catch (updateError) {
+        console.error(updateError);
         error = true;
       }
     } else {
@@ -104,17 +120,20 @@ export function TasksTab({ projectId }: { projectId: number }) {
         columnTasks.length > 0
           ? Math.max(...columnTasks.map((t) => t.position)) + 1
           : 0;
+
       try {
-        await createTaskAction({ ...taskPayload, position: nextPosition });
+        await createTaskAction({
+          ...taskPayload,
+          position: nextPosition,
+        });
       } catch (insertError) {
+        console.error(insertError);
         error = true;
       }
     }
 
     if (error) {
-      toast.error(
-        editingTask ? "Failed to update task" : "Failed to create task",
-      );
+      toast.error(editingTask ? "Failed to update task" : "Failed to create task");
     } else {
       toast.success(editingTask ? "Task updated" : "Task created");
     }
@@ -126,19 +145,47 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleDeleteTask = async () => {
     if (!editingTask) return;
+
     setIsSubmitting(true);
     try {
       await deleteTaskAction(editingTask.id);
       toast.success("Task deleted");
     } catch (error) {
+      console.error(error);
       toast.error("Failed to delete task");
     }
+
     await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
 
-  /* ── Render ── */
+  const handleAddLabel = async (taskId: number, labelId: number) => {
+    try {
+      await addLabelToTaskAction(taskId, labelId);
+      await fetchData();
+      toast.success("Label added");
+    } catch (error) {
+      console.error("Failed to add label:", error);
+      toast.error("Failed to add label");
+    }
+  };
+
+  const handleRemoveLabel = async (taskId: number, labelId: number) => {
+    try {
+      await removeLabelFromTaskAction(taskId, labelId);
+      await fetchData();
+      toast.success("Label removed");
+    } catch (error) {
+      console.error("Failed to remove label:", error);
+      toast.error("Failed to remove label");
+    }
+  };
+
+  const currentEditingTask = editingTask
+    ? tasks.find((task) => task.id === editingTask.id) || editingTask
+    : null;
+
   if (isLoading) {
     return (
       <div className="flex-1 overflow-x-auto mt-4 flex items-center justify-center">
@@ -162,9 +209,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveTask}
-        onDelete={editingTask ? handleDeleteTask : undefined}
-        initialData={editingTask}
+        onDelete={currentEditingTask ? handleDeleteTask : undefined}
+        initialData={currentEditingTask}
         isSubmitting={isSubmitting}
+        boardLabels={boardLabels}
+        onAddLabel={handleAddLabel}
+        onRemoveLabel={handleRemoveLabel}
       />
     </div>
   );

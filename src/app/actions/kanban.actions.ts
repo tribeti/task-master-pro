@@ -21,6 +21,13 @@ interface Task {
   assignee_id: string | null;
 }
 
+interface Label {
+  id: number;
+  name: string;
+  color_hex: string;
+  board_id: number;
+}
+
 // ── Helper: Verify user owns a board ──
 async function verifyBoardOwnership(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -107,9 +114,12 @@ export const fetchKanbanDataAction = async (projectId: number) => {
     throw new Error("Failed to load board data.");
   }
 
-  let tasks: Task[] = [];
+  let tasks: (Task & { labels?: Label[] })[] = [];
+  let labels: Label[] = [];
+
   if (columns && columns.length > 0) {
     const colIds = columns.map((c: Column) => c.id);
+
     const { data: tasksData, error: tasksErr } = await supabase
       .from("tasks")
       .select("*")
@@ -120,8 +130,62 @@ export const fetchKanbanDataAction = async (projectId: number) => {
       console.error("fetchKanbanDataAction tasks error:", tasksErr.message);
       throw new Error("Failed to load tasks.");
     }
-    tasks = (tasksData as Task[]) || [];
+
+    tasks = ((tasksData as Task[]) || []).map((task) => ({
+      ...task,
+      labels: [],
+    }));
+
+    const { data: boardLabels, error: labelsErr } = await supabase
+      .from("labels")
+      .select("*")
+      .eq("board_id", projectId)
+      .order("id", { ascending: true });
+
+    if (labelsErr) {
+      console.error("fetchKanbanDataAction labels error:", labelsErr.message);
+      throw new Error("Failed to load labels.");
+    }
+
+    labels = (boardLabels as Label[]) || [];
+
+    if (tasks.length > 0) {
+      const taskIds = tasks.map((task) => task.id);
+
+      const { data: taskLabelsData, error: taskLabelsErr } = await supabase
+        .from("task_labels")
+        .select("task_id, label_id")
+        .in("task_id", taskIds);
+
+      if (taskLabelsErr) {
+        console.error(
+          "fetchKanbanDataAction task_labels error:",
+          taskLabelsErr.message,
+        );
+        throw new Error("Failed to load task labels.");
+      }
+
+      const taskLabelRows =
+        (taskLabelsData as { task_id: number; label_id: number }[]) || [];
+
+      tasks = tasks.map((task) => {
+        const relatedLabelIds = taskLabelRows
+          .filter((row) => row.task_id === task.id)
+          .map((row) => row.label_id);
+
+        return {
+          ...task,
+          labels: labels.filter((label) => relatedLabelIds.includes(label.id)),
+        };
+      });
+    }
   }
+
+  return {
+    columns: (columns as Column[]) || [],
+    tasks,
+    labels,
+  };
 
   return { columns: (columns as Column[]) || [], tasks };
 };
@@ -222,6 +286,95 @@ export const deleteTaskAction = async (taskId: number) => {
 
   revalidatePath("/projects");
 };
+
+export const addLabelToTaskAction = async (
+  taskId: number,
+  labelId: number,
+) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const { data: task, error: taskErr } = await supabase
+    .from("tasks")
+    .select("column_id")
+    .eq("id", taskId)
+    .single();
+
+  if (taskErr || !task) throw new Error("Task not found.");
+
+  const { data: column, error: colErr } = await supabase
+    .from("columns")
+    .select("board_id")
+    .eq("id", task.column_id)
+    .single();
+
+  if (colErr || !column) throw new Error("Column not found.");
+
+  const { data: label, error: labelErr } = await supabase
+    .from("labels")
+    .select("id, board_id")
+    .eq("id", labelId)
+    .single();
+
+  if (labelErr || !label) throw new Error("Label not found.");
+  if (label.board_id !== column.board_id) {
+    throw new Error("Label does not belong to this board.");
+  }
+
+  const { error } = await supabase.from("task_labels").upsert(
+    [
+      {
+        task_id: taskId,
+        label_id: labelId,
+      },
+    ],
+    {
+      onConflict: "task_id,label_id",
+      ignoreDuplicates: true,
+    },
+  );
+
+  if (error) {
+    console.error("addLabelToTaskAction error:", error.message);
+    throw new Error("Failed to add label to task.");
+  }
+
+  revalidatePath("/projects");
+};
+
+export const removeLabelFromTaskAction = async (
+  taskId: number,
+  labelId: number,
+) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const { error } = await supabase
+    .from("task_labels")
+    .delete()
+    .eq("task_id", taskId)
+    .eq("label_id", labelId);
+
+  if (error) {
+    console.error("removeLabelFromTaskAction error:", error.message);
+    throw new Error("Failed to remove label from task.");
+  }
+
+  revalidatePath("/projects");
+};
+
 
 export const createColumnAction = async (
   projectId: number,
