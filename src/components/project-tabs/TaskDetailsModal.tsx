@@ -10,6 +10,14 @@ interface Label {
   board_id: number;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  task_id: number;
+  user_id: string;
+}
+
 interface TaskDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -32,6 +40,11 @@ interface TaskDetailsModalProps {
   boardLabels: Label[];
   onAddLabel: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel: (taskId: number, labelId: number) => Promise<void>;
+  comments: Comment[];
+  commentsLoading: boolean;
+  currentUserId: string;
+  onAddComment: (taskId: number, content: string) => Promise<void>;
+  onDeleteComment: (commentId: number) => Promise<void>;
 }
 
 export function TaskDetailsModal({
@@ -44,6 +57,11 @@ export function TaskDetailsModal({
   boardLabels,
   onAddLabel,
   onRemoveLabel,
+  comments,
+  commentsLoading,
+  currentUserId,
+  onAddComment,
+  onDeleteComment,
 }: TaskDetailsModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -53,6 +71,9 @@ export function TaskDetailsModal({
 
   const [selectedLabelId, setSelectedLabelId] = useState<number | "">("");
   const [labelSubmitting, setLabelSubmitting] = useState(false);
+
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,6 +90,7 @@ export function TaskDetailsModal({
       }
 
       setSelectedLabelId("");
+      setCommentInput("");
       setNameError(false);
     }
   }, [isOpen, initialData]);
@@ -116,6 +138,18 @@ export function TaskDetailsModal({
     }
   };
 
+  const handleAddCommentClick = async () => {
+    if (!initialData?.id || !commentInput.trim()) return;
+
+    try {
+      setCommentSubmitting(true);
+      await onAddComment(initialData.id, commentInput);
+      setCommentInput("");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -124,12 +158,12 @@ export function TaskDetailsModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          disabled={isSubmitting || labelSubmitting}
+          disabled={isSubmitting || labelSubmitting || commentSubmitting}
           className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
         >
           <XIcon />
@@ -145,7 +179,6 @@ export function TaskDetailsModal({
             </p>
           </div>
 
-          {/* Task Name */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
               Task Name <span className="text-red-400">*</span>
@@ -174,7 +207,6 @@ export function TaskDetailsModal({
             )}
           </div>
 
-          {/* Priority */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
               Priority
@@ -205,7 +237,6 @@ export function TaskDetailsModal({
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
               Description
@@ -220,7 +251,6 @@ export function TaskDetailsModal({
             />
           </div>
 
-          {/* Deadline */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
               Deadline
@@ -234,7 +264,6 @@ export function TaskDetailsModal({
             />
           </div>
 
-          {/* Labels */}
           {initialData && (
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
@@ -314,7 +343,81 @@ export function TaskDetailsModal({
             </div>
           )}
 
-          {/* Submit */}
+          {initialData && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
+                Comments
+              </label>
+
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto pr-1">
+                {commentsLoading ? (
+                  <div className="text-sm text-slate-400">Loading comments...</div>
+                ) : comments.length === 0 ? (
+                  <div className="text-sm text-slate-400">No comments yet</div>
+                ) : (
+                  comments.map((comment) => {
+                    const isOwner = comment.user_id === currentUserId;
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">
+                              {isOwner ? "You" : `${comment.user_id.slice(0, 8)}...`}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {new Date(comment.created_at).toLocaleString()}
+                            </p>
+                          </div>
+
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteComment(comment.id)}
+                              disabled={commentSubmitting || isSubmitting}
+                              className="text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                          {comment.content}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <textarea
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  placeholder="Write a comment..."
+                  rows={3}
+                  disabled={commentSubmitting || isSubmitting}
+                  className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
+                />
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleAddCommentClick}
+                    disabled={!commentInput.trim() || commentSubmitting || isSubmitting}
+                    className="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {commentSubmitting ? "Posting..." : "Post Comment"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             {initialData && onDelete && (
               <button

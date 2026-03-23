@@ -28,6 +28,14 @@ interface Label {
   board_id: number;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  task_id: number;
+  user_id: string;
+}
+
 // ── Helper: Verify user owns a board ──
 async function verifyBoardOwnership(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -399,6 +407,110 @@ export const createColumnAction = async (
   if (error) {
     console.error("createColumnAction error:", error.message);
     throw new Error("Failed to create column.");
+  }
+
+  revalidatePath("/projects");
+};
+
+export const fetchCommentsForTaskAction = async (taskId: number) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const { data, error } = await supabase
+    .from("comments")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("fetchCommentsForTaskAction error:", error.message);
+    throw new Error("Failed to load comments.");
+  }
+
+  return (data as Comment[]) || [];
+};
+
+export const createCommentAction = async (
+  taskId: number,
+  content: string,
+) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const cleanContent = validateString(content, "Comment", 2000);
+
+  const payload = {
+    content: cleanContent,
+    task_id: taskId,
+    user_id: user.id,
+  };
+
+  console.log("createCommentAction payload:", payload);
+
+  const { data, error } = await supabase
+    .from("comments")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    console.error(
+      "createCommentAction supabase error full:",
+      JSON.stringify(error, null, 2),
+    );
+    console.error("createCommentAction supabase error object:", error);
+    throw new Error(error.message || "Failed to create comment.");
+  }
+
+  console.log("createCommentAction inserted comment:", data);
+
+  revalidatePath("/projects");
+};
+
+export const deleteCommentAction = async (commentId: number) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: comment, error: commentErr } = await supabase
+    .from("comments")
+    .select("id, user_id, task_id")
+    .eq("id", commentId)
+    .single();
+
+  if (commentErr || !comment) {
+    throw new Error("Comment not found.");
+  }
+
+  await verifyTaskOwnership(supabase, user.id, comment.task_id);
+
+  if (comment.user_id !== user.id) {
+    throw new Error("You can only delete your own comments.");
+  }
+
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("deleteCommentAction error:", error.message);
+    throw new Error("Failed to delete comment.");
   }
 
   revalidatePath("/projects");

@@ -10,6 +10,9 @@ import {
   deleteTaskAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
+  fetchCommentsForTaskAction,
+  createCommentAction,
+  deleteCommentAction,
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
@@ -19,6 +22,14 @@ interface Label {
   name: string;
   color_hex: string;
   board_id: number;
+}
+
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  task_id: number;
+  user_id: string;
 }
 
 interface Column {
@@ -45,6 +56,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [boardLabels, setBoardLabels] = useState<Label[]>([]);
+  const [taskComments, setTaskComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -74,16 +87,32 @@ export function TasksTab({ projectId }: { projectId: number }) {
     fetchData();
   }, [fetchData]);
 
+  const fetchComments = useCallback(async (taskId: number) => {
+    try {
+      setCommentsLoading(true);
+      const data = await fetchCommentsForTaskAction(taskId);
+      setTaskComments(data || []);
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+      setTaskComments([]);
+      toast.error("Failed to load comments");
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, []);
+
   const openCreateModal = (columnId: number) => {
     setEditingTask(null);
     setSelectedColumnId(columnId);
+    setTaskComments([]);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (task: Task) => {
+  const openEditModal = async (task: Task) => {
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
+    await fetchComments(task.id);
   };
 
   const handleSaveTask = async (data: {
@@ -182,6 +211,30 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleAddComment = async (taskId: number, content: string) => {
+    try {
+      await createCommentAction(taskId, content);
+      await fetchComments(taskId);
+      toast.success("Comment added");
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+      toast.error("Failed to add comment");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!editingTask?.id) return;
+
+    try {
+      await deleteCommentAction(commentId);
+      await fetchComments(editingTask.id);
+      toast.success("Comment deleted");
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -215,6 +268,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardLabels={boardLabels}
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
+        comments={taskComments}
+        commentsLoading={commentsLoading}
+        currentUserId={user?.id || ""}
+        onAddComment={handleAddComment}
+        onDeleteComment={handleDeleteComment}
       />
     </div>
   );
