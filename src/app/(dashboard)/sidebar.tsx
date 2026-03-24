@@ -25,7 +25,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
-    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${user.email || "User"}`;
+    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user.email || "User")}`;
     const [sidebarAvatar, setSidebarAvatar] = useState(fallbackAvatar);
     const [sidebarName, setSidebarName] = useState(
         user.user_metadata?.full_name || user.email?.split("@")[0] || "User"

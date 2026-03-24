@@ -16,7 +16,7 @@ export default function ProfilePage() {
     const router = useRouter();
     const supabase = createClient();
 
-    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`;
+    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user?.email || "User")}`;
 
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [displayName, setDisplayName] = useState("");
