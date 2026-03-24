@@ -234,7 +234,7 @@ export default function ProfilePage() {
                                             alt="Avatar"
                                             className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ">
                                             <span className="text-white text-xs font-bold drop-shadow-md">Thay đổi</span>
                                         </div>
                                     </label>
