@@ -273,7 +273,7 @@ export const updateUserBoardAction = async (
 
   await verifyBoardOwnership(supabase, userId, boardId);
 
-  const updates: any = {};
+  const updates: Partial<Board> = {};
   if (boardData.title !== undefined) updates.title = validateString(boardData.title, "Project title", 100);
   if (boardData.description !== undefined) updates.description = boardData.description ? boardData.description.trim().slice(0, 1000) : null;
   if (boardData.color !== undefined) updates.color = validateString(boardData.color as string, "Color", 20);

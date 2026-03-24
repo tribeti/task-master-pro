@@ -32,7 +32,7 @@ export default function UpdateProjectModal({
     const [nameError, setNameError] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
 
-    const today = new Date().toISOString().split("T")[0];
+    // const today = new Date().toISOString().split("T")[0];
 
     useEffect(() => {
         if (isOpen && initialData) {
@@ -183,26 +183,26 @@ export default function UpdateProjectModal({
                         </div>
                     </div>
 
-                {/* Private toggle */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                            Private Project
-                        </label>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Only visible to you and invited members
-                        </p>
+                    {/* Private toggle */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                                Private Project
+                            </label>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Only visible to you and invited members
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsPrivate(!isPrivate)}
+                            disabled={isSubmitting}
+                            className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate ? "bg-[#28B8FA]" : "bg-slate-200"}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${isPrivate ? "translate-x-5" : "translate-x-0"}`}
+                            />
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setIsPrivate(!isPrivate)}
-                        disabled={isSubmitting}
-                        className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate ? "bg-[#28B8FA]" : "bg-slate-200"}`}
-                    >
-                        <span
-                            className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${isPrivate ? "translate-x-5" : "translate-x-0"}`}
-                        />
-                    </button>
-                </div>
 
                     {/* Submit */}
                     <button
