@@ -4,6 +4,7 @@ import {
   deleteUserBoard,
   createNewBoard,
   createDefaultColumns,
+  updateUserBoard,
 } from "@/services/project.service";
 import { Board } from "@/types/project";
 import { toast } from "sonner";
@@ -60,7 +61,6 @@ export const useProjects = (userId?: string) => {
     is_private: boolean;
     color: string;
     tag: string;
-    projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
     if (!userId) return false;
@@ -97,6 +97,28 @@ export const useProjects = (userId?: string) => {
     }
   };
 
+  const handleUpdateExistingProject = async (
+    projectId: number,
+    data: Partial<Board>
+  ) => {
+    if (!userId) return false;
+
+    setIsSubmitting(true);
+    try {
+      await updateUserBoard(userId, projectId, data);
+      toast.success("Project updated successfully!");
+      await fetchBoards();
+      return true;
+    } catch (error: any) {
+      toast.error(
+        `Failed to update project: ${error.message || "Unknown error"}`
+      );
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return {
     boards,
     boardsLoading,
@@ -104,5 +126,6 @@ export const useProjects = (userId?: string) => {
     fetchBoards,
     confirmDeleteProject,
     handleCreateProject,
+    handleUpdateExistingProject,
   };
 };

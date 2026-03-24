@@ -9,11 +9,12 @@ interface ProjectCardProps {
   proj: Board;
   index: number;
   openMenuProjectId: number | null;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   setOpenMenuProjectId: (id: number | null) => void;
   handleUpdateProject: (proj: Board) => void;
   handleDeleteProject: (id: number, title: string) => void;
   setSelectedProject: (proj: Board) => void;
+  currentUserId?: string;
 }
 
 export default function ProjectCard({
@@ -25,6 +26,7 @@ export default function ProjectCard({
   handleUpdateProject,
   handleDeleteProject,
   setSelectedProject,
+  currentUserId,
 }: ProjectCardProps) {
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
@@ -51,18 +53,20 @@ export default function ProjectCard({
               : null
           }
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenMenuProjectId(
-                openMenuProjectId === proj.id ? null : proj.id,
-              );
-            }}
-            className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
-          >
-            <MoreIcon />
-          </button>
-          {openMenuProjectId === proj.id && (
+          {proj.owner_id === currentUserId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuProjectId(
+                  openMenuProjectId === proj.id ? null : proj.id,
+                );
+              }}
+              className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
+            >
+              <MoreIcon />
+            </button>
+          )}
+          {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50">
               <button
                 onClick={(e) => {

@@ -3,9 +3,11 @@ export interface Board {
   title: string;
   progress?: number;
   color?: string;
-  tag?: string;
+  tag?: string | null;
   team?: number;
-  description?: string;
+  description?: string | null;
+  owner_id?: string;
+  is_private?: boolean;
 }
 
 export interface Project {

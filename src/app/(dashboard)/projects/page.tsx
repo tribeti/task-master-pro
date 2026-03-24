@@ -12,6 +12,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import QuickEntryModal from "@/components/projects/QuickEntryModal";
 import DeleteConfirmModal from "@/components/projects/DeleteConfirmModal";
 import CreateProjectModal from "@/components/CreateProjectModal";
+import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
 import { useDashboardUser } from "../provider";
 import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
@@ -26,6 +27,7 @@ export default function ProjectsPage() {
     isSubmitting,
     confirmDeleteProject,
     handleCreateProject,
+    handleUpdateExistingProject,
   } = useProjects(userId);
 
   // --- STATES ---
@@ -38,6 +40,8 @@ export default function ProjectsPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isUpdateProjectOpen, setIsUpdateProjectOpen] = useState(false);
+  const [projectToUpdate, setProjectToUpdate] = useState<Board | null>(null);
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
@@ -80,7 +84,16 @@ export default function ProjectsPage() {
 
   const handleUpdateProject = (proj: Board) => {
     setOpenMenuProjectId(null);
-    setSelectedProject(proj);
+    setProjectToUpdate(proj);
+    setIsUpdateProjectOpen(true);
+  };
+
+  const onUpdateProjectSubmit = async (projectId: number, data: Partial<Board>) => {
+    const success = await handleUpdateExistingProject(projectId, data);
+    if (success) {
+      setIsUpdateProjectOpen(false);
+      setProjectToUpdate(null);
+    }
   };
 
   const onCreateProject = async (data: {
@@ -89,7 +102,6 @@ export default function ProjectsPage() {
     is_private: boolean;
     color: string;
     tag: string;
-    projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
     const success = await handleCreateProject(data);
@@ -148,6 +160,7 @@ export default function ProjectsPage() {
                 handleUpdateProject={handleUpdateProject}
                 handleDeleteProject={handleDeleteProject}
                 setSelectedProject={setSelectedProject}
+                currentUserId={userId}
               />
             );
           })}
@@ -358,6 +371,18 @@ export default function ProjectsPage() {
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
         onSubmit={onCreateProject}
+        isSubmitting={isSubmitting}
+      />
+
+      {/* UPDATE PROJECT MODAL */}
+      <UpdateProjectModal
+        isOpen={isUpdateProjectOpen}
+        onClose={() => {
+          setIsUpdateProjectOpen(false);
+          setProjectToUpdate(null);
+        }}
+        initialData={projectToUpdate}
+        onSubmit={onUpdateProjectSubmit}
         isSubmitting={isSubmitting}
       />
     </>

@@ -256,3 +256,39 @@ export const createDefaultColumnsAction = async (
 
   revalidatePath("/projects");
 };
+
+export const updateUserBoardAction = async (
+  userId: string,
+  boardId: number,
+  boardData: Partial<Board>
+): Promise<void> => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    throw new Error("Unauthorized access");
+  }
+
+  await verifyBoardOwnership(supabase, userId, boardId);
+
+  const updates: Partial<Board> = {};
+  if (boardData.title !== undefined) updates.title = validateString(boardData.title, "Project title", 100);
+  if (boardData.description !== undefined) updates.description = boardData.description ? boardData.description.trim().slice(0, 1000) : null;
+  if (boardData.color !== undefined) updates.color = validateString(boardData.color as string, "Color", 20);
+  if (boardData.tag !== undefined) updates.tag = validateString(boardData.tag as string, "Tag", 50);
+  if (boardData.is_private !== undefined) updates.is_private = boardData.is_private;
+
+  const { error } = await supabase
+    .from("boards")
+    .update(updates)
+    .eq("id", boardId);
+
+  if (error) {
+    console.error("updateUserBoardAction error:", error.message);
+    throw new Error("Failed to update project.");
+  }
+
+  revalidatePath("/projects");
+};
