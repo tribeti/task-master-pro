@@ -8,30 +8,14 @@ import {
   createColumnAction,
 } from "@/app/actions/kanban.actions";
 import { toast } from "sonner";
-
-interface Column {
-  id: number;
-  title: string;
-  position: number;
-}
-
-interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  priority: "Low" | "Medium" | "High";
-  position: number;
-  column_id: number;
-  assignee_id: string | null;
-}
+import { KanbanColumn as Column, KanbanTask } from "@/types/project";
 
 interface KanbanBoardProps {
   projectId: number;
   columns: Column[];
-  tasks: Task[];
+  tasks: KanbanTask[];
   onDataChange: () => Promise<void>;
-  onTaskClick: (task: Task) => void;
+  onTaskClick: (task: KanbanTask) => void;
   onAddTask: (columnId: number) => void;
 }
 

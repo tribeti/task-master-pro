@@ -1,68 +1,70 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { XIcon } from "@/components/icons";
+import { Board } from "@/types/project";
 
 const TAG_PRESETS = ["Core", "Marketing", "Design", "Dev", "QA"];
 
-interface CreateProjectModalProps {
+interface UpdateProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit?: (data: {
-        title: string;
-        description: string;
-        is_private: boolean;
-        color: string;
-        tag: string;
-        selectedTeamMembers: string[];
-    }) => void;
+    initialData: Board | null;
+    onSubmit?: (
+        projectId: number,
+        data: Partial<Board>
+    ) => void;
     isSubmitting?: boolean;
 }
 
-export default function CreateProjectModal({
+export default function UpdateProjectModal({
     isOpen,
     onClose,
+    initialData,
     onSubmit,
     isSubmitting = false,
-}: CreateProjectModalProps) {
+}: UpdateProjectModalProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [isPrivate, setIsPrivate] = useState(false);
     const [selectedColor, setSelectedColor] = useState("#FF8B5E");
     const [tag, setTag] = useState("");
     const [selectedTag, setSelectedTag] = useState("Core");
     const [nameError, setNameError] = useState(false);
-    const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+    const [isPrivate, setIsPrivate] = useState(false);
+
+    // const today = new Date().toISOString().split("T")[0];
+
+    useEffect(() => {
+        if (isOpen && initialData) {
+            setTitle(initialData.title || "");
+            setDescription(initialData.description || "");
+            setSelectedColor(initialData.color || "#FF8B5E");
+            setTag(initialData.tag || "");
+            setSelectedTag(TAG_PRESETS.includes(initialData.tag || "") ? (initialData.tag || "Core") : "");
+            setNameError(false);
+            setIsPrivate(initialData.is_private || false);
+        }
+    }, [isOpen, initialData]);
 
     const resetAndClose = () => {
-        setTitle("");
-        setDescription("");
-        setIsPrivate(false);
-        setSelectedColor("#FF8B5E");
-        setTag("");
-        setSelectedTag("Core");
-        setNameError(false);
-        setSelectedTeamMembers([]);
         onClose();
     };
 
-    const handleCreateProject = () => {
+    const handleUpdateProject = () => {
         if (!title.trim()) {
             setNameError(true);
             return;
         }
-        onSubmit?.({
+        if (!initialData) return;
+
+        onSubmit?.(initialData.id, {
             title,
             description,
-            is_private: isPrivate,
             color: selectedColor,
             tag: selectedTag || tag,
-            selectedTeamMembers,
+            is_private: isPrivate,
         });
-        resetAndClose();
     };
-
-    const today = new Date().toISOString().split("T")[0];
 
     if (!isOpen) return null;
 
@@ -86,10 +88,10 @@ export default function CreateProjectModal({
                 <div className="p-8 flex flex-col gap-5 overflow-y-auto w-full">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">
-                            Create New Project
+                            Update Project
                         </h2>
                         <p className="text-sm text-slate-400 font-medium">
-                            Let&apos;s set up your next win.
+                            Make changes to {initialData?.title}
                         </p>
                     </div>
 
@@ -106,7 +108,7 @@ export default function CreateProjectModal({
                                 setTitle(e.target.value);
                                 if (e.target.value.trim()) setNameError(false);
                             }}
-                            className={`w-full text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#FF8B5E]"}`}
+                            className={`w-full text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#28B8FA]"}`}
                             required
                             maxLength={100}
                             autoFocus
@@ -131,7 +133,7 @@ export default function CreateProjectModal({
                                     onClick={() => setSelectedTag(t)}
                                     disabled={isSubmitting}
                                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTag === t
-                                        ? "bg-[#1E293B] text-white"
+                                        ? "bg-[#28B8FA] text-white shadow-md shadow-cyan-200"
                                         : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                                         }`}
                                 >
@@ -152,7 +154,7 @@ export default function CreateProjectModal({
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
                             disabled={isSubmitting}
-                            className="w-full text-slate-900 px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors resize-none"
+                            className="w-full text-slate-900 px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
                         />
                     </div>
 
@@ -194,7 +196,7 @@ export default function CreateProjectModal({
                         <button
                             onClick={() => setIsPrivate(!isPrivate)}
                             disabled={isSubmitting}
-                            className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate ? "bg-[#FF8B5E]" : "bg-slate-200"}`}
+                            className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate ? "bg-[#28B8FA]" : "bg-slate-200"}`}
                         >
                             <span
                                 className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${isPrivate ? "translate-x-5" : "translate-x-0"}`}
@@ -202,49 +204,20 @@ export default function CreateProjectModal({
                         </button>
                     </div>
 
-                    {/* Team Members */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                            Assign Team Members
-                        </label>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {selectedTeamMembers.map((member, idx) => (
-                                <img
-                                    key={idx}
-                                    src={`https://api.dicebear.com/7.x/notionists/svg?seed=${member}`}
-                                    alt="Team member"
-                                    className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
-                                />
-                            ))}
-                            <button
-                                onClick={() =>
-                                    setSelectedTeamMembers([
-                                        ...selectedTeamMembers,
-                                        `member${Date.now()}`,
-                                    ])
-                                }
-                                disabled={isSubmitting}
-                                className="w-10 h-10 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 hover:border-[#FF8B5E] hover:text-[#FF8B5E] transition-colors"
-                            >
-                                +
-                            </button>
-                        </div>
-                    </div>
-
                     {/* Submit */}
                     <button
-                        onClick={handleCreateProject}
+                        onClick={handleUpdateProject}
                         disabled={isSubmitting || !title.trim()}
-                        className="w-full py-3 rounded-full bg-linear-to-r from-[#FF8B5E] to-[#FFB088] text-white font-bold text-base hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-3 rounded-full bg-linear-to-r from-[#28B8FA] to-[#60C9FA] text-white font-bold text-base hover:shadow-lg hover:shadow-cyan-200 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Creating...
+                                Updating...
                             </>
                         ) : (
                             <>
-                                Launch Project
+                                Update Project
                                 <svg
                                     width="16"
                                     height="16"
