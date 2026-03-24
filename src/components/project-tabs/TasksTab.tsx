@@ -16,39 +16,12 @@ import {
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
-
-interface Label {
-  id: number;
-  name: string;
-  color_hex: string;
-  board_id: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  created_at: string;
-  task_id: number;
-  user_id: string;
-}
-
-interface Column {
-  id: number;
-  title: string;
-  position: number;
-}
-
-interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  priority: "Low" | "Medium" | "High";
-  position: number;
-  column_id: number;
-  assignee_id: string | null;
-  labels?: Label[];
-}
+import {
+  Label,
+  Comment,
+  KanbanColumn as Column,
+  KanbanTask as Task,
+} from "@/types/project";
 
 export function TasksTab({ projectId }: { projectId: number }) {
   const { user } = useDashboardUser();
@@ -162,7 +135,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     if (error) {
-      toast.error(editingTask ? "Failed to update task" : "Failed to create task");
+      toast.error(
+        editingTask ? "Failed to update task" : "Failed to create task",
+      );
     } else {
       toast.success(editingTask ? "Task updated" : "Task created");
     }

@@ -32,15 +32,7 @@ export interface TaskLabel {
   labels?: Label;
 }
 
-export interface KanbanTask {
-  id: number;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  priority: "Low" | "Medium" | "High";
-  position: number;
-  column_id: number;
-  assignee_id: string | null;
+export interface KanbanTask extends Task {
   labels?: Label[];
 }
 

@@ -2,7 +2,14 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { Task, Label, KanbanColumn } from "@/types/project";
+import {
+  Task,
+  Label,
+  KanbanColumn,
+  Comment,
+  KanbanTask,
+} from "@/types/project";
+
 // ── Helper: Verify user owns a board ──
 async function verifyBoardOwnership(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -89,7 +96,7 @@ export const fetchKanbanDataAction = async (projectId: number) => {
     throw new Error("Failed to load board data.");
   }
 
-  let tasks: (Task & { labels?: Label[] })[] = [];
+  let tasks: KanbanTask[] = [];
   let labels: Label[] = [];
 
   if (columns && columns.length > 0) {
@@ -124,14 +131,13 @@ export const fetchKanbanDataAction = async (projectId: number) => {
 
     labels = (boardLabels as Label[]) || [];
 
+    // AFTER
     if (tasks.length > 0) {
       const taskIds = tasks.map((task) => task.id);
-
       const { data: taskLabelsData, error: taskLabelsErr } = await supabase
         .from("task_labels")
         .select("task_id, label_id")
         .in("task_id", taskIds);
-
       if (taskLabelsErr) {
         console.error(
           "fetchKanbanDataAction task_labels error:",
@@ -139,18 +145,23 @@ export const fetchKanbanDataAction = async (projectId: number) => {
         );
         throw new Error("Failed to load task labels.");
       }
-
       const taskLabelRows =
         (taskLabelsData as { task_id: number; label_id: number }[]) || [];
 
-      tasks = tasks.map((task) => {
-        const relatedLabelIds = taskLabelRows
-          .filter((row) => row.task_id === task.id)
-          .map((row) => row.label_id);
+      // Build map: task_id → Set<label_id> for O(1) lookup
+      const taskLabelsMap = new Map<number, Set<number>>();
+      for (const row of taskLabelRows) {
+        if (!taskLabelsMap.has(row.task_id)) {
+          taskLabelsMap.set(row.task_id, new Set());
+        }
+        taskLabelsMap.get(row.task_id)!.add(row.label_id);
+      }
 
+      tasks = tasks.map((task) => {
+        const relatedLabelIds = taskLabelsMap.get(task.id) ?? new Set<number>();
         return {
           ...task,
-          labels: labels.filter((label) => relatedLabelIds.includes(label.id)),
+          labels: labels.filter((label) => relatedLabelIds.has(label.id)),
         };
       });
     }

@@ -2,21 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
-
-interface Label {
-  id: number;
-  name: string;
-  color_hex: string;
-  board_id: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  created_at: string;
-  task_id: number;
-  user_id: string;
-}
+import { Label, Comment } from "@/types/project";
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
@@ -81,7 +67,9 @@ export function TaskDetailsModal({
         setTitle(initialData.title);
         setDescription(initialData.description || "");
         setPriority(initialData.priority);
-        setDeadline(initialData.deadline ? initialData.deadline.split("T")[0] : "");
+        setDeadline(
+          initialData.deadline ? initialData.deadline.split("T")[0] : "",
+        );
       } else {
         setTitle("");
         setDescription("");
@@ -158,7 +146,7 @@ export function TaskDetailsModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -175,7 +163,9 @@ export function TaskDetailsModal({
               {initialData ? "Edit Task" : "Create Task"}
             </h2>
             <p className="text-sm text-slate-400 font-medium">
-              {initialData ? "Update task details." : "Add a new task to the board."}
+              {initialData
+                ? "Update task details."
+                : "Add a new task to the board."}
             </p>
           </div>
 
@@ -270,9 +260,11 @@ export function TaskDetailsModal({
                 Labels
               </label>
 
-              <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
+              <div className="flex flex-wrap gap-2 mb-4 min-h-7">
                 {taskLabels.length === 0 ? (
-                  <span className="text-sm text-slate-400">No labels assigned</span>
+                  <span className="text-sm text-slate-400">
+                    No labels assigned
+                  </span>
                 ) : (
                   taskLabels.map((label) => (
                     <div
@@ -299,7 +291,9 @@ export function TaskDetailsModal({
                   <select
                     value={selectedLabelId}
                     onChange={(e) =>
-                      setSelectedLabelId(e.target.value ? Number(e.target.value) : "")
+                      setSelectedLabelId(
+                        e.target.value ? Number(e.target.value) : "",
+                      )
                     }
                     disabled={labelSubmitting || isSubmitting}
                     className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm font-semibold text-slate-800 shadow-sm outline-none transition-all focus:border-[#28B8FA] focus:ring-4 focus:ring-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -351,7 +345,9 @@ export function TaskDetailsModal({
 
               <div className="space-y-3 mb-4 max-h-64 overflow-y-auto pr-1">
                 {commentsLoading ? (
-                  <div className="text-sm text-slate-400">Loading comments...</div>
+                  <div className="text-sm text-slate-400">
+                    Loading comments...
+                  </div>
                 ) : comments.length === 0 ? (
                   <div className="text-sm text-slate-400">No comments yet</div>
                 ) : (
@@ -366,7 +362,9 @@ export function TaskDetailsModal({
                         <div className="flex items-start justify-between gap-3 mb-2">
                           <div>
                             <p className="text-sm font-semibold text-slate-800">
-                              {isOwner ? "You" : `${comment.user_id.slice(0, 8)}...`}
+                              {isOwner
+                                ? "You"
+                                : `${comment.user_id.slice(0, 8)}...`}
                             </p>
                             <p className="text-xs text-slate-400">
                               {new Date(comment.created_at).toLocaleString()}
@@ -408,7 +406,9 @@ export function TaskDetailsModal({
                   <button
                     type="button"
                     onClick={handleAddCommentClick}
-                    disabled={!commentInput.trim() || commentSubmitting || isSubmitting}
+                    disabled={
+                      !commentInput.trim() || commentSubmitting || isSubmitting
+                    }
                     className="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {commentSubmitting ? "Posting..." : "Post Comment"}

@@ -1,13 +1,7 @@
 "use client";
 
 import React from "react";
-
-interface Label {
-  id: number;
-  name: string;
-  color_hex: string;
-  board_id: number;
-}
+import { Label } from "@/types/project";
 
 interface KanbanTaskProps {
   id: number;
@@ -34,11 +28,10 @@ export function KanbanTask({
   onDragStart,
   onClick,
 }: KanbanTaskProps) {
-  const pColor =
-    PRIORITY_STYLES[priority] || {
-      text: "text-slate-500",
-      bg: "bg-slate-100",
-    };
+  const pColor = PRIORITY_STYLES[priority] || {
+    text: "text-slate-500",
+    bg: "bg-slate-100",
+  };
 
   return (
     <div
