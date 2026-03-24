@@ -40,23 +40,22 @@ export default function ProfilePage() {
                     console.error('Error fetching profile:', error);
                     toast.error('Không thể tải thông tin profile.');
                 }
+                if (data?.display_name) setDisplayName(data.display_name);
 
-                if (!avatarFileRef.current) {
-                    setDisplayName(data?.display_name || user.email?.split("@")[0] || "New User");
-
-                    // Tạo signed URL cho bucket private
-                    const resolveAvatar = async (path?: string) => {
-                        if (!path) return fallbackAvatar;
-                        if (path.startsWith('http')) return path;
+                if (!avatarFileRef.current && data?.avatar_url) {
+                    if (data.avatar_url.startsWith('http')) {
+                        setAvatarUrl(data.avatar_url);
+                    } else {
                         const { data: signedData, error: signedError } = await supabase.storage
                             .from('avatar')
-                            .createSignedUrl(path, 60 * 60); // 1 giờ
-                        if (signedError || !signedData?.signedUrl) return fallbackAvatar;
-                        return signedData.signedUrl;
-                    };
+                            .createSignedUrl(data.avatar_url, 60 * 60);
 
-                    const resolvedUrl = await resolveAvatar(data?.avatar_url);
-                    setAvatarUrl(resolvedUrl);
+                        if (signedError) {
+                            console.error('Error creating signed URL:', signedError);
+                        } else if (signedData?.signedUrl) {
+                            setAvatarUrl(signedData.signedUrl);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -164,11 +163,20 @@ export default function ProfilePage() {
             return;
         }
 
-        // Preview local ngay lập tức
+        // Set file vào state + ref, useEffect bên dưới sẽ tạo preview URL
         avatarFileRef.current = file;
         setAvatarFile(file);
-        setAvatarUrl(URL.createObjectURL(file));
     };
+
+    // Quản lý object URL cho preview avatar - tự cleanup tránh memory leak
+    useEffect(() => {
+        if (!avatarFile) return;
+
+        const objectUrl = URL.createObjectURL(avatarFile);
+        setAvatarUrl(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [avatarFile]);
 
     return (
         <>

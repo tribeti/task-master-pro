@@ -19,9 +19,3 @@ export interface Project {
   tag: string | null;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  display_name: string;
-  avatar_url: string;
-}
