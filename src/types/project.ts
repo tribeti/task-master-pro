@@ -6,6 +6,8 @@ export interface Board {
   tag?: string;
   team?: number;
   description?: string;
+  owner_id?: string;
+  is_private?: boolean;
 }
 
 export interface Project {

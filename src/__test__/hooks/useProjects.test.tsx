@@ -184,7 +184,6 @@ describe('useProjects Hook', () => {
       is_private: true,
       color: 'red',
       tag: 'design',
-      projectDeadline: '',
       selectedTeamMembers: [],
     };
 
@@ -216,7 +215,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -246,7 +244,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -277,7 +274,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -308,7 +304,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -338,7 +333,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'green',
         tag: 'personal',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
