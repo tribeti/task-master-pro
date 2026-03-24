@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDashboardUser } from "../provider";
 import {
     EditIcon,
@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 export default function ProfilePage() {
     const { user } = useDashboardUser();
     const router = useRouter();
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
-    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user?.email || "User")}`;
+    const fallbackAvatar = useMemo(() => `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`, [user?.email]);
 
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [displayName, setDisplayName] = useState("");
@@ -66,7 +66,7 @@ export default function ProfilePage() {
 
         fetchProfile();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, supabase]);
+    }, [user, supabase]);
 
     const [fanfareAlert, setFanfareAlert] = useState(true);
     const [visualRewards, setVisualRewards] = useState(true);
