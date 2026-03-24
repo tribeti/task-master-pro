@@ -2,40 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-
-interface Column {
-  id: number;
-  title: string;
-  position: number;
-  board_id: number;
-}
-
-interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  priority: "Low" | "Medium" | "High";
-  position: number;
-  column_id: number;
-  assignee_id: string | null;
-}
-
-interface Label {
-  id: number;
-  name: string;
-  color_hex: string;
-  board_id: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  created_at: string;
-  task_id: number;
-  user_id: string;
-}
-
+import { Task, Label, KanbanColumn } from "@/types/project";
 // ── Helper: Verify user owns a board ──
 async function verifyBoardOwnership(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -126,7 +93,7 @@ export const fetchKanbanDataAction = async (projectId: number) => {
   let labels: Label[] = [];
 
   if (columns && columns.length > 0) {
-    const colIds = columns.map((c: Column) => c.id);
+    const colIds = columns.map((c: KanbanColumn) => c.id);
 
     const { data: tasksData, error: tasksErr } = await supabase
       .from("tasks")
@@ -190,12 +157,10 @@ export const fetchKanbanDataAction = async (projectId: number) => {
   }
 
   return {
-    columns: (columns as Column[]) || [],
+    columns: (columns as KanbanColumn[]) || [],
     tasks,
     labels,
   };
-
-  return { columns: (columns as Column[]) || [], tasks };
 };
 
 export const createTaskAction = async (payload: Omit<Task, "id">) => {
@@ -241,15 +206,11 @@ export const updateTaskAction = async (
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  // Validate input if title/description are being updated
+  // Validate input if title are being updated
   if (payload.title !== undefined) {
     validateString(payload.title, "Task title", 200);
   }
-  if (payload.description !== undefined && payload.description !== null) {
-    validateString(payload.description, "Description", 2000);
-  }
 
-  // SECURE: Verify user owns the task's board
   await verifyTaskOwnership(supabase, user.id, taskId);
 
   // If moving to a different column, also verify we own that target column's board
@@ -295,10 +256,7 @@ export const deleteTaskAction = async (taskId: number) => {
   revalidatePath("/projects");
 };
 
-export const addLabelToTaskAction = async (
-  taskId: number,
-  labelId: number,
-) => {
+export const addLabelToTaskAction = async (taskId: number, labelId: number) => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -383,7 +341,6 @@ export const removeLabelFromTaskAction = async (
   revalidatePath("/projects");
 };
 
-
 export const createColumnAction = async (
   projectId: number,
   title: string,
@@ -436,10 +393,7 @@ export const fetchCommentsForTaskAction = async (taskId: number) => {
   return (data as Comment[]) || [];
 };
 
-export const createCommentAction = async (
-  taskId: number,
-  content: string,
-) => {
+export const createCommentAction = async (taskId: number, content: string) => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -457,8 +411,6 @@ export const createCommentAction = async (
     user_id: user.id,
   };
 
-  console.log("createCommentAction payload:", payload);
-
   const { data, error } = await supabase
     .from("comments")
     .insert([payload])
@@ -473,9 +425,6 @@ export const createCommentAction = async (
     console.error("createCommentAction supabase error object:", error);
     throw new Error(error.message || "Failed to create comment.");
   }
-
-  console.log("createCommentAction inserted comment:", data);
-
   revalidatePath("/projects");
 };
 

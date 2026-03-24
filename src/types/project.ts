@@ -50,3 +50,22 @@ export interface KanbanColumn {
   position: number;
   board_id: number;
 }
+
+export interface Task {
+  id: number;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  priority: "Low" | "Medium" | "High";
+  position: number;
+  column_id: number;
+  assignee_id: string | null;
+}
+
+export interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  task_id: number;
+  user_id: string;
+}
