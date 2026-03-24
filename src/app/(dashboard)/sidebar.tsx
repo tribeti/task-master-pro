@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
@@ -25,9 +25,43 @@ export default function DashboardSidebar({ user }: { user: User }) {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
+    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${user.email || "User"}`;
+    const [sidebarAvatar, setSidebarAvatar] = useState(fallbackAvatar);
+    const [sidebarName, setSidebarName] = useState(
+        user.user_metadata?.full_name || user.email?.split("@")[0] || "User"
+    );
+
+    useEffect(() => {
+        const fetchSidebarProfile = async () => {
+            if (!user?.id) return;
+            const { data } = await supabase
+                .from('users')
+                .select('display_name, avatar_url')
+                .eq('id', user.id)
+                .single();
+
+            if (data?.display_name) setSidebarName(data.display_name);
+
+            if (data?.avatar_url) {
+                if (data.avatar_url.startsWith('http')) {
+                    setSidebarAvatar(data.avatar_url);
+                } else {
+                    const { data: signedData } = await supabase.storage
+                        .from('avatar')
+                        .createSignedUrl(data.avatar_url, 60 * 60);
+                    if (signedData?.signedUrl) {
+                        setSidebarAvatar(signedData.signedUrl);
+                    }
+                }
+            }
+        };
+
+        fetchSidebarProfile();
+    }, [user?.id, supabase]);
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        router.push("/login"); // Push to login so MW routes correctly
+        router.push("/login");
     };
 
     return (
@@ -94,15 +128,14 @@ export default function DashboardSidebar({ user }: { user: User }) {
                 {/* User Info */}
                 <div className="flex items-center gap-3 px-4 pt-4 mt-2 border-t border-slate-100">
                     <img
-                        src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user.email || "User"}`}
-                        alt={user.user_metadata?.full_name || user.email || 'User Avatar'}
-                        className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm"
+                        src={sidebarAvatar}
+                        onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                        alt={sidebarName}
+                        className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm object-cover"
                     />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 truncate">
-                            {user.user_metadata?.full_name ||
-                                user.email?.split("@")[0] ||
-                                "Alex Morgan"}
+                            {sidebarName}
                         </p>
                         <p className="text-[10px] font-bold text-[#34D399] uppercase tracking-widest">
                             Peak Flow

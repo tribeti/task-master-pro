@@ -18,3 +18,10 @@ export interface Project {
   color: string;
   tag: string | null;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  avatar_url: string;
+}

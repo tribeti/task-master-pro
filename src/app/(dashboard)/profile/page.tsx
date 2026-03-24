@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDashboardUser } from "../provider";
 import {
     EditIcon,
@@ -16,15 +16,57 @@ export default function ProfilePage() {
     const router = useRouter();
     const supabase = createClient();
 
-    // Settings states
-    const [displayName, setDisplayName] = useState(
-        user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Alex Morgan"
-    );
-    const [avatarUrl, setAvatarUrl] = useState<string>(
-        user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`
-    );
+    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`;
+
+    const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+    const [displayName, setDisplayName] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState<string>("");
     const [isSaving, setIsSaving] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (!user?.id) return;
+            try {
+                setIsLoadingProfile(true);
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('display_name, avatar_url')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error fetching profile:', error);
+                    toast.error('Không thể tải thông tin profile.');
+                }
+
+                if (!avatarFile) {
+                    setDisplayName(data?.display_name || user.email?.split("@")[0] || "New User");
+
+                    // Tạo signed URL cho bucket private
+                    const resolveAvatar = async (path?: string) => {
+                        if (!path) return fallbackAvatar;
+                        if (path.startsWith('http')) return path;
+                        const { data: signedData, error: signedError } = await supabase.storage
+                            .from('avatar')
+                            .createSignedUrl(path, 60 * 60); // 1 giờ
+                        if (signedError || !signedData?.signedUrl) return fallbackAvatar;
+                        return signedData.signedUrl;
+                    };
+
+                    const resolvedUrl = await resolveAvatar(data?.avatar_url);
+                    setAvatarUrl(resolvedUrl);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setIsLoadingProfile(false);
+            }
+        };
+
+        fetchProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, supabase]);
 
     const [fanfareAlert, setFanfareAlert] = useState(true);
     const [visualRewards, setVisualRewards] = useState(true);
@@ -32,14 +74,26 @@ export default function ProfilePage() {
     const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">("energetic");
 
     const handleSave = async () => {
+        if (!user?.id) return;
         setIsSaving(true);
         try {
-            let newAvatarUrl = user?.user_metadata?.avatar_url;
+            let finalAvatarUrl = avatarUrl; // Hiện tại
 
-            // Chơi hệ "upload lúc Bấm Save"
             if (avatarFile) {
                 const fileExt = avatarFile.name.split('.').pop()?.toLowerCase();
-                const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
+                const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+
+                // Xóa ảnh cũ trước khi upload ảnh mới
+                const { data: oldData } = await supabase
+                    .from('users')
+                    .select('avatar_url')
+                    .eq('id', user.id)
+                    .single();
+
+                if (oldData?.avatar_url && !oldData.avatar_url.startsWith('http')) {
+                    // avatar_url là file path → xóa trực tiếp
+                    await supabase.storage.from('avatar').remove([oldData.avatar_url]);
+                }
 
                 const { error: uploadError } = await supabase.storage
                     .from('avatar')
@@ -47,37 +101,36 @@ export default function ProfilePage() {
 
                 if (uploadError) throw uploadError;
 
-                const { data: publicUrlData } = supabase.storage
+                // Lưu file path vào DB, tạo signed URL để hiển thị ngay
+                finalAvatarUrl = fileName;
+                const { data: signedData } = await supabase.storage
                     .from('avatar')
-                    .getPublicUrl(fileName);
-
-                newAvatarUrl = publicUrlData.publicUrl;
-
-                // Xóa ảnh cũ nếu nó tồn tại trong bucket avatar của mình
-                const oldAvatarUrl = user?.user_metadata?.avatar_url;
-                if (oldAvatarUrl && oldAvatarUrl.includes('/avatar/')) {
-                    const parts = oldAvatarUrl.split('/avatar/');
-                    if (parts.length === 2) {
-                        const oldFileName = parts[1].split('?')[0]; // Lấy đúng tên file
-                        await supabase.storage.from('avatar').remove([oldFileName]);
-                    }
+                    .createSignedUrl(fileName, 60 * 60);
+                if (signedData?.signedUrl) {
+                    setAvatarUrl(signedData.signedUrl);
                 }
             }
 
-            // Cập nhật cả Name và AvatarUrl cùng lúc
-            await supabase.auth.updateUser({
-                data: {
-                    full_name: displayName,
-                    ...(avatarFile ? { avatar_url: newAvatarUrl } : {})
-                }
-            });
+            // Ghi file path vào bảng users (không lưu full URL)
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({
+                    display_name: displayName,
+                    ...(avatarFile ? { avatar_url: finalAvatarUrl } : {})
+                })
+                .eq('id', user.id);
 
-            setAvatarFile(null); // Reset lại
+            if (updateError) throw updateError;
+
+            if (avatarFile) {
+                setAvatarFile(null); // Reset lại file
+            }
+
             toast.success('Cập nhật thông tin thành công!');
             router.refresh();
         } catch (error) {
             console.error("Error updating profile:", error);
-            toast.error('Có lỗi xảy ra khi lưu thông tin.');
+            toast.error('Có lỗi server! Không thể lưu thông tin.');
         } finally {
             setIsSaving(false);
         }
@@ -165,29 +218,38 @@ export default function ProfilePage() {
 
                             {/* Avatar Section */}
                             <div className="relative mb-5 mt-8 z-10 w-28 h-28">
-                                <label className={`w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden cursor-pointer group`}>
-                                    <input
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,.webp"
-                                        className="hidden"
-                                        onChange={handleAvatarChange}
-                                    />
-                                    <img
-                                        src={avatarUrl}
-                                        alt="Avatar"
-                                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-white text-xs font-bold drop-shadow-md">Thay đổi</span>
-                                    </div>
-                                </label>
+                                {isLoadingProfile ? (
+                                    <div className="w-full h-full rounded-4xl bg-slate-200 animate-pulse border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden"></div>
+                                ) : (
+                                    <label className={`w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden cursor-pointer group`}>
+                                        <input
+                                            type="file"
+                                            accept=".jpg,.jpeg,.png,.webp"
+                                            className="hidden"
+                                            onChange={handleAvatarChange}
+                                        />
+                                        <img
+                                            src={avatarUrl || fallbackAvatar}
+                                            onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                                            alt="Avatar"
+                                            className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                                            <span className="text-white text-xs font-bold drop-shadow-md">Thay đổi</span>
+                                        </div>
+                                    </label>
+                                )}
                                 <div className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] pointer-events-none z-20">
                                     <EditIcon className="w-4 h-4 text-[#28B8FA]" />
                                 </div>
                             </div>
 
                             <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10 mb-8 mt-2">
-                                {displayName}
+                                {isLoadingProfile ? (
+                                    <div className="h-8 w-32 bg-slate-100 animate-pulse rounded-lg"></div>
+                                ) : (
+                                    displayName
+                                )}
                             </h2>
 
                             <div className="w-full space-y-4 z-10">
@@ -195,14 +257,18 @@ export default function ProfilePage() {
                                     <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
                                         Display Name
                                     </label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        required
-                                        maxLength={20}
-                                    />
+                                    {isLoadingProfile ? (
+                                        <div className="w-full h-[52px] bg-slate-100 animate-pulse rounded-2xl"></div>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                                            value={displayName}
+                                            onChange={(e) => setDisplayName(e.target.value)}
+                                            required
+                                            maxLength={20}
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col gap-2">
