@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useDashboardUser } from "../provider";
 import {
     EditIcon,
@@ -23,6 +23,7 @@ export default function ProfilePage() {
     const [avatarUrl, setAvatarUrl] = useState<string>("");
     const [isSaving, setIsSaving] = useState(false);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const avatarFileRef = useRef<File | null>(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -40,7 +41,7 @@ export default function ProfilePage() {
                     toast.error('Không thể tải thông tin profile.');
                 }
 
-                if (!avatarFile) {
+                if (!avatarFileRef.current) {
                     setDisplayName(data?.display_name || user.email?.split("@")[0] || "New User");
 
                     // Tạo signed URL cho bucket private
@@ -79,11 +80,13 @@ export default function ProfilePage() {
         try {
             let finalAvatarUrl = avatarUrl; // Hiện tại
 
+            let oldAvatarPath: string | null = null;
+
             if (avatarFile) {
                 const fileExt = avatarFile.name.split('.').pop()?.toLowerCase();
                 const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
-                // Xóa ảnh cũ trước khi upload ảnh mới
+                // Lấy path ảnh cũ để xóa SAU KHI mọi thứ thành công
                 const { data: oldData } = await supabase
                     .from('users')
                     .select('avatar_url')
@@ -91,27 +94,20 @@ export default function ProfilePage() {
                     .single();
 
                 if (oldData?.avatar_url && !oldData.avatar_url.startsWith('http')) {
-                    // avatar_url là file path → xóa trực tiếp
-                    await supabase.storage.from('avatar').remove([oldData.avatar_url]);
+                    oldAvatarPath = oldData.avatar_url;
                 }
 
+                // Upload ảnh mới TRƯỚC
                 const { error: uploadError } = await supabase.storage
                     .from('avatar')
                     .upload(fileName, avatarFile);
 
                 if (uploadError) throw uploadError;
 
-                // Lưu file path vào DB, tạo signed URL để hiển thị ngay
                 finalAvatarUrl = fileName;
-                const { data: signedData } = await supabase.storage
-                    .from('avatar')
-                    .createSignedUrl(fileName, 60 * 60);
-                if (signedData?.signedUrl) {
-                    setAvatarUrl(signedData.signedUrl);
-                }
             }
 
-            // Ghi file path vào bảng users (không lưu full URL)
+            // Ghi file path vào bảng users
             const { error: updateError } = await supabase
                 .from('users')
                 .update({
@@ -122,8 +118,21 @@ export default function ProfilePage() {
 
             if (updateError) throw updateError;
 
+            // Chỉ xóa ảnh cũ SAU KHI upload + DB update đều thành công
+            if (oldAvatarPath) {
+                await supabase.storage.from('avatar').remove([oldAvatarPath]);
+            }
+
             if (avatarFile) {
-                setAvatarFile(null); // Reset lại file
+                // Tạo signed URL để hiển thị ngay
+                const { data: signedData } = await supabase.storage
+                    .from('avatar')
+                    .createSignedUrl(finalAvatarUrl, 60 * 60);
+                if (signedData?.signedUrl) {
+                    setAvatarUrl(signedData.signedUrl);
+                }
+                avatarFileRef.current = null;
+                setAvatarFile(null);
             }
 
             toast.success('Cập nhật thông tin thành công!');
@@ -155,7 +164,8 @@ export default function ProfilePage() {
             return;
         }
 
-        // Preview local text ngay lập tức
+        // Preview local ngay lập tức
+        avatarFileRef.current = file;
         setAvatarFile(file);
         setAvatarUrl(URL.createObjectURL(file));
     };
