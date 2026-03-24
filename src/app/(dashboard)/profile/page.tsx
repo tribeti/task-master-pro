@@ -7,15 +7,38 @@ import {
     TrashIcon,
 } from "@/components/icons";
 import Toggle from "@/components/Toggle";
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
     const { user } = useDashboardUser();
+    const router = useRouter();
+    const supabase = createClient();
 
     // Settings states
+    const [displayName, setDisplayName] = useState(
+        user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Alex Morgan"
+    );
+    const [isSaving, setIsSaving] = useState(false);
+
     const [fanfareAlert, setFanfareAlert] = useState(true);
     const [visualRewards, setVisualRewards] = useState(true);
     const [dailyDigest, setDailyDigest] = useState(false);
     const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">("energetic");
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await supabase.auth.updateUser({
+                data: { full_name: displayName }
+            });
+            router.refresh();
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <>
@@ -34,23 +57,34 @@ export default function ProfilePage() {
                     </p>
                 </div>
 
-                <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg shadow-orange-300/30 flex items-center gap-2.5">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Save Changes
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className={`bg-[#FF8B5E] hover:bg-orange-500 transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg shadow-orange-300/30 flex items-center gap-2.5 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    {isSaving ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    ) : (
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    )}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
             </header>
 
@@ -76,14 +110,9 @@ export default function ProfilePage() {
                                 </button>
                             </div>
 
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10">
-                                {user?.user_metadata?.full_name ||
-                                    user?.email?.split("@")[0] ||
-                                    "Alex Morgan"}
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10 mb-8 mt-2">
+                                {displayName}
                             </h2>
-                            <p className="text-[10px] font-bold text-[#34D399] tracking-widest uppercase mt-1 mb-8 z-10">
-                                Peak Flow Master
-                            </p>
 
                             <div className="w-full space-y-4 z-10">
                                 <div className="flex flex-col gap-2">
@@ -93,25 +122,10 @@ export default function ProfilePage() {
                                     <input
                                         type="text"
                                         className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                                        defaultValue={
-                                            user?.user_metadata?.full_name ||
-                                            user?.email?.split("@")[0] ||
-                                            "Alex Morgan"
-                                        }
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
                                         required
-                                        maxLength={50}
-                                    />
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
-                                        Title / Role
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
-                                        defaultValue="Product Designer"
-                                        maxLength={50}
+                                        maxLength={20}
                                     />
                                 </div>
 
