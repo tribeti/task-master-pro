@@ -9,6 +9,7 @@ import {
 import Toggle from "@/components/Toggle";
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
     const { user } = useDashboardUser();
@@ -19,7 +20,11 @@ export default function ProfilePage() {
     const [displayName, setDisplayName] = useState(
         user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Alex Morgan"
     );
+    const [avatarUrl, setAvatarUrl] = useState<string>(
+        user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`
+    );
     const [isSaving, setIsSaving] = useState(false);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     const [fanfareAlert, setFanfareAlert] = useState(true);
     const [visualRewards, setVisualRewards] = useState(true);
@@ -29,15 +34,77 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            let newAvatarUrl = user?.user_metadata?.avatar_url;
+
+            // Chơi hệ "upload lúc Bấm Save"
+            if (avatarFile) {
+                const fileExt = avatarFile.name.split('.').pop()?.toLowerCase();
+                const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatar')
+                    .upload(fileName, avatarFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('avatar')
+                    .getPublicUrl(fileName);
+
+                newAvatarUrl = publicUrlData.publicUrl;
+
+                // Xóa ảnh cũ nếu nó tồn tại trong bucket avatar của mình
+                const oldAvatarUrl = user?.user_metadata?.avatar_url;
+                if (oldAvatarUrl && oldAvatarUrl.includes('/avatar/')) {
+                    const parts = oldAvatarUrl.split('/avatar/');
+                    if (parts.length === 2) {
+                        const oldFileName = parts[1].split('?')[0]; // Lấy đúng tên file
+                        await supabase.storage.from('avatar').remove([oldFileName]);
+                    }
+                }
+            }
+
+            // Cập nhật cả Name và AvatarUrl cùng lúc
             await supabase.auth.updateUser({
-                data: { full_name: displayName }
+                data: {
+                    full_name: displayName,
+                    ...(avatarFile ? { avatar_url: newAvatarUrl } : {})
+                }
             });
+
+            setAvatarFile(null); // Reset lại
+            toast.success('Cập nhật thông tin thành công!');
             router.refresh();
         } catch (error) {
             console.error("Error updating profile:", error);
+            toast.error('Có lỗi xảy ra khi lưu thông tin.');
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0) {
+            return;
+        }
+
+        const file = event.target.files[0];
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+        const allowedTypes = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!fileExt || !allowedTypes.includes(fileExt)) {
+            toast.error('Chỉ cho phép định dạng ảnh .jpg, .png, .webp');
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Kích thước file tối đa là 2MB');
+            return;
+        }
+
+        // Preview local text ngay lập tức
+        setAvatarFile(file);
+        setAvatarUrl(URL.createObjectURL(file));
     };
 
     return (
@@ -98,16 +165,25 @@ export default function ProfilePage() {
 
                             {/* Avatar Section */}
                             <div className="relative mb-5 mt-8 z-10 w-28 h-28">
-                                <div className="w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden">
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`}
-                                        alt="Avatar"
-                                        className="w-full h-full object-cover"
+                                <label className={`w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden cursor-pointer group`}>
+                                    <input
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        className="hidden"
+                                        onChange={handleAvatarChange}
                                     />
-                                </div>
-                                <button className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] hover:scale-105 transition-transform z-20">
+                                    <img
+                                        src={avatarUrl}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-white text-xs font-bold drop-shadow-md">Thay đổi</span>
+                                    </div>
+                                </label>
+                                <div className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] pointer-events-none z-20">
                                     <EditIcon className="w-4 h-4 text-[#28B8FA]" />
-                                </button>
+                                </div>
                             </div>
 
                             <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10 mb-8 mt-2">
