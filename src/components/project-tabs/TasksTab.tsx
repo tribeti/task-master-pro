@@ -8,69 +8,84 @@ import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
+  addLabelToTaskAction,
+  removeLabelFromTaskAction,
+  fetchCommentsForTaskAction,
+  createCommentAction,
+  deleteCommentAction,
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
-
-interface Column {
-  id: number;
-  title: string;
-  position: number;
-}
-
-interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  priority: "Low" | "Medium" | "High";
-  position: number;
-  column_id: number;
-  assignee_id: string | null;
-}
+import {
+  Label,
+  Comment,
+  KanbanColumn as Column,
+  KanbanTask as Task,
+} from "@/types/project";
 
 export function TasksTab({ projectId }: { projectId: number }) {
   const { user } = useDashboardUser();
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [boardLabels, setBoardLabels] = useState<Label[]>([]);
+  const [taskComments, setTaskComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /* ── Fetch data ── */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { columns: colsData, tasks: tasksData } =
-        await fetchKanbanDataAction(projectId);
-      setColumns(colsData);
-      setTasks(tasksData);
+      const data = await fetchKanbanDataAction(projectId);
+
+      setColumns(data.columns || []);
+      setTasks(data.tasks || []);
+      setBoardLabels(data.labels || []);
     } catch (error) {
+      console.error("Failed to fetch kanban data:", error);
       setColumns([]);
       setTasks([]);
+      setBoardLabels([]);
+      toast.error("Failed to load kanban data");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [projectId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  /* ── Task CRUD ── */
+  const fetchComments = useCallback(async (taskId: number) => {
+    try {
+      setCommentsLoading(true);
+      const data = await fetchCommentsForTaskAction(taskId);
+      setTaskComments(data || []);
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+      setTaskComments([]);
+      toast.error("Failed to load comments");
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, []);
+
   const openCreateModal = (columnId: number) => {
     setEditingTask(null);
     setSelectedColumnId(columnId);
+    setTaskComments([]);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (task: Task) => {
+  const openEditModal = async (task: Task) => {
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
+    await fetchComments(task.id);
   };
 
   const handleSaveTask = async (data: {
@@ -80,6 +95,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     deadline: string;
   }) => {
     if (!selectedColumnId) return;
+
     setIsSubmitting(true);
 
     const taskPayload = {
@@ -92,10 +108,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
     };
 
     let error = false;
+
     if (editingTask) {
       try {
         await updateTaskAction(editingTask.id, taskPayload);
       } catch (updateError) {
+        console.error(updateError);
         error = true;
       }
     } else {
@@ -104,9 +122,14 @@ export function TasksTab({ projectId }: { projectId: number }) {
         columnTasks.length > 0
           ? Math.max(...columnTasks.map((t) => t.position)) + 1
           : 0;
+
       try {
-        await createTaskAction({ ...taskPayload, position: nextPosition });
+        await createTaskAction({
+          ...taskPayload,
+          position: nextPosition,
+        });
       } catch (insertError) {
+        console.error(insertError);
         error = true;
       }
     }
@@ -126,19 +149,71 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleDeleteTask = async () => {
     if (!editingTask) return;
+
     setIsSubmitting(true);
     try {
       await deleteTaskAction(editingTask.id);
       toast.success("Task deleted");
     } catch (error) {
+      console.error(error);
       toast.error("Failed to delete task");
     }
+
     await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
 
-  /* ── Render ── */
+  const handleAddLabel = async (taskId: number, labelId: number) => {
+    try {
+      await addLabelToTaskAction(taskId, labelId);
+      await fetchData();
+      toast.success("Label added");
+    } catch (error) {
+      console.error("Failed to add label:", error);
+      toast.error("Failed to add label");
+    }
+  };
+
+  const handleRemoveLabel = async (taskId: number, labelId: number) => {
+    try {
+      await removeLabelFromTaskAction(taskId, labelId);
+      await fetchData();
+      toast.success("Label removed");
+    } catch (error) {
+      console.error("Failed to remove label:", error);
+      toast.error("Failed to remove label");
+    }
+  };
+
+  const handleAddComment = async (taskId: number, content: string) => {
+    try {
+      await createCommentAction(taskId, content);
+      await fetchComments(taskId);
+      toast.success("Comment added");
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+      toast.error("Failed to add comment");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!editingTask?.id) return;
+
+    try {
+      await deleteCommentAction(commentId);
+      await fetchComments(editingTask.id);
+      toast.success("Comment deleted");
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  const currentEditingTask = editingTask
+    ? tasks.find((task) => task.id === editingTask.id) || editingTask
+    : null;
+
   if (isLoading) {
     return (
       <div className="flex-1 overflow-x-auto mt-4 flex items-center justify-center">
@@ -162,9 +237,17 @@ export function TasksTab({ projectId }: { projectId: number }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveTask}
-        onDelete={editingTask ? handleDeleteTask : undefined}
-        initialData={editingTask}
+        onDelete={currentEditingTask ? handleDeleteTask : undefined}
+        initialData={currentEditingTask}
         isSubmitting={isSubmitting}
+        boardLabels={boardLabels}
+        onAddLabel={handleAddLabel}
+        onRemoveLabel={handleRemoveLabel}
+        comments={taskComments}
+        commentsLoading={commentsLoading}
+        currentUserId={user?.id || ""}
+        onAddComment={handleAddComment}
+        onDeleteComment={handleDeleteComment}
       />
     </div>
   );
