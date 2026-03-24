@@ -16,14 +16,7 @@ export default function ProfilePage() {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
-    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user?.email || "User")}`;
-
-    // Chỉ cho phép https:// và blob: URL, chặn XSS từ dữ liệu DB
-    const sanitizeAvatarSrc = (url: string) => {
-        if (!url) return fallbackAvatar;
-        if (url.startsWith('https://') || url.startsWith('blob:')) return url;
-        return fallbackAvatar;
-    };
+    const fallbackAvatar = useMemo(() => `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`, [user?.email]);
 
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [displayName, setDisplayName] = useState("");
@@ -254,7 +247,7 @@ export default function ProfilePage() {
                                             onChange={handleAvatarChange}
                                         />
                                         <img
-                                            src={sanitizeAvatarSrc(avatarUrl)}
+                                            src={avatarUrl || fallbackAvatar}
                                             onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
                                             alt="Avatar"
                                             className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
