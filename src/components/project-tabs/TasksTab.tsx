@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import {
@@ -13,6 +13,8 @@ import {
   fetchCommentsForTaskAction,
   createCommentAction,
   deleteCommentAction,
+  updateColumnAction,
+  deleteColumnAction,
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
@@ -36,9 +38,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
+    // Only show loading spinner on initial load, not on subsequent refreshes
+    if (isInitialLoad.current) {
+      setIsLoading(true);
+    }
     try {
       const data = await fetchKanbanDataAction(projectId);
 
@@ -53,6 +59,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       toast.error("Failed to load kanban data");
     } finally {
       setIsLoading(false);
+      isInitialLoad.current = false;
     }
   }, [projectId]);
 
@@ -210,6 +217,28 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleUpdateColumn = async (columnId: number, newTitle: string) => {
+    try {
+      await updateColumnAction(columnId, { title: newTitle });
+      toast.success("Column updated");
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to update column:", error);
+      toast.error("Failed to update column");
+    }
+  };
+
+  const handleDeleteColumn = async (columnId: number) => {
+    try {
+      await deleteColumnAction(columnId);
+      toast.success("Column deleted");
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to delete column:", error);
+      toast.error("Failed to delete column");
+    }
+  };
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -223,7 +252,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }
 
   return (
-    <div className="flex-1 overflow-x-auto mt-4">
+    <div className="flex-1 mt-4">
       <KanbanBoard
         projectId={projectId}
         columns={columns}
@@ -231,6 +260,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
+        onUpdateColumn={handleUpdateColumn}
+        onDeleteColumn={handleDeleteColumn}
       />
 
       <TaskDetailsModal
