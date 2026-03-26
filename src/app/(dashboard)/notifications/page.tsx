@@ -21,16 +21,16 @@ export default function NotificationsPage() {
                 return getDeadlineStatus(taskObj.deadline);
             }
         }
-        
+
         // Default style for general notifications
         return { label: "UPDATE", color: "blue" };
     };
 
     const formatRelativeTime = (dateString: string) => {
         const date = new Date(dateString);
-        const now = new Date("2026-03-26T14:25:26+07:00"); // Using current time for demo or actual Date.now()
+        const now = new Date();
         const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-        
+
         if (diffInSeconds < 60) return `Just now`;
         const diffInMinutes = Math.floor(diffInSeconds / 60);
         if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
                         const status = getDisplayStatus(notification);
                         const isRead = notification.is_read;
                         const dateFormatted = formatRelativeTime(notification.created_at);
-                        
+
                         let Icon = BriefcaseIcon;
                         let iconBgStr = "bg-blue-50 text-blue-500";
                         let borderLeftColorStr = "border-l-blue-500";
@@ -111,22 +111,21 @@ export default function NotificationsPage() {
                         let taskTitle = taskObj?.title || notification.content;
 
                         return (
-                            <Link 
+                            <Link
                                 href={notification.project_id ? `/projects/${notification.project_id}` : "#"}
                                 key={notification.id}
                                 onClick={() => {
                                     if (!isRead) markAsRead(notification.id);
                                 }}
-                                className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
-                                    isRead ? 'border-l-slate-200 opacity-60' : borderLeftColorStr
-                                }`}
+                                className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${isRead ? 'border-l-slate-200 opacity-60' : borderLeftColorStr
+                                    }`}
                             >
                                 {!isRead && status.color === "red" && (
                                     <div className="absolute top-6 right-6 text-red-500 font-bold text-xl leading-none">
                                         !
                                     </div>
                                 )}
-                                
+
                                 <div className="flex items-start gap-4">
                                     <div className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center ${isRead ? 'bg-slate-100 text-slate-400' : iconBgStr}`}>
                                         <Icon className="w-5 h-5" />
@@ -138,7 +137,7 @@ export default function NotificationsPage() {
                                         <h3 className={`text-lg transition-colors truncate ${isRead ? 'font-semibold text-slate-600' : 'font-extrabold text-slate-900'}`}>
                                             {taskTitle}
                                         </h3>
-                                        
+
                                         <div className="flex items-center justify-between mt-5">
                                             <div className={`px-2.5 py-1 rounded capitalize text-[10px] font-bold tracking-wider ${isRead ? 'bg-slate-100 text-slate-500' : labelBgStr}`}>
                                                 {status.label}

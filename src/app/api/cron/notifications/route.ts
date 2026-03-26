@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     // Optional: Add simple secret verification to prevent unauthorized triggering
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      // return new Response("Unauthorized", { status: 401 });
+      return new Response("Unauthorized", { status: 401 });
       // Ignoring for now to allow manual testing, in production uncomment above
     }
 
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     // to allow re-notifying if "IN 3 DAYS" becomes "DUE TODAY".
     // For simplicity, let's just create ONE notification per urgency stage 
     // by checking if the content string contains the current urgency state.
-    
+
     let insertedCount = 0;
 
     for (const task of tasks) {
@@ -102,10 +102,10 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       scannedTasks: tasks.length,
-      notificationsCreated: insertedCount 
+      notificationsCreated: insertedCount
     }, { status: 200 });
 
   } catch (err: any) {
