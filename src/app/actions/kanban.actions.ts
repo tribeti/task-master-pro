@@ -222,9 +222,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
             user_id: targetUserId,
             type: "deadline",
             content: `DEADLINE WARNING\n${payload.title} is ${urgencyStr}`,
-            is_read: false,
-            task_id: newTaskData.id,
-            project_id: String(column.board_id)
+            is_read: false
         }]);
 
         if (notifError) {

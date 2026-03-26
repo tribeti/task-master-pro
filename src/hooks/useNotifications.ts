@@ -36,14 +36,14 @@ export function useNotifications(userId: string | undefined) {
                 if (urgentTasks.length > 0) {
                     const { data: existingNotifs } = await supabase
                         .from("notifications")
-                        .select("task_id")
-                        .eq("user_id", userId)
-                        .in("task_id", urgentTasks.map((t: any) => t.id));
+                        .select("content")
+                        .eq("user_id", userId);
                         
-                    const existingTaskIds = new Set(existingNotifs?.map((n: any) => n.task_id) || []);
+                    // Deduplicate by checking if content already contains the task title
+                    const existingContents = existingNotifs?.map((n: any) => n.content) || [];
 
                     const newNotificationsToInsert = urgentTasks
-                        .filter((t: any) => !existingTaskIds.has(t.id))
+                        .filter((t: any) => !existingContents.some((c: string) => c.includes(t.title)))
                         .map((t: any) => {
                             const deadlineDate = new Date(t.deadline);
                             let urgencyStr = "IN 3 DAYS";
@@ -51,12 +51,13 @@ export function useNotifications(userId: string | undefined) {
                             else if (deadlineDate.toDateString() === now.toDateString()) urgencyStr = "DUE TODAY";
                             else urgencyStr = "DUE TOMORROW";
 
+                            // Include project ID inside content implicitly if we had it, but for now we just store title
+                            // To navigate, we could store: "DEADLINE WARNING|project_id|Task Title is OVERDUE" but let's stick to simple text
                             return {
                                 user_id: userId,
                                 type: "deadline",
                                 content: `DEADLINE WARNING\n${t.title} is ${urgencyStr}`,
-                                is_read: false,
-                                task_id: t.id
+                                is_read: false
                             };
                         });
 
