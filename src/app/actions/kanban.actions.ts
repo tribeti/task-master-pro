@@ -198,10 +198,39 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
   if (colErr || !column) throw new Error("Access denied.");
   await verifyBoardOwnership(supabase, user.id, column.board_id);
 
-  const { error } = await supabase.from("tasks").insert([payload]);
+  const { data: newTaskData, error } = await supabase.from("tasks").insert([payload]).select().single();
   if (error) {
     console.error("createTaskAction error:", error.message);
     throw new Error("Failed to create task.");
+  }
+
+  // --- AUTOMATIC DEADLINE NOTIFICATION ---
+  if (payload.deadline) {
+    const deadlineDate = new Date(payload.deadline);
+    const now = new Date();
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    
+    if (deadlineDate <= threeDaysFromNow) {
+        let urgencyStr = "IN 3 DAYS";
+        if (deadlineDate < now) urgencyStr = "OVERDUE";
+        else if (deadlineDate.toDateString() === now.toDateString()) urgencyStr = "DUE TODAY";
+        else if (deadlineDate.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString()) urgencyStr = "DUE TOMORROW";
+
+        const targetUserId = payload.assignee_id || user.id;
+
+        const { error: notifError } = await supabase.from("notifications").insert([{
+            user_id: targetUserId,
+            type: "deadline",
+            content: `DEADLINE WARNING\n${payload.title} is ${urgencyStr}`,
+            is_read: false,
+            task_id: newTaskData.id,
+            project_id: String(column.board_id)
+        }]);
+
+        if (notifError) {
+          console.error("Failed to insert automatic notification:", notifError);
+        }
+    }
   }
 
   revalidatePath("/projects");

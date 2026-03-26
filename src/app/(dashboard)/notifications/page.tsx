@@ -1,0 +1,166 @@
+"use client";
+
+import React, { useMemo } from "react";
+import { useDashboardUser } from "../provider";
+import { useNotifications } from "@/hooks/useNotifications";
+import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
+import Link from "next/link";
+import { Notification } from "@/types/project";
+
+export default function NotificationsPage() {
+    const { user } = useDashboardUser();
+    const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications(user?.id);
+
+    const getDeadlineStatus = (notification: Notification) => {
+        // Here we parse content or use dummy logic since actual DB deadline might be missing in Notification type.
+        // We will simulate the Due Today/Tomorrow/In 3 days for demo based on created_at or type.
+        // In a real app, this would use the task deadline or be passed inside 'content'.
+        const titleText = notification.content.toLowerCase();
+        if (titleText.includes("today") || notification.type === "urgent") {
+            return { label: "DUE TODAY", color: "red" };
+        } else if (titleText.includes("tomorrow")) {
+            return { label: "DUE TOMORROW", color: "orange" };
+        } else if (titleText.includes("days") || titleText.includes("audit")) {
+            return { label: "IN 3 DAYS", color: "yellow" };
+        }
+        return { label: "UPDATE", color: "blue" };
+    };
+
+    const formatRelativeTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date("2026-03-26T14:25:26+07:00"); // Using current time for demo or actual Date.now()
+        const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        
+        if (diffInSeconds < 60) return `Just now`;
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours} hours ago`;
+        const diffInDays = Math.floor(diffInHours / 24);
+        if (diffInDays === 1) return `1 day ago`;
+        return `${diffInDays} days ago`;
+    };
+
+    return (
+        <div className="flex-1 overflow-y-auto px-10 pt-10 pb-20 bg-[#F8FAFC]">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <h1 className="text-[2.5rem] font-black text-slate-900 tracking-tight leading-none mb-2">
+                        Notifications
+                    </h1>
+                    <p className="text-slate-500 font-medium text-base">
+                        Stay on top of your upcoming deadlines and project updates.
+                    </p>
+                </div>
+                {unreadCount > 0 && (
+                    <button
+                        onClick={markAllAsRead}
+                        className="bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF] transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
+                    >
+                        {unreadCount} UNREAD
+                    </button>
+                )}
+            </header>
+
+            {isLoading ? (
+                <div className="space-y-6">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="animate-pulse bg-white rounded-3xl h-32 w-full border border-slate-100"></div>
+                    ))}
+                </div>
+            ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm text-center">
+                    <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-4">
+                        <CheckCircleIcon />
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-lg">You're all caught up!</h3>
+                    <p className="text-slate-500 text-sm mt-1">No pending notifications at the moment.</p>
+                </div>
+            ) : (
+                <div className="space-y-6 max-w-4xl">
+                    {notifications.map((notification) => {
+                        const status = getDeadlineStatus(notification);
+                        const isRead = notification.is_read;
+                        const dateFormatted = formatRelativeTime(notification.created_at);
+                        
+                        let Icon = BriefcaseIcon;
+                        let iconBgStr = "bg-blue-50 text-blue-500";
+                        let borderLeftColorStr = "border-l-blue-500";
+                        let labelBgStr = "bg-blue-50 text-blue-500";
+
+                        if (status.color === "red") {
+                            Icon = AlertIcon;
+                            iconBgStr = "bg-red-50 text-red-500";
+                            borderLeftColorStr = "border-l-red-500";
+                            labelBgStr = "bg-red-50 text-red-500";
+                        } else if (status.color === "orange") {
+                            iconBgStr = "bg-orange-50 text-orange-500";
+                            borderLeftColorStr = "border-l-orange-500";
+                            labelBgStr = "bg-orange-50 text-orange-500";
+                        } else if (status.color === "yellow") {
+                            iconBgStr = "bg-yellow-50 text-yellow-500";
+                            borderLeftColorStr = "border-l-yellow-400";
+                            labelBgStr = "bg-yellow-50 text-yellow-600";
+                        }
+
+                        // Parse content assuming it might contain "Project: [name] | Task: [title]" 
+                        // If not, we fall back to just rendering content as title.
+                        let projectSubject = "PROJECT UPDATE";
+                        let taskTitle = notification.content;
+                        
+                        // Fake extraction pattern for UI purposes, assuming some content format:
+                        if (notification.content.includes("PROJECT: ")) {
+                            const parts = notification.content.split("\n");
+                            if (parts.length > 1) {
+                                projectSubject = parts[0];
+                                taskTitle = parts[1];
+                            }
+                        }
+
+                        return (
+                            <Link 
+                                href={notification.project_id ? `/projects/${notification.project_id}` : "#"}
+                                key={notification.id}
+                                onClick={() => {
+                                    if (!isRead) markAsRead(notification.id);
+                                }}
+                                className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
+                                    isRead ? 'border-l-slate-200 opacity-60' : borderLeftColorStr
+                                }`}
+                            >
+                                {!isRead && status.color === "red" && (
+                                    <div className="absolute top-6 right-6 text-red-500 font-bold text-xl leading-none">
+                                        !
+                                    </div>
+                                )}
+                                
+                                <div className="flex items-start gap-4">
+                                    <div className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center ${isRead ? 'bg-slate-100 text-slate-400' : iconBgStr}`}>
+                                        <Icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isRead ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            {projectSubject}
+                                        </p>
+                                        <h3 className={`text-lg transition-colors truncate ${isRead ? 'font-semibold text-slate-600' : 'font-extrabold text-slate-900'}`}>
+                                            {taskTitle}
+                                        </h3>
+                                        
+                                        <div className="flex items-center justify-between mt-5">
+                                            <div className={`px-2.5 py-1 rounded capitalize text-[10px] font-bold tracking-wider ${isRead ? 'bg-slate-100 text-slate-500' : labelBgStr}`}>
+                                                {status.label}
+                                            </div>
+                                            <div className="text-xs font-medium text-slate-400">
+                                                {isRead ? `Read • ${dateFormatted}` : dateFormatted}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}

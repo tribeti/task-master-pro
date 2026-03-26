@@ -63,3 +63,16 @@ export interface Comment {
   task_id: number;
   user_id: string;
 }
+
+export type NotificationType = "deadline" | "project_update" | "mention" | string;
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  content: string;
+  is_read: boolean;
+  type: NotificationType;
+  created_at: string;
+  project_id?: string;
+  task_id?: number;
+}

@@ -9,6 +9,7 @@ interface KanbanTaskProps {
   priority: "Low" | "Medium" | "High";
   description?: string;
   labels?: Label[];
+  deadline?: string | null;
   onDragStart: (e: React.DragEvent, taskId: number) => void;
   onClick: () => void;
 }
@@ -25,6 +26,7 @@ export function KanbanTask({
   priority,
   description,
   labels,
+  deadline,
   onDragStart,
   onClick,
 }: KanbanTaskProps) {
@@ -33,18 +35,50 @@ export function KanbanTask({
     bg: "bg-slate-100",
   };
 
+  let cardClass = "bg-white border-slate-100";
+  let deadlineBadge = null;
+
+  if (deadline) {
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    // Using simple end-of-day logic for visual approximations
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    if (deadlineDate < now && deadlineDate.toDateString() !== now.toDateString()) {
+      cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
+      deadlineBadge = { label: "OVERDUE", color: "text-red-600 bg-red-100" };
+    } else if (deadlineDate.toDateString() === now.toDateString()) {
+      cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
+      deadlineBadge = { label: "DUE TODAY", color: "text-red-600 bg-red-100" };
+    } else if (deadlineDate.toDateString() === tomorrow.toDateString()) {
+      cardClass = "bg-orange-50 border-orange-200 border-l-[4px] border-l-orange-500";
+      deadlineBadge = { label: "DUE TOMORROW", color: "text-orange-600 bg-orange-100" };
+    } else if (deadlineDate <= threeDaysFromNow) {
+      cardClass = "bg-yellow-50 border-yellow-200 border-l-[4px] border-l-yellow-400";
+      deadlineBadge = { label: "IN 3 DAYS", color: "text-yellow-700 bg-yellow-100" };
+    }
+  }
+
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, id)}
       onClick={onClick}
-      className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all active:opacity-70 active:scale-[0.98]"
+      className={`p-5 rounded-2xl shadow-sm border flex flex-col gap-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all active:opacity-70 active:scale-[0.98] ${cardClass}`}
     >
-      <span
-        className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}
-      >
-        {priority}
-      </span>
+      <div className="flex justify-between items-start">
+        <span
+          className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}
+        >
+          {priority}
+        </span>
+        {deadlineBadge && (
+            <span className={`text-[8px] font-black w-max px-2 py-1 rounded shadow-sm tracking-widest uppercase ${deadlineBadge.color}`}>
+              {deadlineBadge.label}
+            </span>
+        )}
+      </div>
 
       <h4 className="font-bold text-slate-800">{title}</h4>
 

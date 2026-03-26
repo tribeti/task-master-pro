@@ -120,6 +120,7 @@ export function KanbanColumn({
               priority={task.priority}
               description={task.description || undefined}
               labels={task.labels}
+              deadline={task.deadline}
               onDragStart={onDragStart}
               onClick={() => onTaskClick(task)}
             />
