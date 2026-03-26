@@ -4,13 +4,11 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import {
-  fetchKanbanDataAction,
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
-  fetchCommentsForTaskAction,
   createCommentAction,
   deleteCommentAction,
   updateColumnAction,
@@ -46,7 +44,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
       setIsLoading(true);
     }
     try {
-      const data = await fetchKanbanDataAction(projectId);
+      const res = await fetch(`/api/boards/${projectId}/kanban`);
+      if (!res.ok) throw new Error("Failed to fetch kanban data");
+      const data = await res.json();
 
       setColumns(data.columns || []);
       setTasks(data.tasks || []);
@@ -70,7 +70,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const fetchComments = useCallback(async (taskId: number) => {
     try {
       setCommentsLoading(true);
-      const data = await fetchCommentsForTaskAction(taskId);
+      const res = await fetch(`/api/tasks/${taskId}/comments`);
+      if (!res.ok) throw new Error("Failed to fetch comments");
+      const data = await res.json();
       setTaskComments(data || []);
     } catch (error) {
       console.error("Failed to fetch comments:", error);
