@@ -46,6 +46,25 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Verify the requesting user has access to the board (owner or member)
+    const isOwner = await verifyBoardOwnership(supabase, user.id, boardId);
+    let isMember = false;
+    if (!isOwner) {
+      const { data: membership } = await supabase
+        .from("board_members")
+        .select("user_id")
+        .eq("board_id", boardId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (membership) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
     // Fetch board members joined with users table
     const { data: members, error } = await supabase
       .from("board_members")
