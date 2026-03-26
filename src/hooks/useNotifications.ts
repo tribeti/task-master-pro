@@ -104,7 +104,9 @@ export function useNotifications(userId: string | undefined) {
                             description: newNotification.content,
                             action: {
                                 label: "View",
-                                onClick: () => {
+                                onClick: async () => {
+                                    await supabase.from("notifications").update({ is_read: true }).eq("id", newNotification.id);
+                                    
                                     if (newNotification.project_id) {
                                         window.location.href = `/projects/${newNotification.project_id}`;
                                     } else {
