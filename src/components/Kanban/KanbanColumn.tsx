@@ -87,7 +87,7 @@ export function KanbanColumn({
 
   const handleDeleteClick = () => {
     if (tasks.length > 0) {
-      toast.error("Cannot delete column with tasks. Move or delete all tasks first.");
+      toast.error("Không thể xóa cột khi vẫn còn công việc. Vui lòng di chuyển hoặc xóa hết công việc trước.");
       return;
     }
     onDeleteColumn(column.id);

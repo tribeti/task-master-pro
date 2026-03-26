@@ -220,22 +220,22 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
     try {
       await updateColumnAction(columnId, { title: newTitle });
-      toast.success("Column updated");
+      toast.success("Cập nhật cột thành công");
       await fetchData();
     } catch (error) {
       console.error("Failed to update column:", error);
-      toast.error("Failed to update column");
+      toast.error("Cập nhật cột thất bại");
     }
   };
 
   const handleDeleteColumn = async (columnId: number) => {
     try {
       await deleteColumnAction(columnId);
-      toast.success("Column deleted");
+      toast.success("Đã xóa cột");
       await fetchData();
     } catch (error) {
       console.error("Failed to delete column:", error);
-      toast.error("Failed to delete column");
+      toast.error("Xóa cột thất bại");
     }
   };
 

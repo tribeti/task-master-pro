@@ -222,6 +222,10 @@ export const updateTaskAction = async (
         validateString(payload.title, "Task title", 200);
     }
 
+    if (payload.description !== undefined && payload.description !== null) {
+        validateString(payload.description, "Description", 2000);
+    }
+
     await verifyTaskOwnership(supabase, user.id, taskId);
 
     // If moving to a different column, also verify we own that target column's board
@@ -351,7 +355,7 @@ export const removeLabelFromTaskAction = async (
 
     revalidatePath("/projects");
 };
-
+// create column
 export const createColumnAction = async (
     projectId: number,
     title: string,
@@ -379,7 +383,7 @@ export const createColumnAction = async (
 
     revalidatePath("/projects");
 };
-
+// update column
 export const updateColumnAction = async (
     columnId: number,
     payload: { title?: string; position?: number },
@@ -410,13 +414,13 @@ export const updateColumnAction = async (
         .eq("id", columnId);
 
     if (error) {
-        console.error("updateColumnAction error:", error.message);
-        throw new Error("Failed to update column.");
+        console.error("updateColumnAction error: Lỗi khi cập nhật cột", error.message);
+        throw new Error("Không thể cập nhật cột lúc này.");
     }
 
     revalidatePath("/projects");
 };
-
+// delete column
 export const deleteColumnAction = async (columnId: number) => {
     const supabase = await createClient();
     const {
@@ -433,14 +437,29 @@ export const deleteColumnAction = async (columnId: number) => {
     if (colErr || !column) throw new Error("Column not found.");
     await verifyBoardOwnership(supabase, user.id, column.board_id);
 
+    // Kiểm tra xem cột có còn task nào không
+    const { count, error: countError } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("column_id", columnId);
+
+    if (countError) {
+        console.error("deleteColumnAction: Lỗi khi đếm task:", countError.message);
+        throw new Error("Không thể xóa cột lúc này.");
+    }
+
+    if (count && count > 0) {
+        throw new Error("Không thể xóa cột vẫn còn chứa task.");
+    }
+
     const { error } = await supabase
         .from("columns")
         .delete()
         .eq("id", columnId);
 
     if (error) {
-        console.error("deleteColumnAction error:", error.message);
-        throw new Error("Failed to delete column.");
+        console.error("deleteColumnAction error: Lỗi khi xóa cột", error.message);
+        throw new Error("Không thể xóa cột lúc này.");
     }
 
     revalidatePath("/projects");

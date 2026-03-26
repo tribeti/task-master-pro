@@ -222,21 +222,19 @@ export function KanbanBoard({
                 setLocalTasks(newTasks);
 
                 // ── Step 4: Fire API in background ──
-                Promise.all([
-                    // Update the moved task (new column_id + new position)
-                    updateTaskAction(movedTask.id, {
-                        column_id: destColId,
-                        position: destination.index,
-                    }),
-                    // Update positions for remaining source column tasks
-                    ...updatedSourceTasks.map((t) =>
-                        updateTaskAction(t.id, { position: t.position }),
-                    ),
-                    // Update positions for dest column tasks (exclude moved one)
-                    ...updatedDestTasks
-                        .filter((t) => t.id !== movedTask.id)
-                        .map((t) => updateTaskAction(t.id, { position: t.position })),
-                ])
+                const sourceUpdates = updatedSourceTasks.map((t) =>
+                    updateTaskAction(t.id, { position: t.position }),
+                );
+                const destUpdates = updatedDestTasks.map((t) => {
+                    const payload: { position: number; column_id?: number } = {
+                        position: t.position,
+                    };
+                    if (t.id === movedTask.id) {
+                        payload.column_id = destColId;
+                    }
+                    return updateTaskAction(t.id, payload);
+                });
+                Promise.all([...sourceUpdates, ...destUpdates])
                     .then(() => {
                         onDataChange();
                     })
