@@ -71,3 +71,7 @@ export interface BoardMember {
   display_name: string;
   avatar_url: string | null;
 }
+
+export interface JoinedBoard extends Board {
+  member_role: string;
+}

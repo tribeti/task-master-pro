@@ -22,7 +22,8 @@ export default function ProjectsPage() {
   const userId = user?.id;
 
   const {
-    boards,
+    ownedBoards,
+    joinedBoards,
     boardsLoading,
     isSubmitting,
     confirmDeleteProject,
@@ -116,40 +117,55 @@ export default function ProjectsPage() {
     );
   };
 
+  const totalProjects = ownedBoards.length + joinedBoards.length;
+
+  // --- Skeleton cards for loading state ---
+  const renderSkeletonCards = () =>
+    Array.from({ length: 3 }).map((_, i) => (
+      <div
+        key={i}
+        className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
+          <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
+        </div>
+        <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
+        <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
+        <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
+        <div className="w-full mb-8">
+          <div className="h-2.5 bg-slate-100 rounded-full"></div>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+          <div className="flex -space-x-2">
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div
+                key={j}
+                className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
+              ></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ));
+
   // --- RENDER ---
   const renderAllProjects = () => (
     <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
+      {/* ── My Projects ── */}
+      <div className="mb-4">
+        <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          My Projects
+          <span className="text-sm font-semibold text-slate-400 ml-1">
+            ({ownedBoards.length})
+          </span>
+        </h2>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {boardsLoading
-          ? Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
-                <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
-              </div>
-              <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
-              <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
-              <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
-              <div className="w-full mb-8">
-                <div className="h-2.5 bg-slate-100 rounded-full"></div>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-                <div className="flex -space-x-2">
-                  {Array.from({ length: 3 }).map((_, j) => (
-                    <div
-                      key={j}
-                      className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))
-          : boards.map((proj, index) => {
-            return (
+          ? renderSkeletonCards()
+          : ownedBoards.map((proj, index) => (
               <ProjectCard
                 key={proj.id}
                 proj={proj}
@@ -161,9 +177,9 @@ export default function ProjectsPage() {
                 handleDeleteProject={handleDeleteProject}
                 setSelectedProject={setSelectedProject}
                 currentUserId={userId}
+                memberRole="Owner"
               />
-            );
-          })}
+            ))}
 
         {/* Create New Project Card */}
         <div
@@ -179,6 +195,38 @@ export default function ProjectsPage() {
           </p>
         </div>
       </div>
+
+      {/* ── Joined Projects ── */}
+      {!boardsLoading && joinedBoards.length > 0 && (
+        <>
+          <div className="mt-12 mb-4">
+            <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+              Joined Projects
+              <span className="text-sm font-semibold text-slate-400 ml-1">
+                ({joinedBoards.length})
+              </span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {joinedBoards.map((proj, index) => (
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole={proj.member_role || "Member"}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -223,7 +271,7 @@ export default function ProjectsPage() {
               <p className="text-sm text-slate-500 font-medium mt-1">
                 You have{" "}
                 <span className="text-[#34D399] font-bold">
-                  {boards.length} active
+                  {totalProjects} active
                 </span>{" "}
                 projects pushing forward.
               </p>
