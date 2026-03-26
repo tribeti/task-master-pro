@@ -47,19 +47,18 @@ export async function GET(
     }
 
     // Verify the requesting user has access to the board (owner or member)
-    const isOwner = await verifyBoardOwnership(supabase, user.id, boardId);
-    let isMember = false;
-    if (!isOwner) {
-      const { data: membership } = await supabase
+    const [{ data: board }, { data: access }] = await Promise.all([
+      supabase.from("boards").select("owner_id").eq("id", boardId).single(),
+      supabase
         .from("board_members")
         .select("user_id")
         .eq("board_id", boardId)
         .eq("user_id", user.id)
-        .maybeSingle();
-      if (membership) {
-        isMember = true;
-      }
-    }
+        .maybeSingle(),
+    ]);
+
+    const isOwner = board?.owner_id === user.id;
+    const isMember = !!access;
 
     if (!isOwner && !isMember) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
