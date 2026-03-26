@@ -305,7 +305,9 @@ export default function ProjectsPage() {
               )}
               {projectTab === "Timeline" && <TimelineTab />}
               {projectTab === "Files" && <FilesTab />}
-              {projectTab === "Team" && <TeamTab />}
+              {projectTab === "Team" && (
+                <TeamTab boardId={selectedProject.id} />
+              )}
             </div>
           </>
         )}
