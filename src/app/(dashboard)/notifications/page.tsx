@@ -7,6 +7,7 @@ import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
 import Link from "next/link";
 import { Notification } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
+import { formatRelativeTime } from "@/utils/time";
 
 export default function NotificationsPage() {
     const { user } = useDashboardUser();
@@ -24,21 +25,6 @@ export default function NotificationsPage() {
 
         // Default style for general notifications
         return { label: "UPDATE", color: "blue" };
-    };
-
-    const formatRelativeTime = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-
-        if (diffInSeconds < 60) return `Just now`;
-        const diffInMinutes = Math.floor(diffInSeconds / 60);
-        if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
-        const diffInHours = Math.floor(diffInMinutes / 60);
-        if (diffInHours < 24) return `${diffInHours} hours ago`;
-        const diffInDays = Math.floor(diffInHours / 24);
-        if (diffInDays === 1) return `1 day ago`;
-        return `${diffInDays} days ago`;
     };
 
     return (

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDeadlineStatus } from "@/utils/deadline";
 
 // Use service role key to bypass RLS and act as an admin job
 const supabaseAdminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -69,13 +70,8 @@ export async function GET(request: Request) {
     let insertedCount = 0;
 
     for (const task of tasks) {
-      const deadlineDate = new Date(task.deadline!);
-      deadlineDate.setHours(0, 0, 0, 0);
-
-      let urgencyStr = "IN 3 DAYS";
-      if (deadlineDate < now) urgencyStr = "OVERDUE";
-      else if (deadlineDate.getTime() === now.getTime()) urgencyStr = "DUE TODAY";
-      else if (deadlineDate.getTime() === new Date(now.getTime() + 24 * 60 * 60 * 1000).getTime()) urgencyStr = "DUE TOMORROW";
+      const status = getDeadlineStatus(task.deadline!);
+      const urgencyStr = status.urgencyStr;
 
       const existingForTask = existingNotifs?.filter(n => n.task_id === task.id) || [];
       const alreadyNotifiedForThisStage = existingForTask.some(n => n.content?.includes(urgencyStr));

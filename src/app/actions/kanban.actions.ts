@@ -209,7 +209,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
   if (payload.deadline) {
     const status = getDeadlineStatus(payload.deadline);
     
-    if (status.color !== "slate" && status.color !== "blue") {
+    if (["OVERDUE", "DUE TODAY", "DUE TOMORROW", "IN 3 DAYS"].includes(status.urgencyStr)) {
         const targetUserId = payload.assignee_id || user.id;
 
         const { error: notifError } = await supabase.from("notifications").insert([{
