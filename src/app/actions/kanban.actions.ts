@@ -9,6 +9,7 @@ import {
   Comment,
   KanbanTask,
 } from "@/types/project";
+import { getDeadlineStatus } from "@/utils/deadline";
 
 // ── Helper: Verify user owns a board ──
 async function verifyBoardOwnership(
@@ -206,22 +207,15 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
 
   // --- AUTOMATIC DEADLINE NOTIFICATION ---
   if (payload.deadline) {
-    const deadlineDate = new Date(payload.deadline);
-    const now = new Date();
-    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const status = getDeadlineStatus(payload.deadline);
     
-    if (deadlineDate <= threeDaysFromNow) {
-        let urgencyStr = "IN 3 DAYS";
-        if (deadlineDate < now) urgencyStr = "OVERDUE";
-        else if (deadlineDate.toDateString() === now.toDateString()) urgencyStr = "DUE TODAY";
-        else if (deadlineDate.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString()) urgencyStr = "DUE TOMORROW";
-
+    if (status.color !== "slate" && status.color !== "blue") {
         const targetUserId = payload.assignee_id || user.id;
 
         const { error: notifError } = await supabase.from("notifications").insert([{
             user_id: targetUserId,
             type: "deadline",
-            content: `DEADLINE WARNING\n${payload.title} is ${urgencyStr}`,
+            content: `DEADLINE WARNING\n${payload.title} is ${status.urgencyStr}`,
             is_read: false
         }]);
 

@@ -6,23 +6,23 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
 import Link from "next/link";
 import { Notification } from "@/types/project";
+import { getDeadlineStatus } from "@/utils/deadline";
 
 export default function NotificationsPage() {
     const { user } = useDashboardUser();
     const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications(user?.id);
 
-    const getDeadlineStatus = (notification: Notification) => {
-        // Here we parse content or use dummy logic since actual DB deadline might be missing in Notification type.
-        // We will simulate the Due Today/Tomorrow/In 3 days for demo based on created_at or type.
-        // In a real app, this would use the task deadline or be passed inside 'content'.
-        const titleText = notification.content.toLowerCase();
-        if (titleText.includes("today") || notification.type === "urgent") {
-            return { label: "DUE TODAY", color: "red" };
-        } else if (titleText.includes("tomorrow")) {
-            return { label: "DUE TOMORROW", color: "orange" };
-        } else if (titleText.includes("days") || titleText.includes("audit")) {
-            return { label: "IN 3 DAYS", color: "yellow" };
+    const getDisplayStatus = (notification: Notification) => {
+        // If it's a deadline notification with an attached task, use the exact deadline of that task
+        if (notification.type === "deadline" && notification.task) {
+            // Note: the joined object could be an array due to Supabase typing, we handle both safely
+            const taskObj = Array.isArray(notification.task) ? notification.task[0] : notification.task;
+            if (taskObj?.deadline) {
+                return getDeadlineStatus(taskObj.deadline);
+            }
         }
+        
+        // Default style for general notifications
         return { label: "UPDATE", color: "blue" };
     };
 
@@ -79,7 +79,7 @@ export default function NotificationsPage() {
             ) : (
                 <div className="space-y-6 max-w-4xl">
                     {notifications.map((notification) => {
-                        const status = getDeadlineStatus(notification);
+                        const status = getDisplayStatus(notification);
                         const isRead = notification.is_read;
                         const dateFormatted = formatRelativeTime(notification.created_at);
                         
@@ -103,19 +103,12 @@ export default function NotificationsPage() {
                             labelBgStr = "bg-yellow-50 text-yellow-600";
                         }
 
-                        // Parse content assuming it might contain "Project: [name] | Task: [title]" 
-                        // If not, we fall back to just rendering content as title.
-                        let projectSubject = "PROJECT UPDATE";
-                        let taskTitle = notification.content;
-                        
-                        // Fake extraction pattern for UI purposes, assuming some content format:
-                        if (notification.content.includes("PROJECT: ")) {
-                            const parts = notification.content.split("\n");
-                            if (parts.length > 1) {
-                                projectSubject = parts[0];
-                                taskTitle = parts[1];
-                            }
-                        }
+                        // Robust structured metadata from Database Joined relationships
+                        const projObj = Array.isArray(notification.project) ? notification.project[0] : notification.project;
+                        const taskObj = Array.isArray(notification.task) ? notification.task[0] : notification.task;
+
+                        let projectSubject = projObj?.title ? `PROJECT: ${projObj.title}` : "PROJECT UPDATE";
+                        let taskTitle = taskObj?.title || notification.content;
 
                         return (
                             <Link 

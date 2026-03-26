@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import { Label } from "@/types/project";
+import { getDeadlineStatus } from "@/utils/deadline";
 
 interface KanbanTaskProps {
   id: number;
@@ -39,24 +39,16 @@ export function KanbanTask({
   let deadlineBadge = null;
 
   if (deadline) {
-    const deadlineDate = new Date(deadline);
-    const now = new Date();
-    // Using simple end-of-day logic for visual approximations
-    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    if (deadlineDate < now && deadlineDate.toDateString() !== now.toDateString()) {
+    const status = getDeadlineStatus(deadline);
+    if (status.color === "red") {
       cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
-      deadlineBadge = { label: "OVERDUE", color: "text-red-600 bg-red-100" };
-    } else if (deadlineDate.toDateString() === now.toDateString()) {
-      cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
-      deadlineBadge = { label: "DUE TODAY", color: "text-red-600 bg-red-100" };
-    } else if (deadlineDate.toDateString() === tomorrow.toDateString()) {
+      deadlineBadge = { label: status.urgencyStr, color: "text-red-600 bg-red-100" };
+    } else if (status.color === "orange") {
       cardClass = "bg-orange-50 border-orange-200 border-l-[4px] border-l-orange-500";
-      deadlineBadge = { label: "DUE TOMORROW", color: "text-orange-600 bg-orange-100" };
-    } else if (deadlineDate <= threeDaysFromNow) {
+      deadlineBadge = { label: status.urgencyStr, color: "text-orange-600 bg-orange-100" };
+    } else if (status.color === "yellow") {
       cardClass = "bg-yellow-50 border-yellow-200 border-l-[4px] border-l-yellow-400";
-      deadlineBadge = { label: "IN 3 DAYS", color: "text-yellow-700 bg-yellow-100" };
+      deadlineBadge = { label: status.urgencyStr, color: "text-yellow-700 bg-yellow-100" };
     }
   }
 

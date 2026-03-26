@@ -73,6 +73,8 @@ export interface Notification {
   is_read: boolean;
   type: NotificationType;
   created_at: string;
-  project_id?: string;
+  project_id?: number | string;
   task_id?: number;
+  task?: { title: string; deadline: string | null } | { title: string; deadline: string | null }[];
+  project?: { title: string } | { title: string }[];
 }

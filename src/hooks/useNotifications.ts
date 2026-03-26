@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Notification } from "@/types/project";
 import { toast } from "sonner";
 
 export function useNotifications(userId: string | undefined) {
+    const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -15,62 +17,11 @@ export function useNotifications(userId: string | undefined) {
         const fetchNotifications = async () => {
             setIsLoading(true);
             
-            // --- LAZY GENERATE DEADLINE NOTIFICATIONS ---
-            // Fetch user's tasks that have a deadline
-            const { data: tasks } = await supabase
-                .from("tasks")
-                .select("id, title, deadline")
-                .eq("assignee_id", userId)
-                .not("deadline", "is", null);
 
-            if (tasks && tasks.length > 0) {
-                const now = new Date();
-                const nowTime = now.getTime();
-                const threeDaysFromNow = new Date(nowTime + 3 * 24 * 60 * 60 * 1000);
-
-                const urgentTasks = tasks.filter((t: any) => {
-                    const deadline = new Date(t.deadline);
-                    return deadline <= threeDaysFromNow;
-                });
-
-                if (urgentTasks.length > 0) {
-                    const { data: existingNotifs } = await supabase
-                        .from("notifications")
-                        .select("content")
-                        .eq("user_id", userId);
-                        
-                    // Deduplicate by checking if content already contains the task title
-                    const existingContents = existingNotifs?.map((n: any) => n.content) || [];
-
-                    const newNotificationsToInsert = urgentTasks
-                        .filter((t: any) => !existingContents.some((c: string) => c.includes(t.title)))
-                        .map((t: any) => {
-                            const deadlineDate = new Date(t.deadline);
-                            let urgencyStr = "IN 3 DAYS";
-                            if (deadlineDate < now) urgencyStr = "OVERDUE";
-                            else if (deadlineDate.toDateString() === now.toDateString()) urgencyStr = "DUE TODAY";
-                            else urgencyStr = "DUE TOMORROW";
-
-                            // Include project ID inside content implicitly if we had it, but for now we just store title
-                            // To navigate, we could store: "DEADLINE WARNING|project_id|Task Title is OVERDUE" but let's stick to simple text
-                            return {
-                                user_id: userId,
-                                type: "deadline",
-                                content: `DEADLINE WARNING\n${t.title} is ${urgencyStr}`,
-                                is_read: false
-                            };
-                        });
-
-                    if (newNotificationsToInsert.length > 0) {
-                         await supabase.from("notifications").insert(newNotificationsToInsert);
-                    }
-                }
-            }
-            // --- END LAZY GENERATE ---
 
             const { data, error } = await supabase
                 .from("notifications")
-                .select("*")
+                .select("*, task:tasks(title, deadline), project:boards(title)")
                 .eq("user_id", userId)
                 .order("created_at", { ascending: false });
 
@@ -97,9 +48,11 @@ export function useNotifications(userId: string | undefined) {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
-                    fetchNotifications();
                     if (payload.eventType === "INSERT") {
                         const newNotification = payload.new as Notification;
+                        setNotifications(prev => [newNotification, ...prev]);
+                        setUnreadCount(prev => prev + 1);
+
                         toast("New Notification", {
                             description: newNotification.content,
                             action: {
@@ -108,9 +61,9 @@ export function useNotifications(userId: string | undefined) {
                                     await supabase.from("notifications").update({ is_read: true }).eq("id", newNotification.id);
                                     
                                     if (newNotification.project_id) {
-                                        window.location.href = `/projects/${newNotification.project_id}`;
+                                        router.push(`/projects/${newNotification.project_id}`);
                                     } else {
-                                        window.location.href = `/notifications`;
+                                        router.push(`/notifications`);
                                     }
                                 }
                             }
