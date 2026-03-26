@@ -167,12 +167,12 @@ export function KanbanBoard({
                 }));
 
                 // ── Step 3: Merge & Update UI IMMEDIATELY ──
-                const newTasks = allTasks.map((t) => {
-                    const found = updatedSourceTasks.find((ut) => ut.id === t.id);
-                    return found || t;
-                });
+                const updatedTaskIds = new Set(updatedSourceTasks.map((t) => t.id));
+                const newTasks = [
+                    ...allTasks.filter((t) => !updatedTaskIds.has(t.id)),
+                    ...updatedSourceTasks,
+                ];
                 setLocalTasks(newTasks);
-
                 // ── Step 4: Fire API in background ──
                 Promise.all(
                     updatedSourceTasks.map((t) =>
