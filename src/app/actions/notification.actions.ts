@@ -2,15 +2,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { getDeadlineStatus } from "@/utils/deadline";
+import { createAdminClient } from '@/utils/supabase/admin';
 
 /**
  * Server action to generate deadline notifications.
  * Can be safely called from client code without exposing secrets.
  */
 export async function triggerDeadlineNotifications() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createAdminClient();
 
     try {
         const now = new Date();
