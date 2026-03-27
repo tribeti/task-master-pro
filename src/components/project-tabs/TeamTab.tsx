@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 interface TeamTabProps {
   boardId: number;
@@ -18,6 +21,7 @@ const AVATAR_COLORS = [
   { bg: "bg-[#FFE4E6]", text: "text-rose-500" },
   { bg: "bg-slate-100", text: "text-slate-500" },
 ];
+
 
 function getAvatarColor(index: number) {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
@@ -37,12 +41,67 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
+
+  const { user } = useDashboardUser();
+  const supabase = useMemo(() => createClient(), []);
+
+  const fallbackAvatar = useMemo(() => `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`, [user?.email]);
+
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const avatarFileRef = useRef<File | null>(null);
+
   // Add member modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      try {
+        setIsLoadingProfile(true);
+        const { data, error } = await supabase
+          .from('users')
+          .select('display_name, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
+          toast.error('Không thể tải thông tin profile.');
+        }
+        if (data?.display_name) setDisplayName(data.display_name);
+
+        if (!avatarFileRef.current && data?.avatar_url) {
+          if (data.avatar_url.startsWith('http')) {
+            setAvatarUrl(data.avatar_url);
+          } else {
+            const { data: signedData, error: signedError } = await supabase.storage
+              .from('avatar')
+              .createSignedUrl(data.avatar_url, 60 * 60);
+
+            if (signedError) {
+              console.error('Error creating signed URL:', signedError);
+            } else if (signedData?.signedUrl) {
+              setAvatarUrl(signedData.signedUrl);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase]);
+
 
   // ── Fetch members ──
   const fetchMembers = useCallback(async () => {
@@ -129,73 +188,72 @@ export function TeamTab({ boardId }: TeamTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
         {loading
           ? // Skeleton loading cards
-            Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
-              >
-                <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-                <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-                <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
-              </div>
-            ))
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
+            >
+              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
+              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
+              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+          ))
           : filteredMembers.map((member, index) => {
-              const colors = getAvatarColor(index);
-              return (
-                <div
-                  key={member.user_id}
-                  className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
-                >
-                  <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
-                    <MoreIcon />
-                  </button>
+            const colors = getAvatarColor(index);
+            return (
+              <div
+                key={member.user_id}
+                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+              >
+                <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
+                  <MoreIcon />
+                </button>
 
-                  {/* Avatar */}
+                {/* Avatar */}
+                {isLoadingProfile ? (
+                  <div className="w-24 h-24 rounded-full bg-slate-200 animate-pulse mb-4" />
+                ) : (
                   <div className="relative mb-4">
-                    {member.avatar_url ? (
-                      <Image
-                        src={member.avatar_url}
-                        width={96}
-                        height={96}
-                        alt={member.display_name}
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
                         className="w-24 h-24 rounded-full border-4 border-white shadow-sm object-cover"
                       />
                     ) : (
                       <div
                         className={`w-24 h-24 rounded-full ${colors.bg} border-4 border-white shadow-sm flex items-center justify-center text-3xl font-black ${colors.text}`}
                       >
-                        {getInitials(member.display_name)}
+                        {getInitials(displayName)}
                       </div>
                     )}
-                    {/* Online indicator */}
-                    <div className="absolute bottom-1 right-1 w-5 h-5 border-2 border-white rounded-full bg-[#34D399]"></div>
                   </div>
+                )}
+                {/* Name & Role */}
+                <h3 className="text-xl font-bold text-slate-900">
+                  {member.display_name}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1 mb-6">
+                  {member.role}
+                </p>
 
-                  {/* Name & Role */}
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {member.display_name}
-                  </h3>
-                  <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1 mb-6">
-                    {member.role}
-                  </p>
-
-                  {/* Joined date */}
-                  <div className="w-full mb-6">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-400">Joined</span>
-                      <span className="text-slate-600">
-                        {new Date(member.joined_at).toLocaleDateString("vi-VN")}
-                      </span>
-                    </div>
+                {/* Joined date */}
+                <div className="w-full mb-6">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-400">Joined</span>
+                    <span className="text-slate-600">
+                      {new Date(member.joined_at).toLocaleDateString("vi-VN")}
+                    </span>
                   </div>
-
-                  <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-                    View Profile
-                  </button>
                 </div>
-              );
-            })}
+
+                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                  View Profile
+                </button>
+              </div>
+            );
+          })}
 
         {/* Add Member Card */}
         <div

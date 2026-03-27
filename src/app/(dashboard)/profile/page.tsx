@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useDashboardUser } from "../provider";
 import {
     EditIcon,
     TrashIcon,
@@ -10,6 +9,7 @@ import Toggle from "@/components/Toggle";
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useDashboardUser } from '../provider';
 
 export default function ProfilePage() {
     const { user } = useDashboardUser();
