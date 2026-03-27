@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Image from "next/image";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
@@ -36,6 +35,77 @@ function getInitials(name: string) {
     .substring(0, 2);
 }
 
+// ── Component for individual member avatar ──
+interface MemberAvatarProps {
+  avatarUrl: string | null;
+  displayName: string;
+  className?: string;
+  colors: { bg: string; text: string };
+}
+
+function TeamMemberAvatar({ avatarUrl, displayName, className, colors }: MemberAvatarProps) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    if (!avatarUrl) {
+      setUrl(null);
+      return;
+    }
+
+    if (avatarUrl.startsWith("http")) {
+      setUrl(avatarUrl);
+      return;
+    }
+
+    const fetchSignedUrl = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase.storage
+          .from("avatar")
+          .createSignedUrl(avatarUrl, 3600); // 1 hour
+
+        if (error) {
+          console.error("Error creating signed URL for member avatar:", error);
+        } else if (data?.signedUrl) {
+          setUrl(data.signedUrl);
+        }
+      } catch (err) {
+        console.error("Failed to fetch signed URL:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSignedUrl();
+  }, [avatarUrl, supabase]);
+
+  if (loading) {
+    return (
+      <div className={`rounded-full bg-slate-100 animate-pulse ${className}`} />
+    );
+  }
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={displayName}
+        className={`rounded-full border-4 border-white shadow-sm object-cover ${className}`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`rounded-full ${colors.bg} border-4 border-white shadow-sm flex items-center justify-center font-black ${colors.text} ${className}`}
+    >
+      {getInitials(displayName)}
+    </div>
+  );
+}
+
 export function TeamTab({ boardId }: TeamTabProps) {
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +113,6 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
 
   const { user } = useDashboardUser();
-  const supabase = useMemo(() => createClient(), []);
-
-  const fallbackAvatar = useMemo(() => `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`, [user?.email]);
-
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [displayName, setDisplayName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
-  const avatarFileRef = useRef<File | null>(null);
 
   // Add member modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -58,49 +120,6 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user?.id) return;
-      try {
-        setIsLoadingProfile(true);
-        const { data, error } = await supabase
-          .from('users')
-          .select('display_name, avatar_url')
-          .eq('id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-          toast.error('Không thể tải thông tin profile.');
-        }
-        if (data?.display_name) setDisplayName(data.display_name);
-
-        if (!avatarFileRef.current && data?.avatar_url) {
-          if (data.avatar_url.startsWith('http')) {
-            setAvatarUrl(data.avatar_url);
-          } else {
-            const { data: signedData, error: signedError } = await supabase.storage
-              .from('avatar')
-              .createSignedUrl(data.avatar_url, 60 * 60);
-
-            if (signedError) {
-              console.error('Error creating signed URL:', signedError);
-            } else if (signedData?.signedUrl) {
-              setAvatarUrl(signedData.signedUrl);
-            }
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
-    fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, supabase]);
 
 
   // ── Fetch members ──
@@ -211,25 +230,14 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 </button>
 
                 {/* Avatar */}
-                {isLoadingProfile ? (
-                  <div className="w-24 h-24 rounded-full bg-slate-200 animate-pulse mb-4" />
-                ) : (
-                  <div className="relative mb-4">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt="Avatar"
-                        className="w-24 h-24 rounded-full border-4 border-white shadow-sm object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`w-24 h-24 rounded-full ${colors.bg} border-4 border-white shadow-sm flex items-center justify-center text-3xl font-black ${colors.text}`}
-                      >
-                        {getInitials(displayName)}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="relative mb-4">
+                  <TeamMemberAvatar
+                    avatarUrl={member.avatar_url}
+                    displayName={member.display_name}
+                    colors={colors}
+                    className="w-24 h-24"
+                  />
+                </div>
                 {/* Name & Role */}
                 <h3 className="text-xl font-bold text-slate-900">
                   {member.display_name}
