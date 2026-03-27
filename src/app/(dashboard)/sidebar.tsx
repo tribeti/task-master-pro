@@ -12,7 +12,9 @@ import {
     RocketIcon,
     SettingsIcon,
     LogOutIcon,
+    BellIcon,
 } from "@/components/icons";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const NAV_ITEMS = [
     { href: "/command", label: "Command", icon: GridIcon },
@@ -27,6 +29,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
     const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user.email || "User")}`;
     const [sidebarAvatar, setSidebarAvatar] = useState(fallbackAvatar);
+    const { unreadCount } = useNotifications(user?.id);
     const [sidebarName, setSidebarName] = useState(
         user.user_metadata?.full_name || user.email?.split("@")[0] || "User"
     );
@@ -108,6 +111,22 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
             {/* Bottom section */}
             <div className="px-4 pb-6 flex flex-col gap-2 border-t border-slate-100 pt-5">
+                <Link
+                    href="/notifications"
+                    className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors relative ${pathname === "/notifications"
+                        ? "bg-[#EAF7FF] text-[#28B8FA]"
+                        : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
+                        }`}
+                >
+                    <div className="relative">
+                        <BellIcon />
+                        {unreadCount > 0 && (
+                            <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
+                        )}
+                    </div>
+                    Notifications
+                </Link>
+
                 <Link
                     href="/profile"
                     className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${pathname === "/profile"

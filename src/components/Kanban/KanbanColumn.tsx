@@ -169,9 +169,7 @@ export function KanbanColumn({
                 </svg>
               </button>
             </div>
-          </div>
-
-          {/* Tasks Droppable Zone */}
+          </div>          {/* Tasks Droppable Zone */}
           <Droppable droppableId={`column-${column.id}`} type="TASK">
             {(droppableProvided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
               <div

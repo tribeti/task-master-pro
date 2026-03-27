@@ -75,3 +75,16 @@ export interface BoardMember {
 export interface JoinedBoard extends Board {
   member_role: string;
 }
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  type?: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  task_id?: number | null;
+  project_id?: number | null;
+  task?: { title: string; deadline: string | null };
+  project?: { title: string };
+}

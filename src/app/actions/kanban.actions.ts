@@ -9,6 +9,7 @@ import {
     Comment,
     KanbanTask,
 } from "@/types/project";
+import { getDeadlineStatus } from "@/utils/deadline";
 
 // ── Helper: Verify user has access to a board (owner OR member) ──
 async function verifyBoardAccess(
