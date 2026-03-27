@@ -64,17 +64,14 @@ export interface Comment {
   user_id: string;
 }
 
-export type NotificationType = "deadline" | "project_update" | "mention" | string;
-
-export interface Notification {
-  id: number;
+export interface BoardMember {
   user_id: string;
-  content: string;
-  is_read: boolean;
-  type: NotificationType;
-  created_at: string;
-  project_id?: number | string;
-  task_id?: number;
-  task?: { title: string; deadline: string | null } | { title: string; deadline: string | null }[];
-  project?: { title: string } | { title: string }[];
+  role: string;
+  joined_at: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface JoinedBoard extends Board {
+  member_role: string;
 }

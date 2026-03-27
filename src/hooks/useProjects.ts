@@ -6,17 +6,19 @@ import {
   createDefaultColumns,
   updateUserBoard,
 } from "@/services/project.service";
-import { Board } from "@/types/project";
+import { Board, JoinedBoard } from "@/types/project";
 import { toast } from "sonner";
 
 export const useProjects = (userId?: string) => {
-  const [boards, setBoards] = useState<Board[]>([]);
+  const [ownedBoards, setOwnedBoards] = useState<Board[]>([]);
+  const [joinedBoards, setJoinedBoards] = useState<JoinedBoard[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBoards = useCallback(async () => {
     if (!userId) {
-      setBoards([]);
+      setOwnedBoards([]);
+      setJoinedBoards([]);
       setBoardsLoading(false);
       return;
     }
@@ -24,13 +26,15 @@ export const useProjects = (userId?: string) => {
     setBoardsLoading(true);
 
     try {
-      const data = await fetchUserBoards(userId);
-      setBoards(data);
+      const data = await fetchUserBoards();
+      setOwnedBoards(data.ownedBoards);
+      setJoinedBoards(data.joinedBoards);
     } catch (error: any) {
       toast.error(
         `Failed to fetch projects: ${error.message || "Unknown error"}`,
       );
-      setBoards([]);
+      setOwnedBoards([]);
+      setJoinedBoards([]);
     } finally {
       setBoardsLoading(false);
     }
@@ -120,7 +124,8 @@ export const useProjects = (userId?: string) => {
   };
 
   return {
-    boards,
+    ownedBoards,
+    joinedBoards,
     boardsLoading,
     isSubmitting,
     fetchBoards,
