@@ -40,10 +40,10 @@ async function verifyBoardAccess(
 // ────────────────────────────────────────────────
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ boardId: string }> },
+  { params }: { params: { boardId: string } },
 ) {
   try {
-    const { boardId: boardIdStr } = await params;
+    const { boardId: boardIdStr } = params;
     const boardId = Number(boardIdStr);
     if (isNaN(boardId)) {
       return NextResponse.json({ error: "Invalid boardId" }, { status: 400 });
