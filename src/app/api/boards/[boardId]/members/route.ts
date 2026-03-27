@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { Resend } from "resend";
 
-// ── Helper: Verify current user is the board owner ──
+// ── Resend client (initialized lazily) ──
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+/**
+ * Verify the current user is the owner of the given board.
+ * @param supabase - Authenticated Supabase client (server-side).
+ * @param userId  - The UUID of the current user.
+ * @param boardId - The numeric ID of the board.
+ * @returns `true` if the user owns the board, `false` otherwise.
+ */
 async function verifyBoardOwnership(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -21,10 +33,16 @@ async function verifyBoardOwnership(
   return true;
 }
 
-// ────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 // GET /api/boards/[boardId]/members
-// Returns all members of a board with user info
-// ────────────────────────────────────────────────
+// Returns all members of a board **including the board owner** at the top.
+//
+// Response shape: BoardMember[]
+//   { user_id, role, joined_at, display_name, avatar_url }
+//
+// The board owner is injected with role = "Owner" and is always the first
+// element in the array so the frontend can visually distinguish them.
+// ────────────────────────────────────────────────────────────────────────────
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ boardId: string }> },
@@ -38,7 +56,7 @@ export async function GET(
 
     const supabase = await createClient();
 
-    // Verify the user is authenticated
+    // ── Auth check ──
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -46,9 +64,13 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify the requesting user has access to the board (owner or member)
+    // ── Access check: owner OR member ──
     const [{ data: board }, { data: access }] = await Promise.all([
-      supabase.from("boards").select("owner_id").eq("id", boardId).single(),
+      supabase
+        .from("boards")
+        .select("owner_id, created_at")
+        .eq("id", boardId)
+        .single(),
       supabase
         .from("board_members")
         .select("user_id")
@@ -64,7 +86,7 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Fetch board members joined with users table
+    // ── Fetch board members joined with users table ──
     const { data: members, error } = await supabase
       .from("board_members")
       .select(
@@ -89,16 +111,34 @@ export async function GET(
       );
     }
 
-    // Flatten the response for easier frontend consumption
-    const result = (members || []).map((m: any) => ({
-      user_id: m.user_id,
-      role: m.role,
-      joined_at: m.joined_at,
-      display_name: m.users?.display_name || "Unknown",
-      avatar_url: m.users?.avatar_url || null,
-    }));
+    // ── Fetch board owner profile from `users` table ──
+    const { data: ownerProfile } = await supabase
+      .from("users")
+      .select("id, display_name, avatar_url")
+      .eq("id", board!.owner_id)
+      .single();
 
-    return NextResponse.json(result);
+    // Build the owner entry (always first in the list)
+    const ownerEntry = {
+      user_id: board!.owner_id,
+      role: "Owner",
+      joined_at: board!.created_at, // owner "joined" when they created the board
+      display_name: ownerProfile?.display_name || "Unknown",
+      avatar_url: ownerProfile?.avatar_url || null,
+    };
+
+    // Flatten regular members, excluding the owner to avoid duplicates
+    const memberList = (members || [])
+      .filter((m: any) => m.user_id !== board!.owner_id)
+      .map((m: any) => ({
+        user_id: m.user_id,
+        role: m.role,
+        joined_at: m.joined_at,
+        display_name: m.users?.display_name || "Unknown",
+        avatar_url: m.users?.avatar_url || null,
+      }));
+
+    return NextResponse.json([ownerEntry, ...memberList]);
   } catch (err: any) {
     console.error("GET members unexpected error:", err);
     return NextResponse.json(
@@ -108,11 +148,20 @@ export async function GET(
   }
 }
 
-// ────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 // POST /api/boards/[boardId]/members
 // Body: { email: string }
-// Adds a member to the board by email
-// ────────────────────────────────────────────────
+//
+// **Invitation flow** – instead of adding the user directly, this endpoint:
+//   1. Validates that the target user exists in auth.users.
+//   2. Checks they are not already a member.
+//   3. Checks there is no pending invitation already.
+//   4. Creates a record in `board_invitations` with a unique token.
+//   5. Sends an invitation email via Resend (if configured).
+//   6. Returns the invitation details (status 201).
+//
+// The invitee must click the accept link to actually join the board.
+// ────────────────────────────────────────────────────────────────────────────
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ boardId: string }> },
@@ -132,7 +181,7 @@ export async function POST(
 
     const supabase = await createClient();
 
-    // Verify the user is authenticated
+    // ── Auth check ──
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -140,13 +189,15 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify the current user is the board owner
+    // ── Only the board owner can invite ──
     const isOwner = await verifyBoardOwnership(supabase, user.id, boardId);
     if (!isOwner) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // ── AC3: Look up user by email in auth.users using admin client ──
+    // ── Look up user by email in the public `users` table + auth ──
+    // We query `auth.users` via the admin client's `listUsers` (the SDK
+    // does not expose `getUserByEmail`).
     const adminClient = createAdminClient();
     const { data: authListData, error: authError } =
       await adminClient.auth.admin.listUsers();
@@ -165,14 +216,22 @@ export async function POST(
 
     if (!targetAuthUser) {
       return NextResponse.json(
-        { error: "Không tìm thấy người dùng" },
+        { error: "Không tìm thấy người dùng với email này" },
         { status: 404 },
       );
     }
 
     const targetUserId = targetAuthUser.id;
 
-    // ── AC2: Check if member already exists ──
+    // ── Cannot invite yourself ──
+    if (targetUserId === user.id) {
+      return NextResponse.json(
+        { error: "Bạn không thể mời chính mình" },
+        { status: 400 },
+      );
+    }
+
+    // ── Check if already a member ──
     const { data: existingMember } = await supabase
       .from("board_members")
       .select("user_id")
@@ -182,40 +241,110 @@ export async function POST(
 
     if (existingMember) {
       return NextResponse.json(
-        { error: "Thành viên đã tồn tại" },
+        { error: "Người dùng đã là thành viên" },
         { status: 409 },
       );
     }
 
-    // ── AC1: Insert new board member ──
-    const { error: insertError } = await supabase.from("board_members").insert({
-      user_id: targetUserId,
-      board_id: boardId,
-      role: "Member",
-    });
+    // ── Check for existing pending invitation ──
+    const { data: existingInvite } = await supabase
+      .from("board_invitations")
+      .select("id")
+      .eq("board_id", boardId)
+      .eq("email", email)
+      .eq("status", "pending")
+      .maybeSingle();
 
-    if (insertError) {
-      console.error("Insert board member error:", insertError.message);
+    if (existingInvite) {
       return NextResponse.json(
-        { error: "Failed to add member" },
+        { error: "Lời mời đang chờ xử lý cho email này" },
+        { status: 409 },
+      );
+    }
+
+    // ── Create invitation record ──
+    const { data: invitation, error: inviteError } = await supabase
+      .from("board_invitations")
+      .insert({
+        board_id: boardId,
+        inviter_id: user.id,
+        email,
+      })
+      .select("id, token, created_at")
+      .single();
+
+    if (inviteError || !invitation) {
+      console.error("Insert invitation error:", inviteError?.message);
+      return NextResponse.json(
+        { error: "Không thể tạo lời mời" },
         { status: 500 },
       );
     }
 
-    // Return the new member info for immediate UI update
-    const { data: newUserData } = await supabase
-      .from("users")
-      .select("id, display_name, avatar_url")
-      .eq("id", targetUserId)
+    // ── Build accept URL ──
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const acceptUrl = `${appUrl}/api/boards/${boardId}/invitations/accept?token=${invitation.token}`;
+
+    // ── Fetch board title for the email ──
+    const { data: boardData } = await supabase
+      .from("boards")
+      .select("title")
+      .eq("id", boardId)
       .single();
+
+    // ── Get inviter display name ──
+    const { data: inviterProfile } = await supabase
+      .from("users")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+
+    const inviterName = inviterProfile?.display_name || user.email || "Someone";
+    const boardTitle = boardData?.title || "a project";
+
+    // ── Send invitation email via Resend (if configured) ──
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: "Task Master Pro <noreply@resend.dev>",
+          to: [email],
+          subject: `${inviterName} đã mời bạn vào dự án "${boardTitle}"`,
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+              <h2 style="color: #1e293b;">Bạn được mời tham gia dự án</h2>
+              <p style="color: #475569; line-height: 1.6;">
+                <strong>${inviterName}</strong> đã mời bạn tham gia dự án
+                <strong>"${boardTitle}"</strong> trên Task Master Pro.
+              </p>
+              <div style="margin: 24px 0;">
+                <a href="${acceptUrl}"
+                   style="display: inline-block; background: #28B8FA; color: white; padding: 12px 32px;
+                          border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px;">
+                  Chấp nhận lời mời
+                </a>
+              </div>
+              <p style="color: #94a3b8; font-size: 12px;">
+                Nếu bạn không muốn tham gia, chỉ cần bỏ qua email này.
+              </p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        // Email failure is non-blocking – the invitation record is still created
+        console.error("Failed to send invitation email:", emailErr);
+      }
+    } else {
+      // No Resend key configured – log the accept URL for development
+      console.log("[Dev] Invitation accept URL:", acceptUrl);
+    }
 
     return NextResponse.json(
       {
-        user_id: targetUserId,
-        role: "Member",
-        joined_at: new Date().toISOString(),
-        display_name: newUserData?.display_name || targetAuthUser.email,
-        avatar_url: newUserData?.avatar_url || null,
+        invitation_id: invitation.id,
+        email,
+        status: "pending",
+        created_at: invitation.created_at,
+        accept_url: acceptUrl,
       },
       { status: 201 },
     );

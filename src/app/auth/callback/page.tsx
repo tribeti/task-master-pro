@@ -12,7 +12,9 @@ export default function AuthCallbackPage() {
     let hasNavigated = false;
     const timeout = setTimeout(() => {
       if (!hasNavigated) {
-        router.push("/command");
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectTo = searchParams.get("redirectTo");
+        router.push(redirectTo || "/command");
       }
     }, 3000);
 
@@ -21,7 +23,8 @@ export default function AuthCallbackPage() {
 
       let destination: string | null = null;
       if (event === "SIGNED_IN") {
-        destination = "/command";
+        const searchParams = new URLSearchParams(window.location.search);
+        destination = searchParams.get("redirectTo") || "/command";
       } else if (event === "PASSWORD_RECOVERY") {
         destination = "/auth/reset-password";
       }
