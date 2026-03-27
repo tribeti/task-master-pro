@@ -10,11 +10,13 @@ const supabase = createClient(supabaseAdminUrl, supabaseServiceRoleKey);
 
 export async function GET(request: Request) {
   try {
-    // Optional: Add simple secret verification to prevent unauthorized triggering
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response("Unauthorized", { status: 401 });
-      // Ignoring for now to allow manual testing, in production uncomment above
+    // Only enforce auth check when CRON_SECRET is configured
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      const authHeader = request.headers.get("authorization");
+      if (authHeader !== `Bearer ${cronSecret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
     }
 
     const now = new Date();
@@ -23,16 +25,18 @@ export async function GET(request: Request) {
     const threeDaysFromNow = new Date(now);
     threeDaysFromNow.setDate(now.getDate() + 3);
 
+    console.log("[Cron] Scanning tasks with deadline <=", threeDaysFromNow.toISOString());
+
     // 1. Fetch all tasks with upcoming deadlines (Under 3 days or Overdue)
-    // We inner join columns to get the board_id (project_id)
-    const { data: tasks, error: tasksError } = await supabase
+    // We inner join columns to get the board_id and column title
+    const { data: rawTasks, error: tasksError } = await supabase
       .from("tasks")
       .select(`
         id, 
         title, 
         deadline, 
         assignee_id,
-        column:columns(board_id)
+        column:columns(board_id, title)
       `)
       .not("deadline", "is", null)
       .not("assignee_id", "is", null)
@@ -43,7 +47,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: tasksError.message }, { status: 500 });
     }
 
-    if (!tasks || tasks.length === 0) {
+    // Filter out tasks that are in a "Done" column (case-insensitive)
+    const tasks = (rawTasks || []).filter(task => {
+      const colInfo = Array.isArray(task.column) ? task.column[0] : task.column;
+      const colTitle = (colInfo?.title || "").toLowerCase();
+      return colTitle !== "done";
+    });
+
+    console.log(`[Cron] Found ${rawTasks?.length ?? 0} urgent tasks, ${tasks.length} after filtering DONE`);
+
+    if (tasks.length === 0) {
       return NextResponse.json({ message: "No urgent tasks found." }, { status: 200 });
     }
 

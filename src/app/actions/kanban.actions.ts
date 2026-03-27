@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import {
     Task,
@@ -111,10 +112,24 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
     if (colErr || !column) throw new Error("Access denied.");
     await verifyBoardAccess(supabase, user.id, column.board_id);
 
-    const { error } = await supabase.from("tasks").insert([payload]);
+    const { data: insertedTask, error } = await supabase.from("tasks").insert([payload]).select("id").single();
     if (error) {
         console.error("createTaskAction error:", error.message);
         throw new Error("Failed to create task.");
+    }
+
+    // Tạo thông báo cho người tạo task (dùng admin client để bypass RLS)
+    try {
+        const adminSupabase = createAdminClient();
+        await adminSupabase.from("notifications").insert([{
+            user_id: user.id,
+            project_id: column.board_id,
+            task_id: insertedTask.id,
+            content: `Tạo công việc thành công: ${payload.title}`,
+            is_read: false,
+        }]);
+    } catch (notifErr) {
+        console.error("createTaskAction notification error:", notifErr);
     }
 
     revalidatePath("/projects");

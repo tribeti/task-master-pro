@@ -3,6 +3,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Notification } from "@/types/project";
 import { toast } from "sonner";
+import { triggerDeadlineNotifications } from "@/app/actions/notification.actions";
+
+// Module-level flag: trigger deadline cron only once per browser session
+let cronTriggered = false;
 
 export function useNotifications(userId: string | undefined) {
     const router = useRouter();
@@ -32,6 +36,14 @@ export function useNotifications(userId: string | undefined) {
         };
 
         fetchNotifications();
+
+        // Auto-trigger deadline check once per session when dashboard loads
+        if (!cronTriggered) {
+            cronTriggered = true;
+            triggerDeadlineNotifications().catch(err =>
+                console.error("Failed to trigger deadline check:", err)
+            );
+        }
 
         // Use a unique channel topic so multiple instances of the hook don't conflict
         const channelName = `notifications-${userId}-${Math.random().toString(36).substring(7)}`;
