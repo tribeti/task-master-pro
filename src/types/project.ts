@@ -63,3 +63,15 @@ export interface Comment {
   task_id: number;
   user_id: string;
 }
+
+export interface BoardMember {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface JoinedBoard extends Board {
+  member_role: string;
+}

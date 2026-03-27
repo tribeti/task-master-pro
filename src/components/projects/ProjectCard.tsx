@@ -15,6 +15,7 @@ interface ProjectCardProps {
   handleDeleteProject: (id: number, title: string) => void;
   setSelectedProject: (proj: Board) => void;
   currentUserId?: string;
+  memberRole?: string;
 }
 
 export default function ProjectCard({
@@ -27,6 +28,7 @@ export default function ProjectCard({
   handleDeleteProject,
   setSelectedProject,
   currentUserId,
+  memberRole,
 }: ProjectCardProps) {
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
@@ -39,12 +41,25 @@ export default function ProjectCard({
       className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
     >
       <div className="flex items-center justify-between mb-4">
-        <span
-          className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
-          style={{ backgroundColor: projColor }}
-        >
-          {projTag}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
+            style={{ backgroundColor: projColor }}
+          >
+            {projTag}
+          </span>
+          {memberRole && (
+            <span
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${
+                memberRole === "Owner"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-sky-100 text-sky-700"
+              }`}
+            >
+              {memberRole}
+            </span>
+          )}
+        </div>
         <div
           className="relative"
           ref={
