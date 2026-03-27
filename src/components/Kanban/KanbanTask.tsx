@@ -19,6 +19,8 @@ const PRIORITY_STYLES: Record<string, { text: string; bg: string }> = {
   Low: { text: "text-[#34D399]", bg: "bg-[#D1FAE5]" },
 };
 
+const DEFAULT_LABEL_COLOR = "#E2E8F0";
+
 export function KanbanTask({
   id,
   title,
@@ -35,6 +37,7 @@ export function KanbanTask({
     };
 
   const activeLabel = labels && labels.length > 0 ? labels[0] : null;
+  const activeLabelColor = activeLabel?.color_hex || DEFAULT_LABEL_COLOR;
 
   return (
     <div
@@ -46,7 +49,7 @@ export function KanbanTask({
       {activeLabel && (
         <div
           className="absolute left-0 top-0 bottom-0 w-1.5"
-          style={{ backgroundColor: activeLabel.color_hex || "#CBD5E1" }}
+          style={{ backgroundColor: activeLabelColor }}
         />
       )}
 
@@ -61,7 +64,7 @@ export function KanbanTask({
           {activeLabel && (
             <span
               className="text-[10px] font-bold px-2 py-1 rounded-full text-slate-900"
-              style={{ backgroundColor: activeLabel.color_hex || "#E2E8F0" }}
+              style={{ backgroundColor: activeLabelColor }}
             >
               {activeLabel.name}
             </span>

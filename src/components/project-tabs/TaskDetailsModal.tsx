@@ -3,21 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
 import { CreateLabelModal } from "./CreateLabelModal";
-
-interface Label {
-  id: number;
-  name: string;
-  color_hex: string;
-  board_id: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  created_at: string;
-  task_id: number;
-  user_id: string;
-}
+import { Label, Comment } from "@/types/project";
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
@@ -189,6 +175,7 @@ export function TaskDetailsModal({
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            type="button"
             onClick={onClose}
             disabled={
               isSubmitting ||
@@ -475,6 +462,7 @@ export function TaskDetailsModal({
             <div className="flex gap-3 mt-4">
               {initialData && onDelete && (
                 <button
+                  type="button"
                   onClick={onDelete}
                   disabled={isSubmitting}
                   className="p-3 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50"
@@ -484,6 +472,7 @@ export function TaskDetailsModal({
                 </button>
               )}
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting || !title.trim()}
                 className="flex-1 py-3 rounded-full bg-linear-to-r from-[#28B8FA] to-[#0EA5E9] text-white font-bold text-base hover:shadow-lg hover:shadow-cyan-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
