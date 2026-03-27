@@ -169,25 +169,7 @@ export function KanbanColumn({
                 </svg>
               </button>
             </div>
-          </div>
-        ) : (
-          tasks.map((task) => (
-            <KanbanTask
-              key={task.id}
-              id={task.id}
-              title={task.title}
-              priority={task.priority}
-              description={task.description || undefined}
-              labels={task.labels}
-              deadline={task.deadline}
-              onDragStart={onDragStart}
-              onClick={() => onTaskClick(task)}
-            />
-          ))
-        )}
-      </div>
-
-          {/* Tasks Droppable Zone */}
+          </div>          {/* Tasks Droppable Zone */}
           <Droppable droppableId={`column-${column.id}`} type="TASK">
             {(droppableProvided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
               <div

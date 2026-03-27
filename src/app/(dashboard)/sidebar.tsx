@@ -121,7 +121,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
                     <div className="relative">
                         <BellIcon />
                         {unreadCount > 0 && (
-                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
+                            <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
                         )}
                     </div>
                     Notifications

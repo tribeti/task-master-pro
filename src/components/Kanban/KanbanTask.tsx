@@ -2,6 +2,7 @@
 
 import { Label } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 
 interface KanbanTaskProps {
   id: number;
@@ -11,7 +12,6 @@ interface KanbanTaskProps {
   description?: string;
   labels?: Label[];
   deadline?: string | null;
-  onDragStart: (e: React.DragEvent, taskId: number) => void;
   onClick: () => void;
 }
 
@@ -29,7 +29,6 @@ export function KanbanTask({
   description,
   labels,
   deadline,
-  onDragStart,
   onClick,
 }: KanbanTaskProps) {
   const pColor = PRIORITY_STYLES[priority] || {
@@ -55,12 +54,15 @@ export function KanbanTask({
   }
 
   return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, id)}
-      onClick={onClick}
-      className={`p-5 rounded-2xl shadow-sm border flex flex-col gap-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all active:opacity-70 active:scale-[0.98] ${cardClass}`}
-    >
+    <Draggable draggableId={`task-${id}`} index={index}>
+      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          onClick={onClick}
+          className={`p-5 rounded-2xl shadow-sm border flex flex-col gap-3 cursor-grab hover:shadow-md transition-all ${snapshot.isDragging ? 'opacity-80 ring-2 ring-[#28B8FA]/50 scale-[1.02] rotate-1 z-50' : ''} ${cardClass}`}
+        >
       <div className="flex justify-between items-start">
         <span
           className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}

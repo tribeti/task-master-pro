@@ -97,8 +97,7 @@ export default function NotificationsPage() {
                         let taskTitle = taskObj?.title || notification.content;
 
                         return (
-                            <Link
-                                href={notification.project_id ? `/projects/${notification.project_id}` : "#"}
+                            <div
                                 key={notification.id}
                                 onClick={() => {
                                     if (!isRead) markAsRead(notification.id);
@@ -134,7 +133,7 @@ export default function NotificationsPage() {
                                         </div>
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
                         );
                     })}
                 </div>
