@@ -89,7 +89,10 @@ export default function ProjectsPage() {
     setIsUpdateProjectOpen(true);
   };
 
-  const onUpdateProjectSubmit = async (projectId: number, data: Partial<Board>) => {
+  const onUpdateProjectSubmit = async (
+    projectId: number,
+    data: Partial<Board>,
+  ) => {
     const success = await handleUpdateExistingProject(projectId, data);
     if (success) {
       setIsUpdateProjectOpen(false);
@@ -231,7 +234,11 @@ export default function ProjectsPage() {
   );
 
   return (
-    <div className={selectedProject ? "flex flex-col h-screen overflow-hidden" : ""}>
+    <div
+      className={
+        selectedProject ? "flex flex-col h-screen overflow-hidden" : ""
+      }
+    >
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
@@ -364,10 +371,11 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject ? (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
-            ? "bg-[#1E293B] shadow-slate-400"
-            : "bg-[#34D399] shadow-emerald-200"
-            }`}
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
+            projectTab === "Timeline"
+              ? "bg-[#1E293B] shadow-slate-400"
+              : "bg-[#34D399] shadow-emerald-200"
+          }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />

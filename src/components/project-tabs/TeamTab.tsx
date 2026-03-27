@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
@@ -20,7 +26,6 @@ const AVATAR_COLORS = [
   { bg: "bg-[#FFE4E6]", text: "text-rose-500" },
   { bg: "bg-slate-100", text: "text-slate-500" },
 ];
-
 
 function getAvatarColor(index: number) {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
@@ -43,7 +48,12 @@ interface MemberAvatarProps {
   colors: { bg: string; text: string };
 }
 
-function TeamMemberAvatar({ avatarUrl, displayName, className, colors }: MemberAvatarProps) {
+function TeamMemberAvatar({
+  avatarUrl,
+  displayName,
+  className,
+  colors,
+}: MemberAvatarProps) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const supabase = useMemo(() => createClient(), []);
@@ -111,7 +121,6 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-
   const { user } = useDashboardUser();
 
   // Add member modal state
@@ -120,7 +129,6 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
 
   // ── Fetch members ──
   const fetchMembers = useCallback(async () => {
@@ -143,6 +151,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
   }, [fetchMembers]);
 
   // ── Add member handler ──
+  /**
+   * Sends an invitation to the user with the given email.
+   * The POST endpoint no longer adds the user directly – it creates
+   * a `board_invitations` record and sends an email.
+   */
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -165,16 +178,15 @@ export function TeamTab({ boardId }: TeamTabProps) {
         return;
       }
 
-      // AC1: Success – add member to local state and show feedback
-      setMembers((prev) => [...prev, data]);
-      setSuccessMsg(`Đã thêm ${data.display_name} thành công!`);
+      // Success – invitation was created (user is NOT added yet)
+      setSuccessMsg(`Lời mời đã được gửi đến ${email}!`);
       setEmail("");
 
-      // Auto close after 2 seconds
+      // Auto close after 2.5 seconds
       setTimeout(() => {
         setSuccessMsg(null);
         setIsAddOpen(false);
-      }, 2000);
+      }, 2500);
     } catch {
       setErrorMsg("Network error");
     } finally {
@@ -207,61 +219,81 @@ export function TeamTab({ boardId }: TeamTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
         {loading
           ? // Skeleton loading cards
-          Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
-            >
-              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
-            </div>
-          ))
-          : filteredMembers.map((member, index) => {
-            const colors = getAvatarColor(index);
-            return (
+            Array.from({ length: 3 }).map((_, i) => (
               <div
-                key={member.user_id}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+                key={i}
+                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
               >
-                <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
-                  <MoreIcon />
-                </button>
-
-                {/* Avatar */}
-                <div className="relative mb-4">
-                  <TeamMemberAvatar
-                    avatarUrl={member.avatar_url}
-                    displayName={member.display_name}
-                    colors={colors}
-                    className="w-24 h-24"
-                  />
-                </div>
-                {/* Name & Role */}
-                <h3 className="text-xl font-bold text-slate-900">
-                  {member.display_name}
-                </h3>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1 mb-6">
-                  {member.role}
-                </p>
-
-                {/* Joined date */}
-                <div className="w-full mb-6">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-400">Joined</span>
-                    <span className="text-slate-600">
-                      {new Date(member.joined_at).toLocaleDateString("vi-VN")}
-                    </span>
-                  </div>
-                </div>
-
-                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-                  View Profile
-                </button>
+                <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
+                <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
+                <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
+                <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
               </div>
-            );
-          })}
+            ))
+          : filteredMembers.map((member, index) => {
+              const colors = getAvatarColor(index);
+              return (
+                <div
+                  key={member.user_id}
+                  className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+                >
+                  <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
+                    <MoreIcon />
+                  </button>
+
+                  {/* Avatar */}
+                  <div className="relative mb-4">
+                    <TeamMemberAvatar
+                      avatarUrl={member.avatar_url}
+                      displayName={member.display_name}
+                      colors={colors}
+                      className="w-24 h-24"
+                    />
+                  </div>
+                  {/* Name & Role */}
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    {member.display_name}
+                    {member.role === "Owner" && (
+                      <span
+                        title="Chủ dự án"
+                        className="inline-flex items-center"
+                      >
+                        <svg
+                          className="w-5 h-5 text-amber-500"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                        </svg>
+                      </span>
+                    )}
+                  </h3>
+                  <p
+                    className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${
+                      member.role === "Owner"
+                        ? "text-amber-500"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {member.role === "Owner" ? "Chủ dự án" : member.role}
+                  </p>
+
+                  {/* Joined date */}
+                  <div className="w-full mb-6">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-400">Joined</span>
+                      <span className="text-slate-600">
+                        {new Date(member.joined_at).toLocaleDateString("vi-VN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                    View Profile
+                  </button>
+                </div>
+              );
+            })}
 
         {/* Add Member Card */}
         <div
@@ -276,9 +308,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
           <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4">
             <PlusIcon />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Add Member</h3>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">
+            Mời thành viên
+          </h3>
           <p className="text-sm text-slate-400 font-medium px-4">
-            Invite a new collaborator to join this board.
+            Gửi lời mời đến email để thêm thành viên mới.
           </p>
         </div>
       </div>
@@ -295,10 +329,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
           {/* Modal */}
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
-              Thêm thành viên
+              Gửi lời mời
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Nhập email của người dùng bạn muốn mời vào board.
+              Nhập email của người dùng. Họ sẽ nhận được lời mời qua email và
+              cần chấp nhận để tham gia.
             </p>
 
             <form onSubmit={handleAddMember}>
@@ -376,10 +411,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center gap-2">
-                      <svg
-                        className="animate-spin h-4 w-4"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                         <circle
                           className="opacity-25"
                           cx="12"
@@ -395,10 +427,10 @@ export function TeamTab({ boardId }: TeamTabProps) {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      Đang thêm...
+                      Đang gửi...
                     </span>
                   ) : (
-                    "Thêm thành viên"
+                    "Gửi lời mời"
                   )}
                 </button>
               </div>

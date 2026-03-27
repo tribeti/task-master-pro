@@ -65,9 +65,18 @@ export default function TaskFlowAuth() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMsg("");
+
+    // Preserve redirectTo query param for the callback page
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get("redirectTo");
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (redirectTo) {
+      callbackUrl.searchParams.set("redirectTo", redirectTo);
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl.toString() },
     });
     if (error) setErrorMsg(error.message);
     setIsLoading(false);
@@ -89,8 +98,13 @@ export default function TaskFlowAuth() {
       email,
       password,
     });
-    if (error) setErrorMsg(error.message);
-    else router.push("/command");
+    if (error) {
+      setErrorMsg(error.message);
+    } else {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get("redirectTo");
+      router.push(redirectTo || "/command");
+    }
     setIsLoading(false);
   };
 
@@ -108,10 +122,21 @@ export default function TaskFlowAuth() {
       return;
     }
 
+    // Preserve redirectTo for the email confirmation link
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get("redirectTo");
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (redirectTo) {
+      callbackUrl.searchParams.set("redirectTo", redirectTo);
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: callbackUrl.toString(),
+      },
     });
     if (error) setErrorMsg(error.message);
     else {
