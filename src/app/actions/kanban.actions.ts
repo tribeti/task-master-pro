@@ -116,9 +116,8 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
         console.error("createTaskAction error:", error.message);
         throw new Error("Failed to create task.");
     }
-  }
 
-  revalidatePath("/projects");
+    revalidatePath("/projects");
 };
 
 export const updateTaskAction = async (
