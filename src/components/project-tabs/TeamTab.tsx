@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 interface TeamTabProps {
   boardId: number;
@@ -19,6 +21,7 @@ const AVATAR_COLORS = [
   { bg: "bg-slate-100", text: "text-slate-500" },
 ];
 
+
 function getAvatarColor(index: number) {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
 }
@@ -32,10 +35,84 @@ function getInitials(name: string) {
     .substring(0, 2);
 }
 
+// ── Component for individual member avatar ──
+interface MemberAvatarProps {
+  avatarUrl: string | null;
+  displayName: string;
+  className?: string;
+  colors: { bg: string; text: string };
+}
+
+function TeamMemberAvatar({ avatarUrl, displayName, className, colors }: MemberAvatarProps) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    if (!avatarUrl) {
+      setUrl(null);
+      return;
+    }
+
+    if (avatarUrl.startsWith("http")) {
+      setUrl(avatarUrl);
+      return;
+    }
+
+    const fetchSignedUrl = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase.storage
+          .from("avatar")
+          .createSignedUrl(avatarUrl, 3600); // 1 hour
+
+        if (error) {
+          console.error("Error creating signed URL for member avatar:", error);
+        } else if (data?.signedUrl) {
+          setUrl(data.signedUrl);
+        }
+      } catch (err) {
+        console.error("Failed to fetch signed URL:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSignedUrl();
+  }, [avatarUrl, supabase]);
+
+  if (loading) {
+    return (
+      <div className={`rounded-full bg-slate-100 animate-pulse ${className}`} />
+    );
+  }
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={displayName}
+        className={`rounded-full border-4 border-white shadow-sm object-cover ${className}`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`rounded-full ${colors.bg} border-4 border-white shadow-sm flex items-center justify-center font-black ${colors.text} ${className}`}
+    >
+      {getInitials(displayName)}
+    </div>
+  );
+}
+
 export function TeamTab({ boardId }: TeamTabProps) {
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+
+  const { user } = useDashboardUser();
 
   // Add member modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -43,6 +120,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
 
   // ── Fetch members ──
   const fetchMembers = useCallback(async () => {
@@ -129,73 +207,61 @@ export function TeamTab({ boardId }: TeamTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
         {loading
           ? // Skeleton loading cards
-            Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
-              >
-                <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-                <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-                <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
-              </div>
-            ))
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
+            >
+              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
+              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
+              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+          ))
           : filteredMembers.map((member, index) => {
-              const colors = getAvatarColor(index);
-              return (
-                <div
-                  key={member.user_id}
-                  className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
-                >
-                  <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
-                    <MoreIcon />
-                  </button>
+            const colors = getAvatarColor(index);
+            return (
+              <div
+                key={member.user_id}
+                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+              >
+                <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
+                  <MoreIcon />
+                </button>
 
-                  {/* Avatar */}
-                  <div className="relative mb-4">
-                    {member.avatar_url ? (
-                      <Image
-                        src={member.avatar_url}
-                        width={96}
-                        height={96}
-                        alt={member.display_name}
-                        className="w-24 h-24 rounded-full border-4 border-white shadow-sm object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`w-24 h-24 rounded-full ${colors.bg} border-4 border-white shadow-sm flex items-center justify-center text-3xl font-black ${colors.text}`}
-                      >
-                        {getInitials(member.display_name)}
-                      </div>
-                    )}
-                    {/* Online indicator */}
-                    <div className="absolute bottom-1 right-1 w-5 h-5 border-2 border-white rounded-full bg-[#34D399]"></div>
-                  </div>
-
-                  {/* Name & Role */}
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {member.display_name}
-                  </h3>
-                  <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1 mb-6">
-                    {member.role}
-                  </p>
-
-                  {/* Joined date */}
-                  <div className="w-full mb-6">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-400">Joined</span>
-                      <span className="text-slate-600">
-                        {new Date(member.joined_at).toLocaleDateString("vi-VN")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-                    View Profile
-                  </button>
+                {/* Avatar */}
+                <div className="relative mb-4">
+                  <TeamMemberAvatar
+                    avatarUrl={member.avatar_url}
+                    displayName={member.display_name}
+                    colors={colors}
+                    className="w-24 h-24"
+                  />
                 </div>
-              );
-            })}
+                {/* Name & Role */}
+                <h3 className="text-xl font-bold text-slate-900">
+                  {member.display_name}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1 mb-6">
+                  {member.role}
+                </p>
+
+                {/* Joined date */}
+                <div className="w-full mb-6">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-400">Joined</span>
+                    <span className="text-slate-600">
+                      {new Date(member.joined_at).toLocaleDateString("vi-VN")}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                  View Profile
+                </button>
+              </div>
+            );
+          })}
 
         {/* Add Member Card */}
         <div
