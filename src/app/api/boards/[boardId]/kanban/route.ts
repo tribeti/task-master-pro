@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import {
-  Task,
-  Label,
-  KanbanColumn,
-  KanbanTask,
-} from "@/types/project";
+import { Task, Label, KanbanColumn, KanbanTask } from "@/types/project";
 
 // ── Helper: Verify user has access to a board (owner OR member) ──
 async function verifyBoardAccess(
@@ -40,10 +35,10 @@ async function verifyBoardAccess(
 // ────────────────────────────────────────────────
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { boardId: string } },
+  { params }: { params: Promise<{ boardId: string }> },
 ) {
   try {
-    const { boardId: boardIdStr } = params;
+    const { boardId: boardIdStr } = await params;
     const boardId = Number(boardIdStr);
     if (isNaN(boardId)) {
       return NextResponse.json({ error: "Invalid boardId" }, { status: 400 });
