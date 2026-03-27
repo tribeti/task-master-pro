@@ -475,3 +475,132 @@ export const deleteCommentAction = async (commentId: number) => {
 
   revalidatePath("/projects");
 };
+
+export const setTaskLabelAction = async (taskId: number, labelId: number) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const { data: task, error: taskErr } = await supabase
+    .from("tasks")
+    .select("column_id")
+    .eq("id", taskId)
+    .single();
+
+  if (taskErr || !task) throw new Error("Task not found.");
+
+  const { data: column, error: colErr } = await supabase
+    .from("columns")
+    .select("board_id")
+    .eq("id", task.column_id)
+    .single();
+
+  if (colErr || !column) throw new Error("Column not found.");
+
+  const { data: label, error: labelErr } = await supabase
+    .from("labels")
+    .select("id, board_id")
+    .eq("id", labelId)
+    .single();
+
+  if (labelErr || !label) throw new Error("Label not found.");
+  if (label.board_id !== column.board_id) {
+    throw new Error("Label does not belong to this board.");
+  }
+
+  const { error: deleteErr } = await supabase
+    .from("task_labels")
+    .delete()
+    .eq("task_id", taskId);
+
+  if (deleteErr) {
+    console.error("setTaskLabelAction delete error:", deleteErr.message);
+    throw new Error("Failed to reset existing label.");
+  }
+
+  const { error: insertErr } = await supabase.from("task_labels").insert([
+    {
+      task_id: taskId,
+      label_id: labelId,
+    },
+  ]);
+
+  if (insertErr) {
+    console.error("setTaskLabelAction insert error:", insertErr.message);
+    throw new Error("Failed to set task label.");
+  }
+
+  revalidatePath("/projects");
+};
+
+export const clearTaskLabelAction = async (taskId: number) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyTaskOwnership(supabase, user.id, taskId);
+
+  const { error } = await supabase
+    .from("task_labels")
+    .delete()
+    .eq("task_id", taskId);
+
+  if (error) {
+    console.error("clearTaskLabelAction error:", error.message);
+    throw new Error("Failed to clear task label.");
+  }
+
+  revalidatePath("/projects");
+};
+
+export const createLabelAction = async (
+  boardId: number,
+  name: string,
+  colorHex: string,
+) => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  await verifyBoardOwnership(supabase, user.id, boardId);
+
+  const cleanName = validateString(name, "Label name", 50);
+
+  const normalizedColor = colorHex.trim();
+  const isHexColor = /^#([0-9A-Fa-f]{6})$/.test(normalizedColor);
+
+  if (!isHexColor) {
+    throw new Error("Color must be a valid hex value like #28B8FA");
+  }
+
+  const { data, error } = await supabase
+    .from("labels")
+    .insert([
+      {
+        name: cleanName,
+        color_hex: normalizedColor,
+        board_id: boardId,
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("createLabelAction error:", error.message);
+    throw new Error("Failed to create label.");
+  }
+
+  revalidatePath("/projects");
+  return data;
+};

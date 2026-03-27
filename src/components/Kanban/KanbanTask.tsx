@@ -28,43 +28,52 @@ export function KanbanTask({
   onDragStart,
   onClick,
 }: KanbanTaskProps) {
-  const pColor = PRIORITY_STYLES[priority] || {
-    text: "text-slate-500",
-    bg: "bg-slate-100",
-  };
+  const pColor =
+    PRIORITY_STYLES[priority] || {
+      text: "text-slate-500",
+      bg: "bg-slate-100",
+    };
+
+  const activeLabel = labels && labels.length > 0 ? labels[0] : null;
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, id)}
       onClick={onClick}
-      className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all active:opacity-70 active:scale-[0.98]"
+      className="relative bg-white rounded-2xl shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-all active:opacity-70 active:scale-[0.98] overflow-hidden"
     >
-      <span
-        className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}
-      >
-        {priority}
-      </span>
+      {activeLabel && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1.5"
+          style={{ backgroundColor: activeLabel.color_hex || "#CBD5E1" }}
+        />
+      )}
 
-      <h4 className="font-bold text-slate-800">{title}</h4>
+      <div className="p-5 flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}
+          >
+            {priority}
+          </span>
 
-      {labels && labels.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {labels.map((label) => (
+          {activeLabel && (
             <span
-              key={label.id}
-              className="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-900"
-              style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+              className="text-[10px] font-bold px-2 py-1 rounded-full text-slate-900"
+              style={{ backgroundColor: activeLabel.color_hex || "#E2E8F0" }}
             >
-              {label.name}
+              {activeLabel.name}
             </span>
-          ))}
+          )}
         </div>
-      )}
 
-      {description && (
-        <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
-      )}
+        <h4 className="font-bold text-slate-800">{title}</h4>
+
+        {description && (
+          <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
+        )}
+      </div>
     </div>
   );
 }

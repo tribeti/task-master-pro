@@ -8,11 +8,12 @@ import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
-  addLabelToTaskAction,
-  removeLabelFromTaskAction,
+  setTaskLabelAction,
+  clearTaskLabelAction,
   fetchCommentsForTaskAction,
   createCommentAction,
   deleteCommentAction,
+  createLabelAction,
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
@@ -164,25 +165,25 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsModalOpen(false);
   };
 
-  const handleAddLabel = async (taskId: number, labelId: number) => {
+  const handleSetLabel = async (taskId: number, labelId: number) => {
     try {
-      await addLabelToTaskAction(taskId, labelId);
+      await setTaskLabelAction(taskId, labelId);
       await fetchData();
-      toast.success("Label added");
+      toast.success("Label applied");
     } catch (error) {
-      console.error("Failed to add label:", error);
-      toast.error("Failed to add label");
+      console.error("Failed to set label:", error);
+      toast.error("Failed to apply label");
     }
   };
 
-  const handleRemoveLabel = async (taskId: number, labelId: number) => {
+  const handleClearLabel = async (taskId: number) => {
     try {
-      await removeLabelFromTaskAction(taskId, labelId);
+      await clearTaskLabelAction(taskId);
       await fetchData();
-      toast.success("Label removed");
+      toast.success("Label cleared");
     } catch (error) {
-      console.error("Failed to remove label:", error);
-      toast.error("Failed to remove label");
+      console.error("Failed to clear label:", error);
+      toast.error("Failed to clear label");
     }
   };
 
@@ -222,6 +223,23 @@ export function TasksTab({ projectId }: { projectId: number }) {
     );
   }
 
+  const handleCreateLabel = async (
+    boardId: number,
+    name: string,
+    colorHex: string,
+  ) => {
+    try {
+      await createLabelAction(boardId, name, colorHex);
+      await fetchData();
+      toast.success("Label created");
+    } catch (error) {
+      console.error("Failed to create label:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create label",
+      );
+    }
+  };
+
   return (
     <div className="flex-1 overflow-x-auto mt-4">
       <KanbanBoard
@@ -241,13 +259,15 @@ export function TasksTab({ projectId }: { projectId: number }) {
         initialData={currentEditingTask}
         isSubmitting={isSubmitting}
         boardLabels={boardLabels}
-        onAddLabel={handleAddLabel}
-        onRemoveLabel={handleRemoveLabel}
+        onSetLabel={handleSetLabel}
+        onClearLabel={handleClearLabel}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
+        boardId={projectId}
+        onCreateLabel={handleCreateLabel}
       />
     </div>
   );
