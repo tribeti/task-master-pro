@@ -5,6 +5,7 @@ import { getDeadlineStatus } from "@/utils/deadline";
 
 interface KanbanTaskProps {
   id: number;
+  index: number;
   title: string;
   priority: "Low" | "Medium" | "High";
   description?: string;
@@ -22,6 +23,7 @@ const PRIORITY_STYLES: Record<string, { text: string; bg: string }> = {
 
 export function KanbanTask({
   id,
+  index,
   title,
   priority,
   description,
@@ -72,25 +74,27 @@ export function KanbanTask({
         )}
       </div>
 
-      <h4 className="font-bold text-slate-800">{title}</h4>
+          <h4 className="font-bold text-slate-800">{title}</h4>
 
-      {labels && labels.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {labels.map((label) => (
-            <span
-              key={label.id}
-              className="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-900"
-              style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-            >
-              {label.name}
-            </span>
-          ))}
+          {labels && labels.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {labels.map((label) => (
+                <span
+                  key={label.id}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-900"
+                  style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                >
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {description && (
+            <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
+          )}
         </div>
       )}
-
-      {description && (
-        <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
-      )}
-    </div>
+    </Draggable>
   );
 }

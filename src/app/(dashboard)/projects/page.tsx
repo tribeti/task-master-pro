@@ -183,7 +183,7 @@ export default function ProjectsPage() {
   );
 
   return (
-    <>
+    <div className={selectedProject ? "flex flex-col h-screen overflow-hidden" : ""}>
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
@@ -299,7 +299,7 @@ export default function ProjectsPage() {
                 </button>
               ))}
             </div>
-            <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10">
+            <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10 min-h-0">
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
               )}
@@ -385,6 +385,6 @@ export default function ProjectsPage() {
         onSubmit={onUpdateProjectSubmit}
         isSubmitting={isSubmitting}
       />
-    </>
+    </div>
   );
 }
