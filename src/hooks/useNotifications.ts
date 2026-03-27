@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Notification } from "@/types/project";
 import { toast } from "sonner";
+import { triggerDeadlineNotifications } from "@/app/actions/notification.actions";
 
 // Module-level flag: trigger deadline cron only once per browser session
 let cronTriggered = false;
@@ -36,11 +37,11 @@ export function useNotifications(userId: string | undefined) {
 
         fetchNotifications();
 
-        // Auto-trigger deadline cron check once per session when dashboard loads
+        // Auto-trigger deadline check once per session when dashboard loads
         if (!cronTriggered) {
             cronTriggered = true;
-            fetch("/api/cron/notifications").catch(err =>
-                console.error("Failed to trigger deadline cron:", err)
+            triggerDeadlineNotifications().catch(err =>
+                console.error("Failed to trigger deadline check:", err)
             );
         }
 
