@@ -88,9 +88,9 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!user?.id) return;
     setIsSaving(true);
+
     try {
       let finalAvatarUrl = avatarUrl; // Hiện tại
-
       let oldAvatarPath: string | null = null;
 
       if (avatarFile) {
@@ -118,7 +118,7 @@ export default function ProfilePage() {
         finalAvatarUrl = fileName;
       }
 
-      // Ghi file path vào bảng users
+      // 1. Ghi file path vào bảng users (Hồ sơ công khai)
       const { error: updateError } = await supabase
         .from("users")
         .update({
@@ -128,6 +128,19 @@ export default function ProfilePage() {
         .eq("id", user.id);
 
       if (updateError) throw updateError;
+
+      // 2. 👉 ĐỒNG BỘ VÀO KÉT SẮT AUTH.USERS ĐỂ DASHBOARD HIỂN THỊ
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          full_name: displayName, // Bắt buộc dùng key này cho Supabase Dashboard
+          name: displayName,      // Dự phòng
+          ...(avatarFile ? { avatar_url: finalAvatarUrl } : {}),
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
 
       // Chỉ xóa ảnh cũ SAU KHI upload + DB update đều thành công
       if (oldAvatarPath) {
@@ -458,11 +471,10 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="password"
-                    className={`w-full px-5 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:bg-white transition-colors ${
-                      confirmError
-                        ? "border-red-400 focus:border-red-400"
-                        : "border-slate-200 focus:border-[#28B8FA]"
-                    }`}
+                    className={`w-full px-5 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:bg-white transition-colors ${confirmError
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-slate-200 focus:border-[#28B8FA]"
+                      }`}
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
@@ -654,11 +666,10 @@ export default function ProfilePage() {
                 {/* Theme 1: Energetic Flow */}
                 <div
                   onClick={() => setThemeSetting("energetic")}
-                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
-                    themeSetting === "energetic"
-                      ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
-                      : "border-slate-100 hover:border-slate-200"
-                  }`}
+                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "energetic"
+                    ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
+                    : "border-slate-100 hover:border-slate-200"
+                    }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
                     <div className="w-full flex items-center justify-between mb-2.5">
@@ -687,11 +698,10 @@ export default function ProfilePage() {
                       </p>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
-                        themeSetting === "energetic"
-                          ? "border-[#28B8FA]"
-                          : "border-slate-200"
-                      }`}
+                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "energetic"
+                        ? "border-[#28B8FA]"
+                        : "border-slate-200"
+                        }`}
                     >
                       {themeSetting === "energetic" && (
                         <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full"></div>
@@ -703,11 +713,10 @@ export default function ProfilePage() {
                 {/* Theme 2: Cozy Focus */}
                 <div
                   onClick={() => setThemeSetting("cozy")}
-                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
-                    themeSetting === "cozy"
-                      ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
-                      : "border-slate-100 hover:border-slate-200"
-                  }`}
+                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "cozy"
+                    ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
+                    : "border-slate-100 hover:border-slate-200"
+                    }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
                     <div className="w-full flex items-center justify-between mb-2">
@@ -726,30 +735,27 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between w-full mt-auto">
                     <div>
                       <h4
-                        className={`font-extrabold text-base ${
-                          themeSetting === "cozy"
-                            ? "text-white"
-                            : "text-slate-900"
-                        }`}
+                        className={`font-extrabold text-base ${themeSetting === "cozy"
+                          ? "text-white"
+                          : "text-slate-900"
+                          }`}
                       >
                         Cozy Focus
                       </h4>
                       <p
-                        className={`text-[10px] font-bold mt-0.5 ${
-                          themeSetting === "cozy"
-                            ? "text-slate-400"
-                            : "text-slate-500"
-                        }`}
+                        className={`text-[10px] font-bold mt-0.5 ${themeSetting === "cozy"
+                          ? "text-slate-400"
+                          : "text-slate-500"
+                          }`}
                       >
                         Dark mode, warmer tones
                       </p>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
-                        themeSetting === "cozy"
-                          ? "border-[#FF8B5E]"
-                          : "border-slate-200"
-                      }`}
+                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "cozy"
+                        ? "border-[#FF8B5E]"
+                        : "border-slate-200"
+                        }`}
                     >
                       {themeSetting === "cozy" && (
                         <div className="w-2.5 h-2.5 bg-[#FF8B5E] rounded-full"></div>
