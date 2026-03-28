@@ -30,11 +30,10 @@ export function KanbanTask({
   onDragStart,
   onClick,
 }: KanbanTaskProps) {
-  const pColor =
-    PRIORITY_STYLES[priority] || {
-      text: "text-slate-500",
-      bg: "bg-slate-100",
-    };
+  const pColor = PRIORITY_STYLES[priority] || {
+    text: "text-slate-500",
+    bg: "bg-slate-100",
+  };
 
   const activeLabel = labels && labels.length > 0 ? labels[0] : null;
   const activeLabelColor = activeLabel?.color_hex || DEFAULT_LABEL_COLOR;
