@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
+import { ManageLabelsModal } from "./ManageLabelsModal";
 import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
+  createLabelAction,
+  deleteLabelAction,
   createCommentAction,
   deleteCommentAction,
   updateColumnAction,
@@ -36,6 +39,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
@@ -195,6 +199,46 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleCreateLabel = async (name: string, color: string) => {
+    try {
+      await createLabelAction(projectId, name, color);
+      await fetchData();
+      toast.success("Tạo nhãn thành công");
+    } catch (error) {
+      console.error("Failed to create label:", error);
+      toast.error("Tạo nhãn thất bại");
+    }
+  };
+
+  const handleCreateAndAssignLabel = async (
+    taskId: number,
+    name: string,
+    color: string,
+  ) => {
+    try {
+      const createdLabel = await createLabelAction(projectId, name, color);
+      await addLabelToTaskAction(taskId, createdLabel.id);
+      await fetchData();
+      toast.success("Label created and assigned");
+      return createdLabel;
+    } catch (error) {
+      console.error("Failed to create and assign label:", error);
+      toast.error("Failed to create or assign label");
+      throw error;
+    }
+  };
+
+  const handleDeleteLabel = async (labelId: number) => {
+    try {
+      await deleteLabelAction(labelId);
+      await fetchData();
+      toast.success("Đã xóa nhãn");
+    } catch (error) {
+      console.error("Failed to delete label:", error);
+      toast.error("Xóa nhãn thất bại");
+    }
+  };
+
   const handleAddComment = async (taskId: number, content: string) => {
     try {
       await createCommentAction(taskId, content);
@@ -255,15 +299,34 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex-1 mt-4">
+      {/* Toolbar: Manage Labels button */}
+      <div className="flex justify-end mb-3">
+        <button
+          type="button"
+          onClick={() => setIsManageLabelsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white text-slate-600 text-xs font-bold hover:border-[#28B8FA] hover:text-[#28B8FA] transition-all shadow-sm"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 5 4 4" />
+            <path d="M13 7 8.7 2.7a2.72 2.72 0 0 0-3.86 0L2.7 4.86A2.72 2.72 0 0 0 2.7 8.7L13 19l9-9-4.7-4.7z" />
+            <path d="m8.5 2.5 5 5" />
+            <path d="m2 22 8-8" />
+          </svg>
+          Tạo label
+        </button>
+      </div>
       <KanbanBoard
         projectId={projectId}
         columns={columns}
         tasks={tasks}
+        boardLabels={boardLabels}
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
         onUpdateColumn={handleUpdateColumn}
         onDeleteColumn={handleDeleteColumn}
+        onAddLabel={handleAddLabel}
+        onRemoveLabel={handleRemoveLabel}
       />
 
       <TaskDetailsModal
@@ -276,11 +339,21 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardLabels={boardLabels}
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
+        onCreateAndAssignLabel={handleCreateAndAssignLabel}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
+      />
+
+      {/* Manage Labels Modal */}
+      <ManageLabelsModal
+        isOpen={isManageLabelsOpen}
+        onClose={() => setIsManageLabelsOpen(false)}
+        boardLabels={boardLabels}
+        onCreateLabel={handleCreateLabel}
+        onDeleteLabel={handleDeleteLabel}
       />
     </div>
   );

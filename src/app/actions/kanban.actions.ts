@@ -283,6 +283,70 @@ export const removeLabelFromTaskAction = async (
 
     revalidatePath("/projects");
 };
+
+export const createLabelAction = async (
+    boardId: number,
+    name: string,
+    color_hex: string,
+) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const cleanName = validateString(name, "Label name", 50);
+
+    // Validate hex color
+    if (!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color_hex)) {
+        throw new Error("Invalid color format.");
+    }
+
+    await verifyBoardAccess(supabase, user.id, boardId);
+
+    const { data: label, error } = await supabase
+        .from("labels")
+        .insert([{ name: cleanName, color_hex, board_id: boardId }])
+        .select("id, name, color_hex, board_id")
+        .single();
+
+    if (error || !label) {
+        console.error("createLabelAction error:", error?.message);
+        throw new Error("Failed to create label.");
+    }
+
+    revalidatePath("/projects");
+
+    return label as Label;
+};
+
+export const deleteLabelAction = async (labelId: number) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // Tìm board_id của label để verify access
+    const { data: label, error: labelErr } = await supabase
+        .from("labels")
+        .select("board_id")
+        .eq("id", labelId)
+        .single();
+
+    if (labelErr || !label) throw new Error("Label not found.");
+    await verifyBoardAccess(supabase, user.id, label.board_id);
+
+    const { error } = await supabase.from("labels").delete().eq("id", labelId);
+
+    if (error) {
+        console.error("deleteLabelAction error:", error.message);
+        throw new Error("Failed to delete label.");
+    }
+
+    revalidatePath("/projects");
+};
+
 // create column
 export const createColumnAction = async (
     projectId: number,

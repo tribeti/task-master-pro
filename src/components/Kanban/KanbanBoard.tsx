@@ -18,28 +18,35 @@ import { toast } from "sonner";
 import {
     KanbanColumn as Column,
     KanbanTask,
+    Label,
 } from "@/types/project";
 
 interface KanbanBoardProps {
     projectId: number;
     columns: Column[];
     tasks: KanbanTask[];
+    boardLabels?: Label[];
     onDataChange: () => Promise<void>;
     onTaskClick: (task: KanbanTask) => void;
     onAddTask: (columnId: number) => void;
     onUpdateColumn: (columnId: number, newTitle: string) => void;
     onDeleteColumn: (columnId: number) => void;
+    onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
+    onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
 }
 
 export function KanbanBoard({
     projectId,
     columns,
     tasks,
+    boardLabels = [],
     onDataChange,
     onTaskClick,
     onAddTask,
     onUpdateColumn,
     onDeleteColumn,
+    onAddLabel,
+    onRemoveLabel,
 }: KanbanBoardProps) {
     /* ── Hydration fix for Next.js ── */
     const [isMounted, setIsMounted] = useState(false);
@@ -322,6 +329,9 @@ export function KanbanBoard({
                                     onAddTask={onAddTask}
                                     onUpdateColumn={onUpdateColumn}
                                     onDeleteColumn={onDeleteColumn}
+                                    boardLabels={boardLabels}
+                                    onAddLabel={onAddLabel}
+                                    onRemoveLabel={onRemoveLabel}
                                 />
                             );
                         })}

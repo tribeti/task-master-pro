@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Draggable, Droppable, DroppableProvided, DroppableStateSnapshot } from "@hello-pangea/dnd";
 import { PlusIcon } from "@/components/icons";
-import { KanbanColumn as ColumnType, KanbanTask as KanbanTaskType } from "@/types/project";
+import { KanbanColumn as ColumnType, KanbanTask as KanbanTaskType, Label } from "@/types/project";
 import { KanbanTask } from "./KanbanTask";
 import { toast } from "sonner";
 
@@ -16,6 +16,9 @@ interface KanbanColumnProps {
   onAddTask: (columnId: number) => void;
   onUpdateColumn: (columnId: number, newTitle: string) => void;
   onDeleteColumn: (columnId: number) => void;
+  boardLabels?: Label[];
+  onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
+  onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
 }
 
 const COLUMN_STYLES = [
@@ -60,6 +63,9 @@ export function KanbanColumn({
   onAddTask,
   onUpdateColumn,
   onDeleteColumn,
+  boardLabels = [],
+  onAddLabel,
+  onRemoveLabel,
 }: KanbanColumnProps) {
   const st = COLUMN_STYLES[colIndex % COLUMN_STYLES.length];
 
@@ -194,6 +200,10 @@ export function KanbanColumn({
                       priority={task.priority}
                       description={task.description || undefined}
                       labels={task.labels}
+                      deadline={task.deadline}
+                      boardLabels={boardLabels}
+                      onAddLabel={onAddLabel}
+                      onRemoveLabel={onRemoveLabel}
                       onClick={() => onTaskClick(task)}
                     />
                   ))
