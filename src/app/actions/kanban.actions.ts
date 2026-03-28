@@ -304,9 +304,11 @@ export const createLabelAction = async (
 
     await verifyBoardAccess(supabase, user.id, boardId);
 
-    const { error } = await supabase
+    const { data: label, error } = await supabase
         .from("labels")
-        .insert([{ name: cleanName, color_hex, board_id: boardId }]);
+        .insert([{ name: cleanName, color_hex, board_id: boardId }])
+        .select("id, name, color_hex, board_id")
+        .single();
 
     if (error) {
         console.error("createLabelAction error:", error.message);
@@ -314,6 +316,8 @@ export const createLabelAction = async (
     }
 
     revalidatePath("/projects");
+
+    return label as Label;
 };
 
 export const deleteLabelAction = async (labelId: number) => {

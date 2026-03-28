@@ -210,6 +210,24 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleCreateAndAssignLabel = async (
+    taskId: number,
+    name: string,
+    color: string,
+  ) => {
+    try {
+      const createdLabel = await createLabelAction(projectId, name, color);
+      await addLabelToTaskAction(taskId, createdLabel.id);
+      await fetchData();
+      toast.success("Label created and assigned");
+      return createdLabel;
+    } catch (error) {
+      console.error("Failed to create and assign label:", error);
+      toast.error("Failed to create or assign label");
+      throw error;
+    }
+  };
+
   const handleDeleteLabel = async (labelId: number) => {
     try {
       await deleteLabelAction(labelId);
@@ -321,6 +339,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardLabels={boardLabels}
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
+        onCreateAndAssignLabel={handleCreateAndAssignLabel}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}

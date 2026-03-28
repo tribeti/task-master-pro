@@ -4,6 +4,15 @@ import React, { useState, useEffect } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
 import { Label, Comment } from "@/types/project";
 
+const INLINE_LABEL_PRESET_COLORS = [
+  "#FF8B5E",
+  "#FF6B6B",
+  "#FFC300",
+  "#34D399",
+  "#28B8FA",
+  "#818CF8",
+];
+
 interface TaskDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,6 +35,11 @@ interface TaskDetailsModalProps {
   boardLabels: Label[];
   onAddLabel: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel: (taskId: number, labelId: number) => Promise<void>;
+  onCreateAndAssignLabel: (
+    taskId: number,
+    name: string,
+    color: string,
+  ) => Promise<Label>;
   comments: Comment[];
   commentsLoading: boolean;
   currentUserId: string;
@@ -43,6 +57,7 @@ export function TaskDetailsModal({
   boardLabels,
   onAddLabel,
   onRemoveLabel,
+  onCreateAndAssignLabel,
   comments,
   commentsLoading,
   currentUserId,
@@ -57,6 +72,12 @@ export function TaskDetailsModal({
 
   const [selectedLabelId, setSelectedLabelId] = useState<number | "">("");
   const [labelSubmitting, setLabelSubmitting] = useState(false);
+  const [showCreateLabelForm, setShowCreateLabelForm] = useState(false);
+  const [customLabelName, setCustomLabelName] = useState("");
+  const [customLabelColor, setCustomLabelColor] = useState(
+    INLINE_LABEL_PRESET_COLORS[0],
+  );
+  const [customLabelError, setCustomLabelError] = useState("");
 
   const [commentInput, setCommentInput] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -78,6 +99,10 @@ export function TaskDetailsModal({
       }
 
       setSelectedLabelId("");
+      setShowCreateLabelForm(false);
+      setCustomLabelName("");
+      setCustomLabelColor(INLINE_LABEL_PRESET_COLORS[0]);
+      setCustomLabelError("");
       setCommentInput("");
       setNameError(false);
     }
@@ -121,6 +146,40 @@ export function TaskDetailsModal({
     try {
       setLabelSubmitting(true);
       await onRemoveLabel(initialData.id, labelId);
+    } finally {
+      setLabelSubmitting(false);
+    }
+  };
+
+  const handleCreateCustomLabelClick = async () => {
+    if (!initialData?.id || labelSubmitting) return;
+
+    const trimmedName = customLabelName.trim();
+    if (!trimmedName) {
+      setCustomLabelError("Label name is required.");
+      return;
+    }
+
+    if (trimmedName.length > 50) {
+      setCustomLabelError("Max 50 characters.");
+      return;
+    }
+
+    if (!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(customLabelColor)) {
+      setCustomLabelError("Invalid color format.");
+      return;
+    }
+
+    try {
+      setLabelSubmitting(true);
+      setCustomLabelError("");
+      await onCreateAndAssignLabel(initialData.id, trimmedName, customLabelColor);
+      setCustomLabelName("");
+      setCustomLabelColor(INLINE_LABEL_PRESET_COLORS[0]);
+      setShowCreateLabelForm(false);
+    } catch (error) {
+      console.error("Failed to create custom label:", error);
+      setCustomLabelError("Failed to create label.");
     } finally {
       setLabelSubmitting(false);
     }
@@ -333,6 +392,113 @@ export function TaskDetailsModal({
                 >
                   {labelSubmitting ? "Adding..." : "Add Label"}
                 </button>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      Create custom label
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Tạo label mới và gắn ngay vào task này.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateLabelForm((prev) => !prev);
+                      setCustomLabelError("");
+                    }}
+                    disabled={labelSubmitting || isSubmitting}
+                    className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#28B8FA] hover:text-[#28B8FA] transition-all disabled:opacity-50"
+                  >
+                    {showCreateLabelForm ? "Hide" : "New Label"}
+                  </button>
+                </div>
+
+                {showCreateLabelForm && (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        value={customLabelName}
+                        onChange={(e) => {
+                          setCustomLabelName(e.target.value);
+                          if (e.target.value.trim()) {
+                            setCustomLabelError("");
+                          }
+                        }}
+                        placeholder="e.g. Bug, Backend, QA"
+                        disabled={labelSubmitting || isSubmitting}
+                        className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-colors ${
+                          customLabelError
+                            ? "border-red-400 focus:border-red-400"
+                            : "border-slate-200 focus:border-[#28B8FA]"
+                        }`}
+                      />
+                      {customLabelError && (
+                        <p className="mt-2 ml-1 text-xs font-medium text-red-400">
+                          {customLabelError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {INLINE_LABEL_PRESET_COLORS.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setCustomLabelColor(color)}
+                          disabled={labelSubmitting || isSubmitting}
+                          className={`h-7 w-7 rounded-full transition-all hover:scale-110 ${
+                            customLabelColor === color
+                              ? "ring-2 ring-slate-400 ring-offset-2"
+                              : ""
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+
+                      <label
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"
+                        title="Pick custom color"
+                      >
+                        <input
+                          type="color"
+                          value={customLabelColor}
+                          onChange={(e) => setCustomLabelColor(e.target.value)}
+                          disabled={labelSubmitting || isSubmitting}
+                          className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                        />
+                        Custom
+                      </label>
+
+                      <span
+                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-slate-900"
+                        style={{ backgroundColor: customLabelColor }}
+                      >
+                        {customLabelName.trim() || "Preview"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleCreateCustomLabelClick}
+                        disabled={
+                          labelSubmitting ||
+                          isSubmitting ||
+                          !customLabelName.trim()
+                        }
+                        className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {labelSubmitting ? "Creating..." : "Create And Assign"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
