@@ -310,8 +310,8 @@ export const createLabelAction = async (
         .select("id, name, color_hex, board_id")
         .single();
 
-    if (error) {
-        console.error("createLabelAction error:", error.message);
+    if (error || !label) {
+        console.error("createLabelAction error:", error?.message);
         throw new Error("Failed to create label.");
     }
 
