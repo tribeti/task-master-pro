@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
-import { Label, Comment } from "@/types/project";
+import { UserAvatar } from "@/components/UserAvatar";
+import { AssigneeOption, Label, Comment, TaskAssignee } from "@/types/project";
 
 const INLINE_LABEL_PRESET_COLORS = [
   "#FF8B5E",
@@ -29,6 +30,9 @@ interface TaskDetailsModalProps {
     description: string | null;
     priority: "Low" | "Medium" | "High";
     deadline: string | null;
+    assignee_id?: string | null;
+    assignee?: TaskAssignee | null;
+    assignees?: TaskAssignee[];
     labels?: Label[];
   } | null;
   isSubmitting?: boolean;
@@ -40,6 +44,8 @@ interface TaskDetailsModalProps {
     name: string,
     color: string,
   ) => Promise<Label>;
+  onAddAssignee: (taskId: number, assigneeId: string) => Promise<void>;
+  onRemoveAssignee: (taskId: number, assigneeId: string) => Promise<void>;
   comments: Comment[];
   commentsLoading: boolean;
   currentUserId: string;
@@ -58,6 +64,8 @@ export function TaskDetailsModal({
   onAddLabel,
   onRemoveLabel,
   onCreateAndAssignLabel,
+  onAddAssignee,
+  onRemoveAssignee,
   comments,
   commentsLoading,
   currentUserId,
@@ -81,6 +89,11 @@ export function TaskDetailsModal({
 
   const [commentInput, setCommentInput] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [assigneeSubmitting, setAssigneeSubmitting] = useState(false);
+  const [assigneeError, setAssigneeError] = useState("");
+  const [assignableMembers, setAssignableMembers] = useState<AssigneeOption[]>([]);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
@@ -104,11 +117,57 @@ export function TaskDetailsModal({
       setCustomLabelColor(INLINE_LABEL_PRESET_COLORS[0]);
       setCustomLabelError("");
       setCommentInput("");
+      setAssigneeError("");
+      setSelectedAssigneeId("");
       setNameError(false);
     }
   }, [isOpen, initialData]);
 
+  useEffect(() => {
+    if (!isOpen || !initialData?.id) {
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchAssignableMembers = async () => {
+      try {
+        setMembersLoading(true);
+        setAssigneeError("");
+        const res = await fetch("/api/users");
+        if (!res.ok) {
+          throw new Error("Failed to load users");
+        }
+        const data = (await res.json()) as AssigneeOption[];
+        if (!ignore) {
+          setAssignableMembers(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch assignee options:", error);
+        if (!ignore) {
+          setAssignableMembers([]);
+          setAssigneeError("Failed to load assignees.");
+        }
+      } finally {
+        if (!ignore) {
+          setMembersLoading(false);
+        }
+      }
+    };
+
+    fetchAssignableMembers();
+
+    return () => {
+      ignore = true;
+    };
+  }, [initialData?.id, isOpen]);
+
   const taskLabels = initialData?.labels || [];
+  const currentAssignees = initialData?.assignees || [];
+  const assignedAssigneeIds = new Set(currentAssignees.map((assignee) => assignee.user_id));
+  const availableAssigneeOptions = assignableMembers.filter(
+    (member) => !assignedAssigneeIds.has(member.user_id),
+  );
 
   const availableLabels = boardLabels.filter(
     (label) => !taskLabels.some((taskLabel) => taskLabel.id === label.id),
@@ -197,6 +256,55 @@ export function TaskDetailsModal({
     }
   };
 
+  const handleAddAssigneeClick = async () => {
+    if (!initialData?.id || assigneeSubmitting || !selectedAssigneeId) return;
+
+    try {
+      setAssigneeSubmitting(true);
+      setAssigneeError("");
+      await onAddAssignee(initialData.id, selectedAssigneeId);
+      setSelectedAssigneeId("");
+    } catch (error) {
+      console.error("Failed to add assignee:", error);
+      setAssigneeError("Failed to add assignee.");
+    } finally {
+      setAssigneeSubmitting(false);
+    }
+  };
+
+  const handleRemoveAssigneeClick = async (assigneeId: string) => {
+    if (!initialData?.id || assigneeSubmitting) return;
+
+    try {
+      setAssigneeSubmitting(true);
+      setAssigneeError("");
+      await onRemoveAssignee(initialData.id, assigneeId);
+    } catch (error) {
+      console.error("Failed to remove assignee:", error);
+      setAssigneeError("Failed to remove assignee.");
+    } finally {
+      setAssigneeSubmitting(false);
+    }
+  };
+
+  const handleUnassignAllClick = async () => {
+    if (!initialData?.id || assigneeSubmitting || currentAssignees.length === 0) return;
+
+    try {
+      setAssigneeSubmitting(true);
+      setAssigneeError("");
+      for (const assignee of currentAssignees) {
+        await onRemoveAssignee(initialData.id, assignee.user_id);
+      }
+      setSelectedAssigneeId("");
+    } catch (error) {
+      console.error("Failed to remove all assignees:", error);
+      setAssigneeError("Failed to unassign all assignees.");
+    } finally {
+      setAssigneeSubmitting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -210,7 +318,12 @@ export function TaskDetailsModal({
       >
         <button
           onClick={onClose}
-          disabled={isSubmitting || labelSubmitting || commentSubmitting}
+          disabled={
+            isSubmitting ||
+            labelSubmitting ||
+            commentSubmitting ||
+            assigneeSubmitting
+          }
           className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
         >
           <XIcon />
@@ -312,6 +425,163 @@ export function TaskDetailsModal({
               disabled={isSubmitting}
             />
           </div>
+
+          {initialData && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
+                Assignee
+              </label>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {currentAssignees.length > 0
+                        ? `${currentAssignees.length} assignee${currentAssignees.length > 1 ? "s" : ""}`
+                        : "Unassigned"}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {currentAssignees.length > 0
+                        ? "Có thể thêm nhiều người vào cùng một task."
+                        : "Task này hiện chưa có người phụ trách."}
+                    </p>
+                  </div>
+
+                  {currentAssignees.length > 0 ? (
+                    <div className="flex -space-x-2">
+                      {currentAssignees.slice(0, 4).map((taskAssignee) => (
+                        <div
+                          key={taskAssignee.user_id}
+                          className="ring-2 ring-white rounded-full"
+                          title={taskAssignee.display_name}
+                        >
+                          <UserAvatar
+                            avatarUrl={taskAssignee.avatar_url}
+                            displayName={taskAssignee.display_name}
+                            className="w-10 h-10"
+                            fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-500">
+                      Unassigned
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4 min-h-8">
+                  {currentAssignees.length === 0 ? (
+                    <span className="text-sm text-slate-400">
+                      No assignees yet
+                    </span>
+                  ) : (
+                    currentAssignees.map((taskAssignee) => (
+                      <div
+                        key={taskAssignee.user_id}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm"
+                      >
+                        <UserAvatar
+                          avatarUrl={taskAssignee.avatar_url}
+                          displayName={taskAssignee.display_name}
+                          className="w-6 h-6"
+                          fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                        />
+                        <span className="text-sm font-semibold text-slate-700">
+                          {taskAssignee.display_name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAssigneeClick(taskAssignee.user_id)}
+                          disabled={assigneeSubmitting || isSubmitting}
+                          className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          title="Remove assignee"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex gap-3 items-center">
+                  <div className="relative flex-1">
+                    <select
+                      value={selectedAssigneeId}
+                      onChange={(e) => setSelectedAssigneeId(e.target.value)}
+                      disabled={membersLoading || assigneeSubmitting || isSubmitting}
+                      className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm font-semibold text-slate-800 shadow-sm outline-none transition-all focus:border-[#28B8FA] focus:ring-4 focus:ring-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {membersLoading ? "Loading assignees..." : "Select assignee"}
+                      </option>
+                      {availableAssigneeOptions.map((member) => (
+                        <option key={member.user_id} value={member.user_id}>
+                          {member.display_name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M5 7.5L10 12.5L15 7.5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddAssigneeClick}
+                    disabled={
+                      !selectedAssigneeId ||
+                      membersLoading ||
+                      assigneeSubmitting ||
+                      isSubmitting
+                    }
+                    className="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {assigneeSubmitting ? "Saving..." : "Add Assignee"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUnassignAllClick}
+                    disabled={
+                      currentAssignees.length === 0 ||
+                      assigneeSubmitting ||
+                      isSubmitting
+                    }
+                    className="px-5 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:border-red-200 hover:text-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Unassign All
+                  </button>
+                </div>
+
+                {assigneeError && (
+                  <p className="mt-3 ml-1 text-xs font-medium text-red-400">
+                    {assigneeError}
+                  </p>
+                )}
+
+                <p className="mt-3 ml-1 text-xs text-slate-400">
+                  Chọn bất kỳ user nào. Nếu họ chưa ở trong board, hệ thống sẽ tự thêm họ vào danh sách thành viên khi assign.
+                </p>
+              </div>
+            </div>
+          )}
 
           {initialData && (
             <div>

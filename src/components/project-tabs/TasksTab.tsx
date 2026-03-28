@@ -8,6 +8,8 @@ import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
+  addTaskAssigneeAction,
+  removeTaskAssigneeAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
   createLabelAction,
@@ -263,6 +265,36 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleAddAssignee = async (
+    taskId: number,
+    assigneeId: string,
+  ) => {
+    try {
+      await addTaskAssigneeAction(taskId, assigneeId);
+      await fetchData();
+      toast.success("Assignee added");
+    } catch (error) {
+      console.error("Failed to add assignee:", error);
+      toast.error("Failed to add assignee");
+      throw error;
+    }
+  };
+
+  const handleRemoveAssignee = async (
+    taskId: number,
+    assigneeId: string,
+  ) => {
+    try {
+      await removeTaskAssigneeAction(taskId, assigneeId);
+      await fetchData();
+      toast.success("Assignee removed");
+    } catch (error) {
+      console.error("Failed to remove assignee:", error);
+      toast.error("Failed to remove assignee");
+      throw error;
+    }
+  };
+
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
     try {
       await updateColumnAction(columnId, { title: newTitle });
@@ -340,6 +372,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
         onCreateAndAssignLabel={handleCreateAndAssignLabel}
+        onAddAssignee={handleAddAssignee}
+        onRemoveAssignee={handleRemoveAssignee}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}

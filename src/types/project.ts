@@ -34,8 +34,21 @@ export interface TaskLabel {
   labels?: Label;
 }
 
+export interface TaskAssignee {
+  user_id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface AssigneeOption extends TaskAssignee {
+  role?: string | null;
+  is_board_member?: boolean;
+}
+
 export interface KanbanTask extends Task {
   labels?: Label[];
+  assignee?: TaskAssignee | null;
+  assignees?: TaskAssignee[];
 }
 
 export interface KanbanColumn {
