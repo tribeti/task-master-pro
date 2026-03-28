@@ -134,12 +134,12 @@ export default function ProfilePage() {
         data: {
           full_name: displayName, // Bắt buộc dùng key này cho Supabase Dashboard
           name: displayName,      // Dự phòng
-          avatar_url: finalAvatarUrl
+          ...(avatarFile ? { avatar_url: finalAvatarUrl } : {}),
         }
       });
 
       if (authError) {
-        console.warn("Không thể đồng bộ vào auth.users:", authError);
+        throw authError;
       }
 
       // Chỉ xóa ảnh cũ SAU KHI upload + DB update đều thành công
@@ -472,8 +472,8 @@ export default function ProfilePage() {
                   <input
                     type="password"
                     className={`w-full px-5 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:bg-white transition-colors ${confirmError
-                        ? "border-red-400 focus:border-red-400"
-                        : "border-slate-200 focus:border-[#28B8FA]"
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-slate-200 focus:border-[#28B8FA]"
                       }`}
                     value={confirmPassword}
                     onChange={(e) => {
@@ -667,8 +667,8 @@ export default function ProfilePage() {
                 <div
                   onClick={() => setThemeSetting("energetic")}
                   className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "energetic"
-                      ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
-                      : "border-slate-100 hover:border-slate-200"
+                    ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
+                    : "border-slate-100 hover:border-slate-200"
                     }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
@@ -699,8 +699,8 @@ export default function ProfilePage() {
                     </div>
                     <div
                       className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "energetic"
-                          ? "border-[#28B8FA]"
-                          : "border-slate-200"
+                        ? "border-[#28B8FA]"
+                        : "border-slate-200"
                         }`}
                     >
                       {themeSetting === "energetic" && (
@@ -714,8 +714,8 @@ export default function ProfilePage() {
                 <div
                   onClick={() => setThemeSetting("cozy")}
                   className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "cozy"
-                      ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
-                      : "border-slate-100 hover:border-slate-200"
+                    ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
+                    : "border-slate-100 hover:border-slate-200"
                     }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
@@ -736,16 +736,16 @@ export default function ProfilePage() {
                     <div>
                       <h4
                         className={`font-extrabold text-base ${themeSetting === "cozy"
-                            ? "text-white"
-                            : "text-slate-900"
+                          ? "text-white"
+                          : "text-slate-900"
                           }`}
                       >
                         Cozy Focus
                       </h4>
                       <p
                         className={`text-[10px] font-bold mt-0.5 ${themeSetting === "cozy"
-                            ? "text-slate-400"
-                            : "text-slate-500"
+                          ? "text-slate-400"
+                          : "text-slate-500"
                           }`}
                       >
                         Dark mode, warmer tones
@@ -753,8 +753,8 @@ export default function ProfilePage() {
                     </div>
                     <div
                       className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "cozy"
-                          ? "border-[#FF8B5E]"
-                          : "border-slate-200"
+                        ? "border-[#FF8B5E]"
+                        : "border-slate-200"
                         }`}
                     >
                       {themeSetting === "cozy" && (
