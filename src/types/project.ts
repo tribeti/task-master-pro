@@ -3,9 +3,11 @@ export interface Board {
   title: string;
   progress?: number;
   color?: string;
-  tag?: string;
+  tag?: string | null;
   team?: number;
-  description?: string;
+  description?: string | null;
+  owner_id?: string;
+  is_private?: boolean;
 }
 
 export interface Project {
@@ -60,4 +62,29 @@ export interface Comment {
   created_at: string;
   task_id: number;
   user_id: string;
+}
+
+export interface BoardMember {
+  user_id: string;
+  role: string;
+  joined_at: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface JoinedBoard extends Board {
+  member_role: string;
+}
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  type?: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  task_id?: number | null;
+  project_id?: number | null;
+  task?: { title: string; deadline: string | null };
+  project?: { title: string };
 }

@@ -1,15 +1,17 @@
 "use client";
 
-import React from "react";
 import { Label } from "@/types/project";
+import { getDeadlineStatus } from "@/utils/deadline";
+import { Draggable, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 
 interface KanbanTaskProps {
   id: number;
+  index: number;
   title: string;
   priority: "Low" | "Medium" | "High";
   description?: string;
   labels?: Label[];
-  onDragStart: (e: React.DragEvent, taskId: number) => void;
+  deadline?: string | null;
   onClick: () => void;
 }
 
@@ -23,11 +25,12 @@ const DEFAULT_LABEL_COLOR = "#E2E8F0";
 
 export function KanbanTask({
   id,
+  index,
   title,
   priority,
   description,
   labels,
-  onDragStart,
+  deadline,
   onClick,
 }: KanbanTaskProps) {
   const pColor = PRIORITY_STYLES[priority] || {

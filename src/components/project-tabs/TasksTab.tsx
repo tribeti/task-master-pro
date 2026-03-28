@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import {
-  fetchKanbanDataAction,
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
@@ -37,11 +36,17 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
+    // Only show loading spinner on initial load, not on subsequent refreshes
+    if (isInitialLoad.current) {
+      setIsLoading(true);
+    }
     try {
-      const data = await fetchKanbanDataAction(projectId);
+      const res = await fetch(`/api/boards/${projectId}/kanban`);
+      if (!res.ok) throw new Error("Failed to fetch kanban data");
+      const data = await res.json();
 
       setColumns(data.columns || []);
       setTasks(data.tasks || []);
@@ -54,6 +59,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       toast.error("Failed to load kanban data");
     } finally {
       setIsLoading(false);
+      isInitialLoad.current = false;
     }
   }, [projectId]);
 
@@ -64,7 +70,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const fetchComments = useCallback(async (taskId: number) => {
     try {
       setCommentsLoading(true);
-      const data = await fetchCommentsForTaskAction(taskId);
+      const res = await fetch(`/api/tasks/${taskId}/comments`);
+      if (!res.ok) throw new Error("Failed to fetch comments");
+      const data = await res.json();
       setTaskComments(data || []);
     } catch (error) {
       console.error("Failed to fetch comments:", error);
@@ -211,6 +219,28 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleUpdateColumn = async (columnId: number, newTitle: string) => {
+    try {
+      await updateColumnAction(columnId, { title: newTitle });
+      toast.success("Cập nhật cột thành công");
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to update column:", error);
+      toast.error("Cập nhật cột thất bại");
+    }
+  };
+
+  const handleDeleteColumn = async (columnId: number) => {
+    try {
+      await deleteColumnAction(columnId);
+      toast.success("Đã xóa cột");
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to delete column:", error);
+      toast.error("Xóa cột thất bại");
+    }
+  };
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -241,7 +271,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   return (
-    <div className="flex-1 overflow-x-auto mt-4">
+    <div className="flex-1 mt-4">
       <KanbanBoard
         projectId={projectId}
         columns={columns}
@@ -249,6 +279,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
+        onUpdateColumn={handleUpdateColumn}
+        onDeleteColumn={handleDeleteColumn}
       />
 
       <TaskDetailsModal

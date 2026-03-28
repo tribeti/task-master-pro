@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
@@ -12,7 +12,9 @@ import {
     RocketIcon,
     SettingsIcon,
     LogOutIcon,
+    BellIcon,
 } from "@/components/icons";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const NAV_ITEMS = [
     { href: "/command", label: "Command", icon: GridIcon },
@@ -25,9 +27,44 @@ export default function DashboardSidebar({ user }: { user: User }) {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
+    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user.email || "User")}`;
+    const [sidebarAvatar, setSidebarAvatar] = useState(fallbackAvatar);
+    const { unreadCount } = useNotifications(user?.id);
+    const [sidebarName, setSidebarName] = useState(
+        user.user_metadata?.full_name || user.email?.split("@")[0] || "User"
+    );
+
+    useEffect(() => {
+        const fetchSidebarProfile = async () => {
+            if (!user?.id) return;
+            const { data } = await supabase
+                .from('users')
+                .select('display_name, avatar_url')
+                .eq('id', user.id)
+                .single();
+
+            if (data?.display_name) setSidebarName(data.display_name);
+
+            if (data?.avatar_url) {
+                if (data.avatar_url.startsWith('http')) {
+                    setSidebarAvatar(data.avatar_url);
+                } else {
+                    const { data: signedData } = await supabase.storage
+                        .from('avatar')
+                        .createSignedUrl(data.avatar_url, 60 * 60);
+                    if (signedData?.signedUrl) {
+                        setSidebarAvatar(signedData.signedUrl);
+                    }
+                }
+            }
+        };
+
+        fetchSidebarProfile();
+    }, [user?.id, supabase]);
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        router.push("/login"); // Push to login so MW routes correctly
+        router.push("/login");
     };
 
     return (
@@ -75,6 +112,22 @@ export default function DashboardSidebar({ user }: { user: User }) {
             {/* Bottom section */}
             <div className="px-4 pb-6 flex flex-col gap-2 border-t border-slate-100 pt-5">
                 <Link
+                    href="/notifications"
+                    className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors relative ${pathname === "/notifications"
+                        ? "bg-[#EAF7FF] text-[#28B8FA]"
+                        : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
+                        }`}
+                >
+                    <div className="relative">
+                        <BellIcon />
+                        {unreadCount > 0 && (
+                            <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
+                        )}
+                    </div>
+                    Notifications
+                </Link>
+
+                <Link
                     href="/profile"
                     className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${pathname === "/profile"
                         ? "bg-[#EAF7FF] text-[#28B8FA]"
@@ -94,15 +147,14 @@ export default function DashboardSidebar({ user }: { user: User }) {
                 {/* User Info */}
                 <div className="flex items-center gap-3 px-4 pt-4 mt-2 border-t border-slate-100">
                     <img
-                        src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user.email || "User"}`}
-                        alt={user.user_metadata?.full_name || user.email || 'User Avatar'}
-                        className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm"
+                        src={sidebarAvatar}
+                        onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                        alt={sidebarName}
+                        className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm object-cover"
                     />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 truncate">
-                            {user.user_metadata?.full_name ||
-                                user.email?.split("@")[0] ||
-                                "Alex Morgan"}
+                            {sidebarName}
                         </p>
                         <p className="text-[10px] font-bold text-[#34D399] uppercase tracking-widest">
                             Peak Flow

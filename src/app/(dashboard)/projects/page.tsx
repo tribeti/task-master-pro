@@ -12,6 +12,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import QuickEntryModal from "@/components/projects/QuickEntryModal";
 import DeleteConfirmModal from "@/components/projects/DeleteConfirmModal";
 import CreateProjectModal from "@/components/CreateProjectModal";
+import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
 import { useDashboardUser } from "../provider";
 import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
@@ -21,11 +22,13 @@ export default function ProjectsPage() {
   const userId = user?.id;
 
   const {
-    boards,
+    ownedBoards,
+    joinedBoards,
     boardsLoading,
     isSubmitting,
     confirmDeleteProject,
     handleCreateProject,
+    handleUpdateExistingProject,
   } = useProjects(userId);
 
   // --- STATES ---
@@ -38,6 +41,8 @@ export default function ProjectsPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isUpdateProjectOpen, setIsUpdateProjectOpen] = useState(false);
+  const [projectToUpdate, setProjectToUpdate] = useState<Board | null>(null);
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
@@ -80,7 +85,19 @@ export default function ProjectsPage() {
 
   const handleUpdateProject = (proj: Board) => {
     setOpenMenuProjectId(null);
-    setSelectedProject(proj);
+    setProjectToUpdate(proj);
+    setIsUpdateProjectOpen(true);
+  };
+
+  const onUpdateProjectSubmit = async (
+    projectId: number,
+    data: Partial<Board>,
+  ) => {
+    const success = await handleUpdateExistingProject(projectId, data);
+    if (success) {
+      setIsUpdateProjectOpen(false);
+      setProjectToUpdate(null);
+    }
   };
 
   const onCreateProject = async (data: {
@@ -89,7 +106,6 @@ export default function ProjectsPage() {
     is_private: boolean;
     color: string;
     tag: string;
-    projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
     const success = await handleCreateProject(data);
@@ -104,40 +120,55 @@ export default function ProjectsPage() {
     );
   };
 
+  const totalProjects = ownedBoards.length + joinedBoards.length;
+
+  // --- Skeleton cards for loading state ---
+  const renderSkeletonCards = () =>
+    Array.from({ length: 3 }).map((_, i) => (
+      <div
+        key={i}
+        className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
+          <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
+        </div>
+        <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
+        <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
+        <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
+        <div className="w-full mb-8">
+          <div className="h-2.5 bg-slate-100 rounded-full"></div>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+          <div className="flex -space-x-2">
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div
+                key={j}
+                className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
+              ></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ));
+
   // --- RENDER ---
   const renderAllProjects = () => (
     <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
+      {/* ── My Projects ── */}
+      <div className="mb-4">
+        <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          My Projects
+          <span className="text-sm font-semibold text-slate-400 ml-1">
+            ({ownedBoards.length})
+          </span>
+        </h2>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {boardsLoading
-          ? Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
-                <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
-              </div>
-              <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
-              <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
-              <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
-              <div className="w-full mb-8">
-                <div className="h-2.5 bg-slate-100 rounded-full"></div>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-                <div className="flex -space-x-2">
-                  {Array.from({ length: 3 }).map((_, j) => (
-                    <div
-                      key={j}
-                      className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))
-          : boards.map((proj, index) => {
-            return (
+          ? renderSkeletonCards()
+          : ownedBoards.map((proj, index) => (
               <ProjectCard
                 key={proj.id}
                 proj={proj}
@@ -148,9 +179,10 @@ export default function ProjectsPage() {
                 handleUpdateProject={handleUpdateProject}
                 handleDeleteProject={handleDeleteProject}
                 setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole="Owner"
               />
-            );
-          })}
+            ))}
 
         {/* Create New Project Card */}
         <div
@@ -166,11 +198,47 @@ export default function ProjectsPage() {
           </p>
         </div>
       </div>
+
+      {/* ── Joined Projects ── */}
+      {!boardsLoading && joinedBoards.length > 0 && (
+        <>
+          <div className="mt-12 mb-4">
+            <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+              Joined Projects
+              <span className="text-sm font-semibold text-slate-400 ml-1">
+                ({joinedBoards.length})
+              </span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {joinedBoards.map((proj, index) => (
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole={proj.member_role || "Member"}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 
   return (
-    <>
+    <div
+      className={
+        selectedProject ? "flex flex-col h-screen overflow-hidden" : ""
+      }
+    >
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
@@ -210,7 +278,7 @@ export default function ProjectsPage() {
               <p className="text-sm text-slate-500 font-medium mt-1">
                 You have{" "}
                 <span className="text-[#34D399] font-bold">
-                  {boards.length} active
+                  {totalProjects} active
                 </span>{" "}
                 projects pushing forward.
               </p>
@@ -286,13 +354,15 @@ export default function ProjectsPage() {
                 </button>
               ))}
             </div>
-            <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10">
+            <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10 min-h-0">
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
               )}
               {projectTab === "Timeline" && <TimelineTab />}
               {projectTab === "Files" && <FilesTab />}
-              {projectTab === "Team" && <TeamTab />}
+              {projectTab === "Team" && (
+                <TeamTab boardId={selectedProject.id} />
+              )}
             </div>
           </>
         )}
@@ -301,10 +371,11 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject ? (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
-            ? "bg-[#1E293B] shadow-slate-400"
-            : "bg-[#34D399] shadow-emerald-200"
-            }`}
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
+            projectTab === "Timeline"
+              ? "bg-[#1E293B] shadow-slate-400"
+              : "bg-[#34D399] shadow-emerald-200"
+          }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
@@ -360,6 +431,18 @@ export default function ProjectsPage() {
         onSubmit={onCreateProject}
         isSubmitting={isSubmitting}
       />
-    </>
+
+      {/* UPDATE PROJECT MODAL */}
+      <UpdateProjectModal
+        isOpen={isUpdateProjectOpen}
+        onClose={() => {
+          setIsUpdateProjectOpen(false);
+          setProjectToUpdate(null);
+        }}
+        initialData={projectToUpdate}
+        onSubmit={onUpdateProjectSubmit}
+        isSubmitting={isSubmitting}
+      />
+    </div>
   );
 }

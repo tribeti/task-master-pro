@@ -174,9 +174,8 @@ export const fetchKanbanDataAction = async (boardId: number) => {
       .in("column_id", columnIds)
       .order("position", { ascending: true });
 
-    if (tasksErr) {
-      console.error("fetchKanbanDataAction tasks error:", tasksErr.message);
-      throw new Error("Failed to load tasks.");
+    if (payload.description !== undefined && payload.description !== null) {
+        validateString(payload.description, "Description", 2000);
     }
 
     tasks = ((tasksData as Task[]) || []).map((task) => ({
@@ -483,7 +482,7 @@ export const setTaskLabelAction = async (taskId: number, labelId: number) => {
     throw new Error("Failed to set task label.");
   }
 
-  revalidatePath("/projects");
+    revalidatePath("/projects");
 };
 
 export const clearTaskLabelAction = async (taskId: number) => {
@@ -511,6 +510,27 @@ export const clearTaskLabelAction = async (taskId: number) => {
 
   revalidatePath("/projects");
 };
+// update column
+export const updateColumnAction = async (
+    columnId: number,
+    payload: { title?: string; position?: number },
+) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    if (payload.title !== undefined) {
+        payload.title = validateString(payload.title, "Column title", 100);
+    }
+
+    // Get the column to find its board_id
+    const { data: column, error: colErr } = await supabase
+        .from("columns")
+        .select("board_id")
+        .eq("id", columnId)
+        .single();
 
 export const fetchCommentsForTaskAction = async (taskId: number) => {
   const supabase = await createClient();
@@ -523,21 +543,58 @@ export const fetchCommentsForTaskAction = async (taskId: number) => {
     throw new Error("Unauthorized");
   }
 
-  await verifyTaskOwnership(supabase, user.id, taskId);
+    if (error) {
+        console.error("updateColumnAction error: Lỗi khi cập nhật cột", error.message);
+        throw new Error("Không thể cập nhật cột lúc này.");
+    }
 
-  const { data, error } = await supabase
-    .from("comments")
-    .select("*")
-    .eq("task_id", taskId)
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.error("fetchCommentsForTaskAction error:", error.message);
-    throw new Error("Failed to load comments.");
-  }
-
-  return (data as Comment[]) || [];
+    revalidatePath("/projects");
 };
+// delete column
+export const deleteColumnAction = async (columnId: number) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { data: column, error: colErr } = await supabase
+        .from("columns")
+        .select("board_id")
+        .eq("id", columnId)
+        .single();
+
+    if (colErr || !column) throw new Error("Column not found.");
+    await verifyBoardAccess(supabase, user.id, column.board_id);
+
+    // Kiểm tra xem cột có còn task nào không
+    const { count, error: countError } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("column_id", columnId);
+
+    if (countError) {
+        console.error("deleteColumnAction: Lỗi khi đếm task:", countError.message);
+        throw new Error("Không thể xóa cột lúc này.");
+    }
+
+    if (count && count > 0) {
+        throw new Error("Không thể xóa cột vẫn còn chứa task.");
+    }
+
+    const { error } = await supabase
+        .from("columns")
+        .delete()
+        .eq("id", columnId);
+
+    if (error) {
+        console.error("deleteColumnAction error: Lỗi khi xóa cột", error.message);
+        throw new Error("Không thể xóa cột lúc này.");
+    }
+
+    revalidatePath("/projects");
+};
+// fetchCommentsForTaskAction has been migrated to GET /api/tasks/[taskId]/comments
 
 export const createCommentAction = async (
   taskId: number,
@@ -553,21 +610,21 @@ export const createCommentAction = async (
     throw new Error("Unauthorized");
   }
 
-  await verifyTaskOwnership(supabase, user.id, taskId);
+    await verifyTaskAccess(supabase, user.id, taskId);
 
-  const cleanContent = validateString(content, "Comment", 2000);
+    const cleanContent = validateString(content, "Comment", 2000);
 
-  const payload = {
-    content: cleanContent,
-    task_id: taskId,
-    user_id: user.id,
-  };
+    const payload = {
+        content: cleanContent,
+        task_id: taskId,
+        user_id: user.id,
+    };
 
-  const { data, error } = await supabase
-    .from("comments")
-    .insert([payload])
-    .select()
-    .single();
+    const { data, error } = await supabase
+        .from("comments")
+        .insert([payload])
+        .select()
+        .single();
 
   if (error) {
     console.error(
@@ -594,31 +651,31 @@ export const deleteCommentAction = async (commentId: number) => {
     throw new Error("Unauthorized");
   }
 
-  const { data: comment, error: commentErr } = await supabase
-    .from("comments")
-    .select("id, user_id, task_id")
-    .eq("id", commentId)
-    .single();
+    const { data: comment, error: commentErr } = await supabase
+        .from("comments")
+        .select("id, user_id, task_id")
+        .eq("id", commentId)
+        .single();
 
-  if (commentErr || !comment) {
-    throw new Error("Comment not found.");
-  }
+    if (commentErr || !comment) {
+        throw new Error("Comment not found.");
+    }
 
-  await verifyTaskOwnership(supabase, user.id, comment.task_id);
+    await verifyTaskAccess(supabase, user.id, comment.task_id);
 
-  if (comment.user_id !== user.id) {
-    throw new Error("You can only delete your own comments.");
-  }
+    if (comment.user_id !== user.id) {
+        throw new Error("You can only delete your own comments.");
+    }
 
-  const { error } = await supabase
-    .from("comments")
-    .delete()
-    .eq("id", commentId);
+    const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId);
 
-  if (error) {
-    console.error("deleteCommentAction error:", error.message);
-    throw new Error("Failed to delete comment.");
-  }
+    if (error) {
+        console.error("deleteCommentAction error:", error.message);
+        throw new Error("Failed to delete comment.");
+    }
 
   revalidatePath("/projects");
 };

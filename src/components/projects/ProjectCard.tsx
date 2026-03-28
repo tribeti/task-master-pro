@@ -9,11 +9,13 @@ interface ProjectCardProps {
   proj: Board;
   index: number;
   openMenuProjectId: number | null;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   setOpenMenuProjectId: (id: number | null) => void;
   handleUpdateProject: (proj: Board) => void;
   handleDeleteProject: (id: number, title: string) => void;
   setSelectedProject: (proj: Board) => void;
+  currentUserId?: string;
+  memberRole?: string;
 }
 
 export default function ProjectCard({
@@ -25,6 +27,8 @@ export default function ProjectCard({
   handleUpdateProject,
   handleDeleteProject,
   setSelectedProject,
+  currentUserId,
+  memberRole,
 }: ProjectCardProps) {
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
@@ -37,12 +41,25 @@ export default function ProjectCard({
       className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
     >
       <div className="flex items-center justify-between mb-4">
-        <span
-          className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
-          style={{ backgroundColor: projColor }}
-        >
-          {projTag}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
+            style={{ backgroundColor: projColor }}
+          >
+            {projTag}
+          </span>
+          {memberRole && (
+            <span
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${
+                memberRole === "Owner"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-sky-100 text-sky-700"
+              }`}
+            >
+              {memberRole}
+            </span>
+          )}
+        </div>
         <div
           className="relative"
           ref={
@@ -51,18 +68,20 @@ export default function ProjectCard({
               : null
           }
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenMenuProjectId(
-                openMenuProjectId === proj.id ? null : proj.id,
-              );
-            }}
-            className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
-          >
-            <MoreIcon />
-          </button>
-          {openMenuProjectId === proj.id && (
+          {proj.owner_id === currentUserId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuProjectId(
+                  openMenuProjectId === proj.id ? null : proj.id,
+                );
+              }}
+              className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
+            >
+              <MoreIcon />
+            </button>
+          )}
+          {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50">
               <button
                 onClick={(e) => {

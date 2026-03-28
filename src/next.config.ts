@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "**",
+      },
+      // Bạn có thể thêm các domain khác ở đây sau này nếu cần (VD: githubusercontent, aws s3...)
+    ],
+  },
   poweredByHeader: false,
 
   async headers() {
