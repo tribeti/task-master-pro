@@ -355,7 +355,7 @@ export default function ProfilePage() {
                     Display Name
                   </label>
                   {isLoadingProfile ? (
-                    <div className="w-full h-13 bg-slate-100 animate-pulse rounded-2xl"></div>
+                    <div className="w-full h-12 bg-slate-100 animate-pulse rounded-2xl"></div>
                   ) : (
                     <input
                       type="text"
