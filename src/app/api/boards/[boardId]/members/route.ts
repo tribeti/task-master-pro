@@ -306,7 +306,7 @@ export async function POST(
     if (resend) {
       try {
         await resend.emails.send({
-          from: "Task Master Pro <noreply@resend.dev>",
+          from: "Task Master Pro <noreply@taskmasterpro.com>",
           to: [email],
           subject: `${inviterName} đã mời bạn vào dự án "${boardTitle}"`,
           html: `
