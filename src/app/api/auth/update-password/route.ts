@@ -17,9 +17,19 @@ function validatePassword(password: string): string | null {
 }
 
 export async function POST(request: Request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json(
+      { error: "Cấu hình hệ thống không hợp lệ." },
+      { status: 500 },
+    );
+  }
+
   try {
     const { oldPassword, newPassword } = await request.json();
-    // ── Basic validation ──
+
     if (!oldPassword || !newPassword) {
       return NextResponse.json(
         { error: "Vui lòng nhập đầy đủ thông tin." },
@@ -32,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: passwordError }, { status: 400 });
     }
 
-    // ── Get current user session via server client ──
+    // 3. Khởi tạo server client (để lấy user hiện tại)
     const supabase = await createClient();
     const {
       data: { user },
@@ -46,17 +56,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Verify old password by attempting sign-in ──
-    const verifyClient = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+    // 4. Sử dụng biến đã verify để xác thực mật khẩu cũ
+    const verifyClient = createBrowserClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
-    );
+    });
 
     const { error: signInError } = await verifyClient.auth.signInWithPassword({
       email: user.email,
@@ -70,13 +76,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Update password ──
+    // 5. Cập nhật mật khẩu mới
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     });
 
     if (updateError) {
-      console.error("update-password error:", updateError.message);
       return NextResponse.json(
         { error: "Không thể đổi mật khẩu. Vui lòng thử lại sau." },
         { status: 500 },
@@ -85,9 +90,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: "Đổi mật khẩu thành công!" });
   } catch (err) {
-    console.error("update-password unexpected error:", err);
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi. Vui lòng thử lại sau." },
+      { error: "Đã xảy ra lỗi không xác định." },
       { status: 500 },
     );
   }

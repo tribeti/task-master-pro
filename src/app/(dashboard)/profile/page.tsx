@@ -15,7 +15,7 @@ export default function ProfilePage() {
 
   const fallbackAvatar = useMemo(
     () =>
-      `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || "User"}`,
+      `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user?.email || "User")}`,
     [user?.email],
   );
 
