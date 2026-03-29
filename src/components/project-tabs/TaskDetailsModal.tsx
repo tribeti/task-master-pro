@@ -594,8 +594,7 @@ export function TaskDetailsModal({
                 )}
 
                 <p className="mt-3 ml-1 text-xs text-slate-400">
-                  Select any user. If they are not in this board yet,
-                  the system will add them automatically when assigned.
+                  Select any board member to assign them to this task.
                 </p>
               </div>
             </div>
