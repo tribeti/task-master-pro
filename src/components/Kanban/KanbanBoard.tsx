@@ -266,7 +266,11 @@ export function KanbanBoard({
             debounceTaskTimerRef.current = setTimeout(() => {
                 // clear timer ref so a new drag during API execution will increment pending
                 debounceTaskTimerRef.current = null;
-                bulkUpdateTasksAction(changedTasks)
+                bulkUpdateTasksAction(changedTasks.map(t => ({
+                    id: t.id,
+                    column_id: t.column_id,
+                    position: t.position,
+                })))
                     .then(() => {
                         return onDataChange();
                     })
