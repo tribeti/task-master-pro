@@ -77,6 +77,9 @@ function validateString(
     maxLength: number = 500,
 ): string {
     const trimmed = value.trim();
+    if (trimmed.length === 0) {
+        throw new Error(`${fieldName} is required.`);
+    }
     if (trimmed.length > maxLength) {
         throw new Error(`${fieldName} must be ${maxLength} characters or less.`);
     }
@@ -188,10 +191,7 @@ export const bulkUpdateTasksAction = async (
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Verify access for the first task as a proxy for the board
-    await verifyTaskAccess(supabase, user.id, updates[0].id);
-
-    // Fetch existing tasks to preserve other fields (title, description, etc.)
+    // 1. Fetch existing tasks to preserve other fields and get their current column_ids
     const taskIds = updates.map((u) => u.id);
     const { data: existingTasks, error: fetchErr } = await supabase
         .from("tasks")
@@ -201,6 +201,36 @@ export const bulkUpdateTasksAction = async (
     if (fetchErr || !existingTasks) {
         console.error("bulkUpdateTasksAction fetch error:", fetchErr?.message);
         throw new Error("Failed to fetch existing tasks.");
+    }
+
+    // 2. Security Check: Collect all unique column IDs involved (both current and target)
+    const involvedColumnIds = new Set<number>();
+
+    // Add current column IDs
+    existingTasks.forEach((task) => involvedColumnIds.add(task.column_id));
+
+    // Add target column IDs from updates
+    updates.forEach((update) => {
+        if (update.column_id) {
+            involvedColumnIds.add(update.column_id);
+        }
+    });
+
+    // 3. Fetch board IDs for all involved columns
+    const { data: columnsData, error: colsErr } = await supabase
+        .from("columns")
+        .select("id, board_id")
+        .in("id", Array.from(involvedColumnIds));
+
+    if (colsErr || !columnsData) {
+        console.error("bulkUpdateTasksAction columns fetch error:", colsErr?.message);
+        throw new Error("Failed to verify access.");
+    }
+
+    // 4. Verify access to all involved boards
+    const involvedBoardIds = new Set<number>(columnsData.map(col => col.board_id));
+    for (const boardId of involvedBoardIds) {
+        await verifyBoardAccess(supabase, user.id, boardId);
     }
 
     // Merge changes
