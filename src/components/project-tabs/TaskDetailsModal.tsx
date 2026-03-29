@@ -594,7 +594,7 @@ export function TaskDetailsModal({
                 )}
 
                 <p className="mt-3 ml-1 text-xs text-slate-400">
-                  Select any board member to assign them to this task.
+                  Select an available user to assign them to this task.
                 </p>
               </div>
             </div>
