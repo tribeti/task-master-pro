@@ -54,8 +54,8 @@ export async function PUT(request: Request) {
 
     const { displayName } = await request.json();
 
-    if (!displayName || typeof displayName !== "string") {
-      return createErrorResponse("Display name không hợp lệ.", 400);
+    if (typeof displayName !== "string" || displayName.trim().length === 0) {
+      return createErrorResponse("Tên hiển thị không hợp lệ.", 400);
     }
 
     // 1. Update `users` table (public profile)
