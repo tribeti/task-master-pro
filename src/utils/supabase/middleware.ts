@@ -40,7 +40,7 @@ export async function updateSession(request: NextRequest) {
   const publicApiRoutes = ["/api/auth", "/api/cron"];
   const isPublicApiRoute = publicApiRoutes.some((route) =>
     pathname.startsWith(route),
-  );
+  ) || pathname.includes("/invitations/accept");
 
   if (isApiRoute && !isPublicApiRoute && !user) {
     let authError = NextResponse.json(

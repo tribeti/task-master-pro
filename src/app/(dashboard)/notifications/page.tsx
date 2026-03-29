@@ -122,7 +122,9 @@ export default function NotificationsPage() {
               try {
                 const payload = JSON.parse(notification.content);
                 taskTitle = `${payload.inviterName} invited you to join "${payload.boardTitle}"`;
-                acceptUrl = payload.acceptUrl;
+                if (payload.token && notification.project_id) {
+                  acceptUrl = `/api/boards/${notification.project_id}/invitations/accept?token=${payload.token}`;
+                }
               } catch (e) {
                 taskTitle = "You have a new project invitation";
               }

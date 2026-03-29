@@ -300,7 +300,6 @@ export async function POST(
     try {
       const payload = JSON.stringify({
         token: invitation.token,
-        acceptUrl: acceptUrl,
         inviterName: inviterName,
         boardTitle: boardTitle,
       });
@@ -319,7 +318,6 @@ export async function POST(
 
       if (notifError) {
         console.error("Failed to create in-app notification:", notifError);
-      } else {
       }
     } catch (notifErr) {
       console.error("Failed to create in-app notification payload:", notifErr);
