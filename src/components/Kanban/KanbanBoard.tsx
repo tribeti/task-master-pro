@@ -13,6 +13,7 @@ import {
     updateTaskAction,
     createColumnAction,
     updateColumnAction,
+    bulkUpdateTasksAction,
 } from "@/app/actions/kanban.actions";
 import { toast } from "sonner";
 import {
@@ -58,13 +59,27 @@ export function KanbanBoard({
     const [localColumns, setLocalColumns] = useState<Column[]>(columns);
     const [localTasks, setLocalTasks] = useState<KanbanTask[]>(tasks);
 
-    // Sync with parent state when props change
+    const lastSyncedColumnsRef = useRef(columns);
+    const lastSyncedTasksRef = useRef(tasks);
+    
+    // Track if there are pending drags or API calls to avoid UI jumps
+    const pendingTasksUpdatesRef = useRef(0);
+
+    // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
-        setLocalColumns(columns);
+        if (JSON.stringify(columns) !== JSON.stringify(lastSyncedColumnsRef.current)) {
+            setLocalColumns(columns);
+            lastSyncedColumnsRef.current = columns;
+        }
     }, [columns]);
 
     useEffect(() => {
-        setLocalTasks(tasks);
+        if (pendingTasksUpdatesRef.current === 0) {
+            if (JSON.stringify(tasks) !== JSON.stringify(lastSyncedTasksRef.current)) {
+                setLocalTasks(tasks);
+                lastSyncedTasksRef.current = tasks;
+            }
+        }
     }, [tasks]);
 
     // Add column state
@@ -77,6 +92,9 @@ export function KanbanBoard({
             newColInputRef.current.focus();
         }
     }, [isAddingColumn]);
+
+    // Ref timer for debouncing task updates
+    const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     /* ══════════════════════════════════════════════════════════════
      *  onDragEnd — Optimistic UI Update
@@ -157,6 +175,8 @@ export function KanbanBoard({
             const [movedTask] = sourceTasks.splice(source.index, 1);
             if (!movedTask) return;
 
+            let newTasks = [];
+
             /* ─────────────────────────────────────
              *  Case 2: Kéo Task TRONG CÙNG một Cột
              * ───────────────────────────────────── */
@@ -173,28 +193,12 @@ export function KanbanBoard({
                     position: i,
                 }));
 
-                // ── Step 3: Merge & Update UI IMMEDIATELY ──
+                // Merge into newTasks
                 const updatedTaskIds = new Set(updatedSourceTasks.map((t) => t.id));
-                const newTasks = [
+                newTasks = [
                     ...allTasks.filter((t) => !updatedTaskIds.has(t.id)),
                     ...updatedSourceTasks,
                 ];
-                setLocalTasks(newTasks);
-                // ── Step 4: Fire API in background ──
-                Promise.all(
-                    updatedSourceTasks.map((t) =>
-                        updateTaskAction(t.id, { position: t.position }),
-                    ),
-                )
-                    .then(() => {
-                        onDataChange();
-                    })
-                    .catch(() => {
-                        // ── Step 5: Rollback ──
-                        setLocalTasks(previousTasks);
-                        toast.error("Lưu vị trí thất bại, đang hoàn tác!");
-                    });
-
             } else {
                 /* ─────────────────────────────────────
                  *  Case 3: Kéo Task SANG CỘT KHÁC
@@ -219,38 +223,69 @@ export function KanbanBoard({
                     position: i,
                 }));
 
-                // ── Step 3: Merge all & Update UI IMMEDIATELY ──
+                // Merge into newTasks
                 const movedAndUpdated = [...updatedSourceTasks, ...updatedDestTasks];
                 const movedIds = new Set(movedAndUpdated.map((t) => t.id));
-                const newTasks = [
+                newTasks = [
                     ...allTasks.filter((t) => !movedIds.has(t.id)),
                     ...movedAndUpdated,
                 ];
-                setLocalTasks(newTasks);
+            }
 
-                // ── Step 4: Fire API in background ──
-                const sourceUpdates = updatedSourceTasks.map((t) =>
-                    updateTaskAction(t.id, { position: t.position }),
+            // ── Step 3: Update UI IMMEDIATELY ──
+            setLocalTasks(newTasks);
+
+            // ── Step 4: Dirty Checking ──
+            const changedTasks = newTasks.filter((newTask) => {
+                // Compare with original props (tasks) representing the server state
+                const oldTask = tasks.find((t) => t.id === newTask.id);
+                if (!oldTask) return false;
+                return (
+                    oldTask.column_id !== newTask.column_id ||
+                    oldTask.position !== newTask.position
                 );
-                const destUpdates = updatedDestTasks.map((t) => {
-                    const payload: { position: number; column_id?: number } = {
-                        position: t.position,
-                    };
-                    if (t.id === movedTask.id) {
-                        payload.column_id = destColId;
-                    }
-                    return updateTaskAction(t.id, payload);
-                });
-                Promise.all([...sourceUpdates, ...destUpdates])
+            });
+
+            if (changedTasks.length === 0) return;
+
+            const updates = changedTasks.map((t) => ({
+                id: t.id,
+                column_id: t.column_id,
+                position: t.position,
+            }));
+
+            // ── Step 5: Debounce API Call & Bulk Update ──
+            if (debounceTaskTimerRef.current) {
+                clearTimeout(debounceTaskTimerRef.current);
+            } else {
+                // Only increment if we are starting a fresh debounce cycle
+                pendingTasksUpdatesRef.current++;
+            }
+
+            debounceTaskTimerRef.current = setTimeout(() => {
+                // clear timer ref so a new drag during API execution will increment pending
+                debounceTaskTimerRef.current = null;
+                bulkUpdateTasksAction(updates)
                     .then(() => {
-                        onDataChange();
+                        return onDataChange();
                     })
                     .catch(() => {
-                        // ── Step 5: Rollback ──
-                        setLocalTasks(previousTasks);
-                        toast.error("Lưu vị trí thất bại, đang hoàn tác!");
+                        // Rollback to last known server state (props)
+                        setLocalTasks(tasks);
+                        toast.error("Lưu vị trí tác vụ thất bại, đang hoàn tác!");
+                    })
+                    .finally(() => {
+                        pendingTasksUpdatesRef.current--;
+                        // If it reaches 0 and the latest tasks prop is different, we can manually sync
+                        if (
+                            pendingTasksUpdatesRef.current === 0 &&
+                            JSON.stringify(tasks) !== JSON.stringify(lastSyncedTasksRef.current)
+                        ) {
+                            setLocalTasks(tasks);
+                            lastSyncedTasksRef.current = tasks;
+                        }
                     });
-            }
+            }, 500);
         }
     };
 

@@ -77,9 +77,6 @@ function validateString(
     maxLength: number = 500,
 ): string {
     const trimmed = value.trim();
-    if (trimmed.length === 0) {
-        throw new Error(`${fieldName} is required.`);
-    }
     if (trimmed.length > maxLength) {
         throw new Error(`${fieldName} must be ${maxLength} characters or less.`);
     }
@@ -177,6 +174,54 @@ export const updateTaskAction = async (
         console.error("updateTaskAction error:", error.message);
         throw new Error("Failed to update task.");
     }
+    revalidatePath("/projects");
+};
+
+export const bulkUpdateTasksAction = async (
+    updates: { id: number; position: number; column_id: number }[],
+) => {
+    if (!updates.length) return;
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // Verify access for the first task as a proxy for the board
+    await verifyTaskAccess(supabase, user.id, updates[0].id);
+
+    // Fetch existing tasks to preserve other fields (title, description, etc.)
+    const taskIds = updates.map((u) => u.id);
+    const { data: existingTasks, error: fetchErr } = await supabase
+        .from("tasks")
+        .select("*")
+        .in("id", taskIds);
+
+    if (fetchErr || !existingTasks) {
+        console.error("bulkUpdateTasksAction fetch error:", fetchErr?.message);
+        throw new Error("Failed to fetch existing tasks.");
+    }
+
+    // Merge changes
+    const upsertData = existingTasks.map((task) => {
+        const update = updates.find((u) => u.id === task.id);
+        return {
+            ...task,
+            position: update?.position ?? task.position,
+            column_id: update?.column_id ?? task.column_id,
+        };
+    });
+
+    const { error } = await supabase
+        .from("tasks")
+        .upsert(upsertData, { onConflict: "id" });
+
+    if (error) {
+        console.error("bulkUpdateTasksAction error:", error.message);
+        throw new Error("Failed to bulk update tasks.");
+    }
+
     revalidatePath("/projects");
 };
 
