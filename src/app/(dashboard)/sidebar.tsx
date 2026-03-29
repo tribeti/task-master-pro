@@ -63,7 +63,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
     }, [user?.id, supabase]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        await fetch("/api/auth/logout", { method: "POST" });
         router.push("/login");
     };
 
