@@ -82,7 +82,10 @@ export async function PUT(request: Request) {
         "PUT /api/auth/profile auth sync error:",
         authUpdateError.message,
       );
-      // Non-critical: DB update succeeded, log but don't fail
+      return createErrorResponse(
+        "Không thể đồng bộ hóa thông tin người dùng. Vui lòng thử lại.",
+        500,
+      );
     }
 
     return createSuccessResponse({ message: "Cập nhật profile thành công!" });
