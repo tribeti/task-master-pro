@@ -41,6 +41,47 @@ async function verifyBoardAccess(
     }
 }
 
+// ── Helper: Verify user has access to multiple boards ──
+async function verifyAllBoardsAccess(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    userId: string,
+    boardIds: Set<number> | number[],
+) {
+    const ids = Array.from(boardIds);
+    if (ids.length === 0) return;
+
+    // Query 1: Lấy tất cả boards mà user là OWNER
+    const { data: ownedBoards, error: ownerError } = await supabase
+        .from("boards")
+        .select("id")
+        .eq("owner_id", userId)
+        .in("id", ids);
+
+    if (ownerError) throw ownerError;
+
+    // Query 2: Lấy tất cả boards mà user là MEMBER
+    const { data: memberBoards, error: memberError } = await supabase
+        .from("board_members")
+        .select("board_id")
+        .eq("user_id", userId)
+        .in("board_id", ids);
+
+    if (memberError) throw memberError;
+
+    // Gộp các board ID có quyền truy cập
+    const accessibleIds = new Set([
+        ...(ownedBoards?.map((b) => b.id) ?? []),
+        ...(memberBoards?.map((b) => b.board_id) ?? []),
+    ]);
+
+    // Kiểm tra từng board — throw nếu thiếu quyền
+    for (const boardId of ids) {
+        if (!accessibleIds.has(boardId)) {
+            throw new Error(`Access denied for board: ${boardId}`);
+        }
+    }
+}
+
 // ── Helper: Verify user has access to the board that contains a specific task ──
 async function verifyTaskAccess(
     supabase: Awaited<ReturnType<typeof createClient>>,
@@ -195,7 +236,7 @@ export const bulkUpdateTasksAction = async (
     const taskIds = updates.map((u) => u.id);
     const { data: existingTasks, error: fetchErr } = await supabase
         .from("tasks")
-        .select("*")
+        .select("id, title, description, deadline, priority, column_id, assignee_id, position")
         .in("id", taskIds);
 
     if (fetchErr || !existingTasks) {
@@ -229,11 +270,7 @@ export const bulkUpdateTasksAction = async (
 
     // 4. Verify access to all involved boards
     const involvedBoardIds = new Set<number>(columnsData.map(col => col.board_id));
-    await Promise.all(
-        Array.from(involvedBoardIds).map(boardId =>
-            verifyBoardAccess(supabase, user.id, boardId)
-        )
-    );
+    await verifyAllBoardsAccess(supabase, user.id, involvedBoardIds);
 
     // Merge changes
     const updatesMap = new Map(updates.map(u => [u.id, u]));

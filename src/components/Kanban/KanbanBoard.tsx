@@ -96,7 +96,14 @@ export function KanbanBoard({
 
     // Ref timer for debouncing task updates
     const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
-
+    // Cleanup timer khi component bị hủy (Unmount)
+    useEffect(() => {
+        return () => {
+            if (debounceTaskTimerRef.current) {
+                clearTimeout(debounceTaskTimerRef.current);
+            }
+        };
+    }, []);
     /* ══════════════════════════════════════════════════════════════
      *  onDragEnd — Optimistic UI Update
      *
