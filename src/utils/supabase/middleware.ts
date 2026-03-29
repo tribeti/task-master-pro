@@ -2,67 +2,96 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({
-        request,
-    });
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll();
-                },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        request.cookies.set(name, value)
-                    );
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    });
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    );
-                },
-            },
-        }
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value),
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // Protect all API routes except public ones (like auth or cron jobs)
+  const isApiRoute = pathname.startsWith("/api");
+  const publicApiRoutes = ["/api/auth", "/api/cron"];
+  const isPublicApiRoute = publicApiRoutes.some((route) =>
+    pathname.startsWith(route),
+  ) || pathname.includes("/invitations/accept");
+
+  if (isApiRoute && !isPublicApiRoute && !user) {
+    let authError = NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
     );
+    // Copy cookies to preserve session refresh if any
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      authError.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return authError;
+  }
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+  // Protect private UI routes
+  const privateRoutes = [
+    "/command",
+    "/insights",
+    "/projects",
+    "/profile",
+    "/notifications",
+  ];
+  const isPrivateRoute = privateRoutes.some((route) =>
+    pathname.startsWith(route),
+  );
 
-    // Protect private routes
-    const privateRoutes = ['/command', '/insights', '/projects', '/profile'];
-    const isPrivateRoute = privateRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+  if (isPrivateRoute && !user) {
+    // no user, potentially respond by redirecting the user to the login page
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    const response = NextResponse.redirect(url);
+    // Copy cookies from supabaseResponse to preserve session refresh
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return response;
+  }
 
-    if (isPrivateRoute && !user) {
-        // no user, potentially respond by redirecting the user to the login page
-        const url = request.nextUrl.clone();
-        url.pathname = '/login';
-        const response = NextResponse.redirect(url);
-        // Copy cookies from supabaseResponse to preserve session refresh
-        supabaseResponse.cookies.getAll().forEach(cookie => {
-            response.cookies.set(cookie.name, cookie.value, cookie);
-        });
-        return response;
-    }
+  // Redirect signed-in users away from auth pages
+  const authRoutes = ["/login"];
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-    // Redirect signed-in users away from auth pages
-    const authRoutes = ['/login'];
-    const isAuthRoute = authRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+  if (isAuthRoute && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/command";
+    const response = NextResponse.redirect(url);
+    // Copy cookies from supabaseResponse to preserve session refresh
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return response;
+  }
 
-    if (isAuthRoute && user) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/command';
-        const response = NextResponse.redirect(url);
-        // Copy cookies from supabaseResponse to preserve session refresh
-        supabaseResponse.cookies.getAll().forEach(cookie => {
-            response.cookies.set(cookie.name, cookie.value, cookie);
-        });
-        return response;
-    }
-
-    return supabaseResponse;
+  return supabaseResponse;
 }
