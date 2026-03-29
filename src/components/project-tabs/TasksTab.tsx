@@ -8,6 +8,9 @@ import {
   createTaskAction,
   updateTaskAction,
   deleteTaskAction,
+  addTaskAssigneeAction,
+  removeTaskAssigneeAction,
+  removeAllTaskAssigneesAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
   createLabelAction,
@@ -117,7 +120,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
       priority: data.priority,
       deadline: data.deadline || null,
       column_id: selectedColumnId,
-      assignee_id: user?.id ?? null,
     };
 
     let error = false;
@@ -139,6 +141,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       try {
         await createTaskAction({
           ...taskPayload,
+          assignee_id: null,
           position: nextPosition,
         });
       } catch (insertError) {
@@ -263,6 +266,48 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleAddAssignee = async (
+    taskId: number,
+    assigneeId: string,
+  ) => {
+    try {
+      await addTaskAssigneeAction(taskId, assigneeId);
+      await fetchData();
+      toast.success("Assignee added");
+    } catch (error) {
+      console.error("Failed to add assignee:", error);
+      toast.error("Failed to add assignee");
+      throw error;
+    }
+  };
+
+  const handleRemoveAssignee = async (
+    taskId: number,
+    assigneeId: string,
+  ) => {
+    try {
+      await removeTaskAssigneeAction(taskId, assigneeId);
+      await fetchData();
+      toast.success("Assignee removed");
+    } catch (error) {
+      console.error("Failed to remove assignee:", error);
+      toast.error("Failed to remove assignee");
+      throw error;
+    }
+  };
+
+  const handleRemoveAllAssignees = async (taskId: number) => {
+    try {
+      await removeAllTaskAssigneesAction(taskId);
+      await fetchData();
+      toast.success("All assignees removed");
+    } catch (error) {
+      console.error("Failed to remove all assignees:", error);
+      toast.error("Failed to remove all assignees");
+      throw error;
+    }
+  };
+
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
     try {
       await updateColumnAction(columnId, { title: newTitle });
@@ -331,6 +376,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
       <TaskDetailsModal
         isOpen={isModalOpen}
+        boardId={projectId}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}
@@ -340,6 +386,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
         onCreateAndAssignLabel={handleCreateAndAssignLabel}
+        onAddAssignee={handleAddAssignee}
+        onRemoveAssignee={handleRemoveAssignee}
+        onRemoveAllAssignees={handleRemoveAllAssignees}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}

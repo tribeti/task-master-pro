@@ -201,6 +201,8 @@ export function KanbanColumn({
                       description={task.description || undefined}
                       labels={task.labels}
                       deadline={task.deadline}
+                      assignee={task.assignee}
+                      assignees={task.assignees}
                       boardLabels={boardLabels}
                       onAddLabel={onAddLabel}
                       onRemoveLabel={onRemoveLabel}

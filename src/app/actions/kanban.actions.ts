@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { verifyBoardAccess } from "@/utils/board-access";
 import { revalidatePath } from "next/cache";
 import {
     Task,
@@ -12,34 +13,6 @@ import {
 } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 
-// ── Helper: Verify user has access to a board (owner OR member) ──
-async function verifyBoardAccess(
-    supabase: Awaited<ReturnType<typeof createClient>>,
-    userId: string,
-    boardId: number,
-) {
-    // Check if user is the board owner
-    const { data: board } = await supabase
-        .from("boards")
-        .select("id")
-        .eq("id", boardId)
-        .eq("owner_id", userId)
-        .maybeSingle();
-
-    if (board) return; // User is the owner
-
-    // Check if user is a member of the board
-    const { data: membership } = await supabase
-        .from("board_members")
-        .select("user_id")
-        .eq("board_id", boardId)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-    if (!membership) {
-        throw new Error("Access denied.");
-    }
-}
 
 // ── Helper: Verify user has access to the board that contains a specific task ──
 async function verifyTaskAccess(
@@ -68,6 +41,98 @@ async function verifyTaskAccess(
     }
 
     await verifyBoardAccess(supabase, userId, column.board_id);
+}
+
+async function getTaskBoardId(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    taskId: number,
+): Promise<number> {
+    const { data, error } = await supabase
+        .from("tasks")
+        .select("columns(board_id)")
+        .eq("id", taskId)
+        .single();
+
+    const boardId = (data as { columns: { board_id: number } | null } | null)
+        ?.columns?.board_id;
+    if (error || !boardId) {
+        throw new Error("Task or associated column not found.");
+    }
+
+    return boardId;
+}
+
+async function ensureBoardMember(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    boardId: number,
+    userId: string,
+) {
+    const { data: board, error: boardErr } = await supabase
+        .from("boards")
+        .select("owner_id")
+        .eq("id", boardId)
+        .single();
+
+    if (boardErr || !board) {
+        throw new Error("Board not found.");
+    }
+
+    if (board.owner_id === userId) {
+        return;
+    }
+
+    const { data: membership } = await supabase
+        .from("board_members")
+        .select("id")
+        .eq("board_id", boardId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (membership) {
+        return;
+    }
+
+    const { error: insertMemberErr } = await supabase
+        .from("board_members")
+        .insert({
+            board_id: boardId,
+            user_id: userId,
+            role: "Member",
+        });
+
+    if (insertMemberErr) {
+        console.error("ensureBoardMember error:", insertMemberErr.message);
+        throw new Error("Failed to add assignee to board.");
+    }
+}
+
+async function syncPrimaryAssignee(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    taskId: number,
+) {
+    const { data: assigneeRows, error: assigneeRowsErr } = await supabase
+        .from("task_assignees")
+        .select("user_id, assigned_at, id")
+        .eq("task_id", taskId)
+        .order("assigned_at", { ascending: true })
+        .order("id", { ascending: true });
+
+    if (assigneeRowsErr) {
+        console.error("syncPrimaryAssignee fetch error:", assigneeRowsErr.message);
+        throw new Error("Failed to sync assignees.");
+    }
+
+    const primaryAssigneeId = assigneeRows?.[0]?.user_id || null;
+
+    const { error: updateTaskErr } = await supabase
+        .from("tasks")
+        .update({ assignee_id: primaryAssigneeId })
+        .eq("id", taskId);
+
+    if (updateTaskErr) {
+        console.error("syncPrimaryAssignee update error:", updateTaskErr.message);
+        throw new Error("Failed to sync assignees.");
+    }
 }
 
 // ── Helper: Validate string input ──
@@ -318,6 +383,97 @@ export const createLabelAction = async (
     revalidatePath("/projects");
 
     return label as Label;
+};
+
+export const addTaskAssigneeAction = async (taskId: number, userId: string) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    await verifyTaskAccess(supabase, user.id, taskId);
+    const boardId = await getTaskBoardId(supabase, taskId);
+
+    const { data: assignee, error: assigneeErr } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", userId)
+        .single();
+
+    if (assigneeErr || !assignee) {
+        throw new Error("Assignee not found.");
+    }
+
+    await ensureBoardMember(supabase, boardId, userId);
+
+    const { error: insertAssigneeErr } = await supabase
+        .from("task_assignees")
+        .upsert(
+            {
+                task_id: taskId,
+                user_id: userId,
+            },
+            {
+                onConflict: "task_id,user_id",
+                ignoreDuplicates: true,
+            },
+        );
+
+    if (insertAssigneeErr) {
+        console.error("addTaskAssigneeAction error:", insertAssigneeErr.message);
+        throw new Error("Failed to add assignee.");
+    }
+
+    await syncPrimaryAssignee(supabase, taskId);
+    revalidatePath("/projects");
+};
+
+export const removeTaskAssigneeAction = async (taskId: number, userId: string) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    await verifyTaskAccess(supabase, user.id, taskId);
+
+    const { error: deleteAssigneeErr } = await supabase
+        .from("task_assignees")
+        .delete()
+        .eq("task_id", taskId)
+        .eq("user_id", userId);
+
+    if (deleteAssigneeErr) {
+        console.error("removeTaskAssigneeAction error:", deleteAssigneeErr.message);
+        throw new Error("Failed to remove assignee.");
+    }
+
+    await syncPrimaryAssignee(supabase, taskId);
+    revalidatePath("/projects");
+};
+
+export const removeAllTaskAssigneesAction = async (taskId: number) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    await verifyTaskAccess(supabase, user.id, taskId);
+
+    const { error: deleteAssigneesErr } = await supabase
+        .from("task_assignees")
+        .delete()
+        .eq("task_id", taskId);
+
+    if (deleteAssigneesErr) {
+        console.error("removeAllTaskAssigneesAction error:", deleteAssigneesErr.message);
+        throw new Error("Failed to remove all assignees.");
+    }
+
+    await syncPrimaryAssignee(supabase, taskId);
+    revalidatePath("/projects");
 };
 
 export const deleteLabelAction = async (labelId: number) => {

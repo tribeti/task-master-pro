@@ -1,38 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { Task, Label, KanbanColumn, KanbanTask } from "@/types/project";
+import { verifyBoardAccess } from "@/utils/board-access";
+import {
+  Task,
+  Label,
+  KanbanColumn,
+  KanbanTask,
+  TaskAssignee,
+} from "@/types/project";
 
-// ── Helper: Verify user has access to a board (owner OR member) ──
-async function verifyBoardAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  boardId: number,
-) {
-  const { data: board } = await supabase
-    .from("boards")
-    .select("id")
-    .eq("id", boardId)
-    .eq("owner_id", userId)
-    .maybeSingle();
+type TaskAssigneeRow = {
+  id: number;
+  task_id: number;
+  user_id: string;
+  assigned_at: string;
+};
 
-  if (board) return;
-
-  const { data: membership } = await supabase
-    .from("board_members")
-    .select("user_id")
-    .eq("board_id", boardId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!membership) {
-    throw new Error("Access denied.");
-  }
-}
-
-// ────────────────────────────────────────────────
-// GET /api/boards/[boardId]/kanban
-// Returns columns, tasks (with labels), and board labels
-// ────────────────────────────────────────────────
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ boardId: string }> },
@@ -40,15 +23,15 @@ export async function GET(
   try {
     const { boardId: boardIdStr } = await params;
     const boardId = Number(boardIdStr);
-    if (isNaN(boardId)) {
+    if (Number.isNaN(boardId)) {
       return NextResponse.json({ error: "Invalid boardId" }, { status: 400 });
     }
 
     const supabase = await createClient();
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -92,7 +75,80 @@ export async function GET(
       tasks = ((tasksData as Task[]) || []).map((task) => ({
         ...task,
         labels: [],
+        assignee: null,
+        assignees: [],
       }));
+
+      if (tasks.length > 0) {
+        const taskIds = tasks.map((task) => task.id);
+        const { data: taskAssigneesData, error: taskAssigneesErr } = await supabase
+          .from("task_assignees")
+          .select("id, task_id, user_id, assigned_at")
+          .in("task_id", taskIds)
+          .order("assigned_at", { ascending: true })
+          .order("id", { ascending: true });
+
+        if (taskAssigneesErr) {
+          console.error("GET kanban task_assignees error:", taskAssigneesErr.message);
+          return NextResponse.json(
+            { error: "Failed to load task assignees." },
+            { status: 500 },
+          );
+        }
+
+        const taskAssigneeRows = (taskAssigneesData as TaskAssigneeRow[]) || [];
+        const assigneeIds = Array.from(
+          new Set(taskAssigneeRows.map((row) => row.user_id)),
+        );
+
+        let assigneesMap = new Map<string, TaskAssignee>();
+        if (assigneeIds.length > 0) {
+          const { data: assigneesData, error: assigneesErr } = await supabase
+            .from("users")
+            .select("id, display_name, avatar_url")
+            .in("id", assigneeIds);
+
+          if (assigneesErr) {
+            console.error("GET kanban assignees error:", assigneesErr.message);
+            return NextResponse.json(
+              { error: "Failed to load task assignees." },
+              { status: 500 },
+            );
+          }
+
+          assigneesMap = new Map(
+            ((assigneesData as {
+              id: string;
+              display_name: string;
+              avatar_url: string | null;
+            }[]) || []).map((assignee) => [
+              assignee.id,
+              {
+                user_id: assignee.id,
+                display_name: assignee.display_name || "Unknown",
+                avatar_url: assignee.avatar_url || null,
+              },
+            ]),
+          );
+        }
+
+        const taskAssigneesMap = new Map<number, TaskAssignee[]>();
+        for (const row of taskAssigneeRows) {
+          const assignee = assigneesMap.get(row.user_id);
+          if (!assignee) continue;
+
+          if (!taskAssigneesMap.has(row.task_id)) {
+            taskAssigneesMap.set(row.task_id, []);
+          }
+          taskAssigneesMap.get(row.task_id)!.push(assignee);
+        }
+
+        tasks = tasks.map((task) => ({
+          ...task,
+          assignees: taskAssigneesMap.get(task.id) || [],
+          assignee: (taskAssigneesMap.get(task.id) || [])[0] || null,
+        }));
+      }
 
       const { data: boardLabels, error: labelsErr } = await supabase
         .from("labels")
