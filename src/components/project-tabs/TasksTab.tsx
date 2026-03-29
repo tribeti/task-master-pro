@@ -120,7 +120,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
       priority: data.priority,
       deadline: data.deadline || null,
       column_id: selectedColumnId,
-      assignee_id: user?.id ?? null,
     };
 
     let error = false;
@@ -142,6 +141,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       try {
         await createTaskAction({
           ...taskPayload,
+          assignee_id: null,
           position: nextPosition,
         });
       } catch (insertError) {

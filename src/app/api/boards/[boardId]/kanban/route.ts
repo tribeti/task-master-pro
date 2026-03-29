@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { verifyBoardAccess } from "@/utils/board-access";
 import {
   Task,
   Label,
@@ -15,37 +16,6 @@ type TaskAssigneeRow = {
   assigned_at: string;
 };
 
-// ── Helper: Verify user has access to a board (owner OR member) ──
-async function verifyBoardAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  boardId: number,
-) {
-  const { data: board } = await supabase
-    .from("boards")
-    .select("id")
-    .eq("id", boardId)
-    .eq("owner_id", userId)
-    .maybeSingle();
-
-  if (board) return;
-
-  const { data: membership } = await supabase
-    .from("board_members")
-    .select("user_id")
-    .eq("board_id", boardId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!membership) {
-    throw new Error("Access denied.");
-  }
-}
-
-// ────────────────────────────────────────────────
-// GET /api/boards/[boardId]/kanban
-// Returns columns, tasks (with labels), and board labels
-// ────────────────────────────────────────────────
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ boardId: string }> },
@@ -53,15 +23,15 @@ export async function GET(
   try {
     const { boardId: boardIdStr } = await params;
     const boardId = Number(boardIdStr);
-    if (isNaN(boardId)) {
+    if (Number.isNaN(boardId)) {
       return NextResponse.json({ error: "Invalid boardId" }, { status: 400 });
     }
 
     const supabase = await createClient();
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -109,7 +79,6 @@ export async function GET(
         assignees: [],
       }));
 
-      let assigneesMap = new Map<string, TaskAssignee>();
       if (tasks.length > 0) {
         const taskIds = tasks.map((task) => task.id);
         const { data: taskAssigneesData, error: taskAssigneesErr } = await supabase
@@ -132,6 +101,7 @@ export async function GET(
           new Set(taskAssigneeRows.map((row) => row.user_id)),
         );
 
+        let assigneesMap = new Map<string, TaskAssignee>();
         if (assigneeIds.length > 0) {
           const { data: assigneesData, error: assigneesErr } = await supabase
             .from("users")

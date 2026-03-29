@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { verifyBoardAccess } from "@/utils/board-access";
 import { revalidatePath } from "next/cache";
 import {
     Task,
@@ -12,34 +13,6 @@ import {
 } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 
-// ── Helper: Verify user has access to a board (owner OR member) ──
-async function verifyBoardAccess(
-    supabase: Awaited<ReturnType<typeof createClient>>,
-    userId: string,
-    boardId: number,
-) {
-    // Check if user is the board owner
-    const { data: board } = await supabase
-        .from("boards")
-        .select("id")
-        .eq("id", boardId)
-        .eq("owner_id", userId)
-        .maybeSingle();
-
-    if (board) return; // User is the owner
-
-    // Check if user is a member of the board
-    const { data: membership } = await supabase
-        .from("board_members")
-        .select("user_id")
-        .eq("board_id", boardId)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-    if (!membership) {
-        throw new Error("Access denied.");
-    }
-}
 
 // ── Helper: Verify user has access to the board that contains a specific task ──
 async function verifyTaskAccess(
@@ -247,7 +220,6 @@ export const updateTaskAction = async (
     }
 
     await verifyTaskAccess(supabase, user.id, taskId);
-    let boardId = await getTaskBoardId(supabase, taskId);
 
     // If moving to a different column, also verify we own that target column's board
     if (payload.column_id !== undefined) {
@@ -259,21 +231,6 @@ export const updateTaskAction = async (
 
         if (targetErr || !targetCol) throw new Error("Access denied.");
         await verifyBoardAccess(supabase, user.id, targetCol.board_id);
-        boardId = targetCol.board_id;
-    }
-
-    if (payload.assignee_id !== undefined && payload.assignee_id !== null) {
-        const { data: assignee, error: assigneeErr } = await supabase
-            .from("users")
-            .select("id")
-            .eq("id", payload.assignee_id)
-            .single();
-
-        if (assigneeErr || !assignee) {
-            throw new Error("Assignee not found.");
-        }
-
-        await ensureBoardMember(supabase, boardId, payload.assignee_id);
     }
 
     const { error } = await supabase

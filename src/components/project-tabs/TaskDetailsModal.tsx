@@ -14,6 +14,21 @@ const INLINE_LABEL_PRESET_COLORS = [
   "#818CF8",
 ];
 
+const COMMENT_DATE_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+  timeZone: "Asia/Bangkok",
+});
+
+function formatCommentDate(dateString: string) {
+  return COMMENT_DATE_FORMATTER.format(new Date(dateString));
+}
+
 interface TaskDetailsModalProps {
   isOpen: boolean;
   boardId: number;
@@ -579,7 +594,8 @@ export function TaskDetailsModal({
                 )}
 
                 <p className="mt-3 ml-1 text-xs text-slate-400">
-                  Select any board member to assign them to this task.
+                  Select any user. If they are not in this board yet,
+                  the system will add them automatically when assigned.
                 </p>
               </div>
             </div>
@@ -673,7 +689,7 @@ export function TaskDetailsModal({
                       Create custom label
                     </p>
                     <p className="text-xs text-slate-400">
-                      Tạo label mới và gắn ngay vào task này.
+                      Create a new label and assign it to this task.
                     </p>
                   </div>
                   <button
@@ -805,7 +821,7 @@ export function TaskDetailsModal({
                                 : `${comment.user_id.slice(0, 8)}...`}
                             </p>
                             <p className="text-xs text-slate-400">
-                              {new Date(comment.created_at).toLocaleString()}
+                              {formatCommentDate(comment.created_at)}
                             </p>
                           </div>
 
