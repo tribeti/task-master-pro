@@ -8,6 +8,13 @@ import {
   TaskAssignee,
 } from "@/types/project";
 
+type TaskAssigneeRow = {
+  id: number;
+  task_id: number;
+  user_id: string;
+  assigned_at: string;
+};
+
 // ── Helper: Verify user has access to a board (owner OR member) ──
 async function verifyBoardAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -120,13 +127,9 @@ export async function GET(
           );
         }
 
+        const taskAssigneeRows = (taskAssigneesData as TaskAssigneeRow[]) || [];
         const assigneeIds = Array.from(
-          new Set(
-            ((taskAssigneesData as {
-              task_id: number;
-              user_id: string;
-            }[]) || []).map((row) => row.user_id),
-          ),
+          new Set(taskAssigneeRows.map((row) => row.user_id)),
         );
 
         if (assigneeIds.length > 0) {
@@ -160,10 +163,7 @@ export async function GET(
         }
 
         const taskAssigneesMap = new Map<number, TaskAssignee[]>();
-        for (const row of (taskAssigneesData as {
-          task_id: number;
-          user_id: string;
-        }[]) || []) {
+        for (const row of taskAssigneeRows) {
           const assignee = assigneesMap.get(row.user_id);
           if (!assignee) continue;
 

@@ -16,6 +16,7 @@ const INLINE_LABEL_PRESET_COLORS = [
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
+  boardId: number;
   onClose: () => void;
   onSubmit: (data: {
     title: string;
@@ -46,6 +47,7 @@ interface TaskDetailsModalProps {
   ) => Promise<Label>;
   onAddAssignee: (taskId: number, assigneeId: string) => Promise<void>;
   onRemoveAssignee: (taskId: number, assigneeId: string) => Promise<void>;
+  onRemoveAllAssignees: (taskId: number) => Promise<void>;
   comments: Comment[];
   commentsLoading: boolean;
   currentUserId: string;
@@ -55,6 +57,7 @@ interface TaskDetailsModalProps {
 
 export function TaskDetailsModal({
   isOpen,
+  boardId,
   onClose,
   onSubmit,
   onDelete,
@@ -66,6 +69,7 @@ export function TaskDetailsModal({
   onCreateAndAssignLabel,
   onAddAssignee,
   onRemoveAssignee,
+  onRemoveAllAssignees,
   comments,
   commentsLoading,
   currentUserId,
@@ -134,7 +138,7 @@ export function TaskDetailsModal({
       try {
         setMembersLoading(true);
         setAssigneeError("");
-        const res = await fetch("/api/users");
+        const res = await fetch(`/api/users?boardId=${boardId}`);
         if (!res.ok) {
           throw new Error("Failed to load users");
         }
@@ -160,7 +164,7 @@ export function TaskDetailsModal({
     return () => {
       ignore = true;
     };
-  }, [initialData?.id, isOpen]);
+  }, [boardId, initialData?.id, isOpen]);
 
   const taskLabels = initialData?.labels || [];
   const currentAssignees = initialData?.assignees || [];
@@ -293,9 +297,7 @@ export function TaskDetailsModal({
     try {
       setAssigneeSubmitting(true);
       setAssigneeError("");
-      for (const assignee of currentAssignees) {
-        await onRemoveAssignee(initialData.id, assignee.user_id);
-      }
+      await onRemoveAllAssignees(initialData.id);
       setSelectedAssigneeId("");
     } catch (error) {
       console.error("Failed to remove all assignees:", error);
@@ -442,8 +444,8 @@ export function TaskDetailsModal({
                     </p>
                     <p className="text-xs text-slate-400">
                       {currentAssignees.length > 0
-                        ? "Có thể thêm nhiều người vào cùng một task."
-                        : "Task này hiện chưa có người phụ trách."}
+                        ? "You can assign multiple people to the same task."
+                        : "This task does not have an assignee yet."}
                     </p>
                   </div>
 
@@ -577,7 +579,7 @@ export function TaskDetailsModal({
                 )}
 
                 <p className="mt-3 ml-1 text-xs text-slate-400">
-                  Chọn bất kỳ user nào. Nếu họ chưa ở trong board, hệ thống sẽ tự thêm họ vào danh sách thành viên khi assign.
+                  Select any board member to assign them to this task.
                 </p>
               </div>
             </div>

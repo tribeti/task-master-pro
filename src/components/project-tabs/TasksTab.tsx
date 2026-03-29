@@ -10,6 +10,7 @@ import {
   deleteTaskAction,
   addTaskAssigneeAction,
   removeTaskAssigneeAction,
+  removeAllTaskAssigneesAction,
   addLabelToTaskAction,
   removeLabelFromTaskAction,
   createLabelAction,
@@ -295,6 +296,18 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleRemoveAllAssignees = async (taskId: number) => {
+    try {
+      await removeAllTaskAssigneesAction(taskId);
+      await fetchData();
+      toast.success("All assignees removed");
+    } catch (error) {
+      console.error("Failed to remove all assignees:", error);
+      toast.error("Failed to remove all assignees");
+      throw error;
+    }
+  };
+
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
     try {
       await updateColumnAction(columnId, { title: newTitle });
@@ -363,6 +376,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
       <TaskDetailsModal
         isOpen={isModalOpen}
+        boardId={projectId}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}
@@ -374,6 +388,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onCreateAndAssignLabel={handleCreateAndAssignLabel}
         onAddAssignee={handleAddAssignee}
         onRemoveAssignee={handleRemoveAssignee}
+        onRemoveAllAssignees={handleRemoveAllAssignees}
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}

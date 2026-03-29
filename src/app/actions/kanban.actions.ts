@@ -74,27 +74,19 @@ async function getTaskBoardId(
     supabase: Awaited<ReturnType<typeof createClient>>,
     taskId: number,
 ): Promise<number> {
-    const { data: task, error: taskError } = await supabase
+    const { data, error } = await supabase
         .from("tasks")
-        .select("column_id")
+        .select("columns(board_id)")
         .eq("id", taskId)
         .single();
 
-    if (taskError || !task) {
-        throw new Error("Task not found.");
+    const boardId = (data as { columns: { board_id: number } | null } | null)
+        ?.columns?.board_id;
+    if (error || !boardId) {
+        throw new Error("Task or associated column not found.");
     }
 
-    const { data: column, error: colError } = await supabase
-        .from("columns")
-        .select("board_id")
-        .eq("id", task.column_id)
-        .single();
-
-    if (colError || !column) {
-        throw new Error("Column not found.");
-    }
-
-    return column.board_id;
+    return boardId;
 }
 
 async function ensureBoardMember(
@@ -498,6 +490,29 @@ export const removeTaskAssigneeAction = async (taskId: number, userId: string) =
     if (deleteAssigneeErr) {
         console.error("removeTaskAssigneeAction error:", deleteAssigneeErr.message);
         throw new Error("Failed to remove assignee.");
+    }
+
+    await syncPrimaryAssignee(supabase, taskId);
+    revalidatePath("/projects");
+};
+
+export const removeAllTaskAssigneesAction = async (taskId: number) => {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    await verifyTaskAccess(supabase, user.id, taskId);
+
+    const { error: deleteAssigneesErr } = await supabase
+        .from("task_assignees")
+        .delete()
+        .eq("task_id", taskId);
+
+    if (deleteAssigneesErr) {
+        console.error("removeAllTaskAssigneesAction error:", deleteAssigneesErr.message);
+        throw new Error("Failed to remove all assignees.");
     }
 
     await syncPrimaryAssignee(supabase, taskId);
