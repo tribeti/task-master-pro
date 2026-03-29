@@ -238,11 +238,11 @@ export const bulkUpdateTasksAction = async (
     // Merge changes
     const updatesMap = new Map(updates.map(u => [u.id, u]));
     const upsertData = existingTasks.map((task) => {
-        const update = updatesMap.get(task.id);
+        const update = updatesMap.get(task.id)!;
         return {
             ...task,
-            position: update?.position ?? task.position,
-            column_id: update?.column_id ?? task.column_id,
+            position: update.position,
+            column_id: update.column_id,
         };
     });
 
