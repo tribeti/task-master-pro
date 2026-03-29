@@ -14,6 +14,50 @@ import {
 import { getDeadlineStatus } from "@/utils/deadline";
 
 
+// ── Helper: Verify user has access to multiple boards ──
+async function verifyAllBoardsAccess(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    userId: string,
+    boardIds: Set<number> | number[],
+) {
+    const ids = Array.from(boardIds);
+    if (ids.length === 0) return;
+
+    // Query 1: Lấy tất cả boards mà user là OWNER
+    // Query 2: Lấy tất cả boards mà user là MEMBER
+    const [ownedBoardsResult, memberBoardsResult] = await Promise.all([
+        supabase
+            .from("boards")
+            .select("id")
+            .eq("owner_id", userId)
+            .in("id", ids),
+        supabase
+            .from("board_members")
+            .select("board_id")
+            .eq("user_id", userId)
+            .in("board_id", ids)
+    ]);
+
+    const { data: ownedBoards, error: ownerError } = ownedBoardsResult;
+    const { data: memberBoards, error: memberError } = memberBoardsResult;
+
+    if (ownerError) throw ownerError;
+    if (memberError) throw memberError;
+
+    // Gộp các board ID có quyền truy cập
+    const accessibleIds = new Set([
+        ...(ownedBoards?.map((b) => b.id) ?? []),
+        ...(memberBoards?.map((b) => b.board_id) ?? []),
+    ]);
+
+    // Kiểm tra từng board — throw nếu thiếu quyền
+    for (const boardId of ids) {
+        if (!accessibleIds.has(boardId)) {
+            throw new Error(`Access denied for board: ${boardId}`);
+        }
+    }
+}
+
 // ── Helper: Verify user has access to the board that contains a specific task ──
 async function verifyTaskAccess(
     supabase: Awaited<ReturnType<typeof createClient>>,
@@ -242,6 +286,89 @@ export const updateTaskAction = async (
         console.error("updateTaskAction error:", error.message);
         throw new Error("Failed to update task.");
     }
+    revalidatePath("/projects");
+};
+
+export const bulkUpdateTasksAction = async (
+    updates: { id: number; position: number; column_id: number }[],
+) => {
+    if (!updates.length) return;
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // 1. Fetch existing tasks to preserve other fields and get their current column_ids
+    const taskIds = updates.map((u) => u.id);
+    const { data: existingTasks, error: fetchErr } = await supabase
+        .from("tasks")
+        .select("id, title, description, deadline, priority, column_id, assignee_id, position")
+        .in("id", taskIds);
+
+    if (fetchErr) {
+        console.error("bulkUpdateTasksAction fetch error:", fetchErr?.message);
+        throw new Error("Failed to fetch existing tasks.");
+    }
+
+    if (!existingTasks || existingTasks.length !== new Set(taskIds).size) {
+        console.error("bulkUpdateTasksAction task mismatch: some tasks not found.");
+        throw new Error("Failed to update tasks: one or more tasks could not be found.");
+    }
+
+    // 2. Security Check: Collect all unique column IDs involved (both current and target)
+    const involvedColumnIds = new Set([
+        // Add current column IDs
+        ...existingTasks.map((task) => task.column_id),
+        // Add target column IDs from updates
+        ...updates.map((update) => update.column_id),
+    ]);
+
+    // 3. Fetch board IDs for all involved columns
+    const { data: columnsData, error: colsErr } = await supabase
+        .from("columns")
+        .select("id, board_id")
+        .in("id", Array.from(involvedColumnIds));
+
+    if (colsErr || !columnsData) {
+        console.error("bulkUpdateTasksAction columns fetch error:", colsErr?.message);
+        throw new Error("Failed to verify access.");
+    }
+    // Verify that all columns were found
+    if (columnsData.length !== involvedColumnIds.size) {
+        console.error("bulkUpdateTasksAction column mismatch: some columns not found.");
+        throw new Error("Failed to verify access: One or more columns not found.");
+    }
+
+    // 4. Verify access to all involved boards
+    const involvedBoardIds = new Set<number>(columnsData.map(col => col.board_id));
+    await verifyAllBoardsAccess(supabase, user.id, involvedBoardIds);
+
+    // Merge changes
+    const updatesMap = new Map(updates.map(u => [u.id, u]));
+    const upsertData = existingTasks.map((task) => {
+        const update = updatesMap.get(task.id);
+        if (!update) {
+            // This indicates a logic error, as every existing task should have a corresponding update.
+            throw new Error(`Could not find update for task with id ${task.id}`);
+        }
+        return {
+            ...task,
+            position: update.position,
+            column_id: update.column_id,
+        };
+    });
+
+    const { error } = await supabase
+        .from("tasks")
+        .upsert(upsertData, { onConflict: "id" });
+
+    if (error) {
+        console.error("bulkUpdateTasksAction error:", error.message);
+        throw new Error("Failed to bulk update tasks.");
+    }
+
     revalidatePath("/projects");
 };
 
