@@ -265,6 +265,11 @@ export const bulkUpdateTasksAction = async (
         console.error("bulkUpdateTasksAction columns fetch error:", colsErr?.message);
         throw new Error("Failed to verify access.");
     }
+    // Verify that all columns were found
+    if (columnsData.length !== involvedColumnIds.size) {
+        console.error("bulkUpdateTasksAction column mismatch: some columns not found.");
+        throw new Error("Failed to verify access: One or more columns not found.");
+    }
 
     // 4. Verify access to all involved boards
     const involvedBoardIds = new Set<number>(columnsData.map(col => col.board_id));
