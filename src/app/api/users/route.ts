@@ -45,35 +45,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Board not found." }, { status: 404 });
     }
 
-    const usersQuery = supabase
+    // Always fetch only board members — never expose all system users
+    const { data: boardMembers, error: boardMembersError } = await supabase
+      .from("board_members")
+      .select("user_id")
+      .eq("board_id", boardId);
+
+    if (boardMembersError) {
+      console.error("GET /api/users board_members error:", boardMembersError.message);
+      return NextResponse.json(
+        { error: "Failed to load users." },
+        { status: 500 },
+      );
+    }
+
+    const memberIds = Array.from(
+      new Set([
+        board.owner_id,
+        ...(((boardMembers as BoardMemberRow[] | null) ?? []).map(
+          (member) => member.user_id,
+        )),
+      ]),
+    );
+
+    const { data, error } = await supabase
       .from("users")
       .select("id, display_name, avatar_url")
+      .in("id", memberIds)
       .order("display_name", { ascending: true });
-
-    const { data, error } =
-      board.owner_id === user.id
-        ? await usersQuery
-        : await (async () => {
-            const { data: boardMembers, error: boardMembersError } = await supabase
-              .from("board_members")
-              .select("user_id")
-              .eq("board_id", boardId);
-
-            if (boardMembersError) {
-              return { data: null, error: boardMembersError };
-            }
-
-            const memberIds = Array.from(
-              new Set([
-                board.owner_id,
-                ...(((boardMembers as BoardMemberRow[] | null) ?? []).map(
-                  (member) => member.user_id,
-                )),
-              ]),
-            );
-
-            return usersQuery.in("id", memberIds);
-          })();
 
     if (error) {
       console.error("GET /api/users error:", error.message);
@@ -97,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     console.error("GET /api/users unexpected error:", error);
     return NextResponse.json(
-      { error: "Internal server error: " + (error.message || String(error)) },
+      { error: "Internal server error." },
       { status: 500 },
     );
   }
