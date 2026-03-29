@@ -242,9 +242,14 @@ export const bulkUpdateTasksAction = async (
         .select("id, title, description, deadline, priority, column_id, assignee_id, position")
         .in("id", taskIds);
 
-    if (fetchErr || !existingTasks) {
+    if (fetchErr) {
         console.error("bulkUpdateTasksAction fetch error:", fetchErr?.message);
         throw new Error("Failed to fetch existing tasks.");
+    }
+
+    if (!existingTasks || existingTasks.length !== new Set(taskIds).size) {
+        console.error("bulkUpdateTasksAction task mismatch: some tasks not found.");
+        throw new Error("Failed to update tasks: one or more tasks could not be found.");
     }
 
     // 2. Security Check: Collect all unique column IDs involved (both current and target)
