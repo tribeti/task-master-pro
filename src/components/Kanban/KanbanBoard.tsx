@@ -275,20 +275,13 @@ export function KanbanBoard({
                         return onDataChange();
                     })
                     .catch(() => {
-                        // Rollback to last known server state (props)
-                        setLocalTasks(tasks);
+                        // Rollback to the state before this drag operation started
+                        setLocalTasks(previousTasks);
                         toast.error("Lưu vị trí tác vụ thất bại, đang hoàn tác!");
                     })
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
-                        // If it reaches 0 and the latest tasks prop is different, we can manually sync
-                        if (
-                            pendingTasksUpdatesRef.current === 0 &&
-                            !isEqual(tasks, lastSyncedTasksRef.current)
-                        ) {
-                            setLocalTasks(tasks);
-                            lastSyncedTasksRef.current = tasks;
-                        }
+                        // The `useEffect` on `[tasks]` will handle any necessary resync.
                     });
             }, 500);
         }
