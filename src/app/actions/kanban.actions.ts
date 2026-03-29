@@ -51,21 +51,24 @@ async function verifyAllBoardsAccess(
     if (ids.length === 0) return;
 
     // Query 1: Lấy tất cả boards mà user là OWNER
-    const { data: ownedBoards, error: ownerError } = await supabase
-        .from("boards")
-        .select("id")
-        .eq("owner_id", userId)
-        .in("id", ids);
+    // Query 2: Lấy tất cả boards mà user là MEMBER
+    const [ownedBoardsResult, memberBoardsResult] = await Promise.all([
+        supabase
+            .from("boards")
+            .select("id")
+            .eq("owner_id", userId)
+            .in("id", ids),
+        supabase
+            .from("board_members")
+            .select("board_id")
+            .eq("user_id", userId)
+            .in("board_id", ids)
+    ]);
+
+    const { data: ownedBoards, error: ownerError } = ownedBoardsResult;
+    const { data: memberBoards, error: memberError } = memberBoardsResult;
 
     if (ownerError) throw ownerError;
-
-    // Query 2: Lấy tất cả boards mà user là MEMBER
-    const { data: memberBoards, error: memberError } = await supabase
-        .from("board_members")
-        .select("board_id")
-        .eq("user_id", userId)
-        .in("board_id", ids);
-
     if (memberError) throw memberError;
 
     // Gộp các board ID có quyền truy cập
@@ -251,11 +254,7 @@ export const bulkUpdateTasksAction = async (
     existingTasks.forEach((task) => involvedColumnIds.add(task.column_id));
 
     // Add target column IDs from updates
-    updates.forEach((update) => {
-        if (update.column_id) {
-            involvedColumnIds.add(update.column_id);
-        }
-    });
+    updates.forEach((update) => involvedColumnIds.add(update.column_id));
 
     // 3. Fetch board IDs for all involved columns
     const { data: columnsData, error: colsErr } = await supabase
