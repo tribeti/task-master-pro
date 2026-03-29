@@ -248,13 +248,12 @@ export const bulkUpdateTasksAction = async (
     }
 
     // 2. Security Check: Collect all unique column IDs involved (both current and target)
-    const involvedColumnIds = new Set<number>();
-
-    // Add current column IDs
-    existingTasks.forEach((task) => involvedColumnIds.add(task.column_id));
-
-    // Add target column IDs from updates
-    updates.forEach((update) => involvedColumnIds.add(update.column_id));
+    const involvedColumnIds = new Set([
+        // Add current column IDs
+        ...existingTasks.map((task) => task.column_id),
+        // Add target column IDs from updates
+        ...updates.map((update) => update.column_id),
+    ]);
 
     // 3. Fetch board IDs for all involved columns
     const { data: columnsData, error: colsErr } = await supabase
@@ -274,7 +273,11 @@ export const bulkUpdateTasksAction = async (
     // Merge changes
     const updatesMap = new Map(updates.map(u => [u.id, u]));
     const upsertData = existingTasks.map((task) => {
-        const update = updatesMap.get(task.id)!;
+        const update = updatesMap.get(task.id);
+        if (!update) {
+            // This indicates a logic error, as every existing task should have a corresponding update.
+            throw new Error(`Could not find update for task with id ${task.id}`);
+        }
         return {
             ...task,
             position: update.position,
