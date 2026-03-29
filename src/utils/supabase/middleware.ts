@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect all API routes except public ones (like auth or cron jobs)
   const isApiRoute = pathname.startsWith("/api");
-  const publicApiRoutes = ["/api/auth", "/api/cron"];
+  const publicApiRoutes = ["/api/auth/register", "/api/auth/login", "/api/cron"];
   const isPublicApiRoute = publicApiRoutes.some((route) =>
     pathname.startsWith(route),
   ) || pathname.includes("/invitations/accept");

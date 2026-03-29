@@ -1,16 +1,12 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-
-function isValidEmailFormat(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-}
+import { isValidEmail } from "@/lib/auth/validators";
 
 export async function checkEmailExistsAction(
   email: string,
 ): Promise<{ exists: boolean; error?: string }> {
-  if (!isValidEmailFormat(email)) {
+  if (!isValidEmail(email)) {
     return { exists: false, error: "Email không đúng định dạng." };
   }
 
@@ -36,7 +32,7 @@ export async function checkEmailExistsAction(
 export async function requestPasswordResetAction(
   email: string,
 ): Promise<{ success?: boolean; error?: string }> {
-  if (!isValidEmailFormat(email)) {
+  if (!isValidEmail(email)) {
     return { error: "Email không đúng định dạng." };
   }
 

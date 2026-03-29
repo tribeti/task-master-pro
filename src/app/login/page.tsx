@@ -8,6 +8,7 @@ import {
   checkEmailExistsAction,
   requestPasswordResetAction,
 } from "@/app/actions/auth.actions";
+import { validatePassword, isValidEmail } from "@/lib/auth/validators";
 
 import {
   MailIcon,
@@ -19,26 +20,6 @@ import {
 } from "@/components/icons";
 
 type AuthView = "login" | "register" | "forgot";
-
-// Password validation rules
-const PASSWORD_RULES = [
-  { test: (p: string) => p.length >= 6, label: "At least 6 characters" },
-  { test: (p: string) => /[0-9]/.test(p), label: "One number" },
-];
-
-function validatePassword(password: string): string | null {
-  for (const rule of PASSWORD_RULES) {
-    if (!rule.test(password)) {
-      return `Password must have: ${rule.label}`;
-    }
-  }
-  return null;
-}
-
-// Email format validation helper
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
 
 export default function TaskFlowAuth() {
   const [view, setView] = useState<AuthView>("login");
@@ -94,16 +75,23 @@ export default function TaskFlowAuth() {
       localStorage.removeItem("remembered_email");
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirectTo = searchParams.get("redirectTo");
-      router.push(redirectTo || "/command");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Đăng nhập thất bại.");
+      } else {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectTo = searchParams.get("redirectTo");
+        router.push(redirectTo || "/command");
+      }
+    } catch {
+      setErrorMsg("Đã xảy ra lỗi. Vui lòng thử lại.");
     }
     setIsLoading(false);
   };
@@ -114,7 +102,7 @@ export default function TaskFlowAuth() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    // Validate password strength
+    // Validate password strength (client-side for instant feedback)
     const passwordError = validatePassword(password);
     if (passwordError) {
       setErrorMsg(passwordError);
@@ -125,23 +113,23 @@ export default function TaskFlowAuth() {
     // Preserve redirectTo for the email confirmation link
     const searchParams = new URLSearchParams(window.location.search);
     const redirectTo = searchParams.get("redirectTo");
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    if (redirectTo) {
-      callbackUrl.searchParams.set("redirectTo", redirectTo);
-    }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: callbackUrl.toString(),
-      },
-    });
-    if (error) setErrorMsg(error.message);
-    else {
-      setSuccessMsg("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
-      setView("login");
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName, redirectTo }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Đăng ký thất bại.");
+      } else {
+        setSuccessMsg(data.message || "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+        setView("login");
+      }
+    } catch {
+      setErrorMsg("Đã xảy ra lỗi. Vui lòng thử lại.");
     }
     setIsLoading(false);
   };

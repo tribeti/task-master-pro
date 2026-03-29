@@ -5,20 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/logo";
 import { LockIcon, ArrowRightIcon } from "@/components/icons";
-
-const PASSWORD_RULES = [
-  { test: (p: string) => p.length >= 6, label: "Ít nhất 6 ký tự" },
-  { test: (p: string) => /[0-9]/.test(p), label: "Ít nhất 1 chữ số" },
-];
-
-function validatePassword(password: string): string | null {
-  for (const rule of PASSWORD_RULES) {
-    if (!rule.test(password)) {
-      return `Mật khẩu cần: ${rule.label}`;
-    }
-  }
-  return null;
-}
+import { PASSWORD_RULES, validatePassword } from "@/lib/auth/validators";
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState("");

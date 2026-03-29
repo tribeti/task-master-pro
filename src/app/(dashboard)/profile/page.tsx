@@ -222,7 +222,7 @@ export default function ProfilePage() {
 
     setIsChangingPassword(true);
     try {
-      const res = await fetch("/api/auth/update-password", {
+      const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldPassword, newPassword }),
