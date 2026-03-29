@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { Resend } from "resend";
-
-// ── Resend client (initialized lazily) ──
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
 
 /**
  * Verify the current user is the owner of the given board.
@@ -302,40 +296,33 @@ export async function POST(
     const inviterName = inviterProfile?.display_name || user.email || "Someone";
     const boardTitle = boardData?.title || "a project";
 
-    // ── Send invitation email via Resend (if configured) ──
-    if (resend) {
-      try {
-        await resend.emails.send({
-          from: "Task Master Pro <noreply@taskmasterpro.com>",
-          to: [email],
-          subject: `${inviterName} đã mời bạn vào dự án "${boardTitle}"`,
-          html: `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-              <h2 style="color: #1e293b;">Bạn được mời tham gia dự án</h2>
-              <p style="color: #475569; line-height: 1.6;">
-                <strong>${inviterName}</strong> đã mời bạn tham gia dự án
-                <strong>"${boardTitle}"</strong> trên Task Master Pro.
-              </p>
-              <div style="margin: 24px 0;">
-                <a href="${acceptUrl}"
-                   style="display: inline-block; background: #28B8FA; color: white; padding: 12px 32px;
-                          border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px;">
-                  Chấp nhận lời mời
-                </a>
-              </div>
-              <p style="color: #94a3b8; font-size: 12px;">
-                Nếu bạn không muốn tham gia, chỉ cần bỏ qua email này.
-              </p>
-            </div>
-          `,
-        });
-      } catch (emailErr) {
-        // Email failure is non-blocking – the invitation record is still created
-        console.error("Failed to send invitation email:", emailErr);
+    // ── Create In-App Notification ──
+    try {
+      const payload = JSON.stringify({
+        token: invitation.token,
+        acceptUrl: acceptUrl,
+        inviterName: inviterName,
+        boardTitle: boardTitle,
+      });
+
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert([
+          {
+            user_id: targetUserId,
+            type: "Invite",
+            content: payload,
+            is_read: false,
+            project_id: boardId,
+          },
+        ]);
+
+      if (notifError) {
+        console.error("Failed to create in-app notification:", notifError);
+      } else {
       }
-    } else {
-      // No Resend key configured – log the accept URL for development
-      console.log("[Dev] Invitation accept URL:", acceptUrl);
+    } catch (notifErr) {
+      console.error("Failed to create in-app notification payload:", notifErr);
     }
 
     return NextResponse.json(
