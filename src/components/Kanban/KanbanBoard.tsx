@@ -62,7 +62,7 @@ export function KanbanBoard({
 
     const lastSyncedColumnsRef = useRef(columns);
     const lastSyncedTasksRef = useRef(tasks);
-    
+
     // Track if there are pending drags or API calls to avoid UI jumps
     const pendingTasksUpdatesRef = useRef(0);
 
@@ -237,23 +237,16 @@ export function KanbanBoard({
             setLocalTasks(newTasks);
 
             // ── Step 4: Dirty Checking ──
+            const oldTasksMap = new Map(tasks.map(t => [t.id, t]));
             const changedTasks = newTasks.filter((newTask) => {
                 // Compare with original props (tasks) representing the server state
-                const oldTask = tasks.find((t) => t.id === newTask.id);
+                const oldTask = oldTasksMap.get(newTask.id);
                 if (!oldTask) return false;
                 return (
                     oldTask.column_id !== newTask.column_id ||
                     oldTask.position !== newTask.position
                 );
             });
-
-            if (changedTasks.length === 0) return;
-
-            const updates = changedTasks.map((t) => ({
-                id: t.id,
-                column_id: t.column_id,
-                position: t.position,
-            }));
 
             // ── Step 5: Debounce API Call & Bulk Update ──
             if (debounceTaskTimerRef.current) {
@@ -266,7 +259,7 @@ export function KanbanBoard({
             debounceTaskTimerRef.current = setTimeout(() => {
                 // clear timer ref so a new drag during API execution will increment pending
                 debounceTaskTimerRef.current = null;
-                bulkUpdateTasksAction(updates)
+                bulkUpdateTasksAction(changedTasks)
                     .then(() => {
                         return onDataChange();
                     })

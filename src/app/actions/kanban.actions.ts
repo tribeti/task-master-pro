@@ -229,13 +229,16 @@ export const bulkUpdateTasksAction = async (
 
     // 4. Verify access to all involved boards
     const involvedBoardIds = new Set<number>(columnsData.map(col => col.board_id));
-    for (const boardId of involvedBoardIds) {
-        await verifyBoardAccess(supabase, user.id, boardId);
-    }
+    await Promise.all(
+        Array.from(involvedBoardIds).map(boardId =>
+            verifyBoardAccess(supabase, user.id, boardId)
+        )
+    );
 
     // Merge changes
+    const updatesMap = new Map(updates.map(u => [u.id, u]));
     const upsertData = existingTasks.map((task) => {
-        const update = updates.find((u) => u.id === task.id);
+        const update = updatesMap.get(task.id);
         return {
             ...task,
             position: update?.position ?? task.position,
