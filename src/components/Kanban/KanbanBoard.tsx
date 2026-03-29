@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import isEqual from "fast-deep-equal";
 import {
     DragDropContext,
     Droppable,
@@ -67,7 +68,7 @@ export function KanbanBoard({
 
     // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
-        if (JSON.stringify(columns) !== JSON.stringify(lastSyncedColumnsRef.current)) {
+        if (!isEqual(columns, lastSyncedColumnsRef.current)) {
             setLocalColumns(columns);
             lastSyncedColumnsRef.current = columns;
         }
@@ -75,7 +76,7 @@ export function KanbanBoard({
 
     useEffect(() => {
         if (pendingTasksUpdatesRef.current === 0) {
-            if (JSON.stringify(tasks) !== JSON.stringify(lastSyncedTasksRef.current)) {
+            if (!isEqual(tasks, lastSyncedTasksRef.current)) {
                 setLocalTasks(tasks);
                 lastSyncedTasksRef.current = tasks;
             }
@@ -279,7 +280,7 @@ export function KanbanBoard({
                         // If it reaches 0 and the latest tasks prop is different, we can manually sync
                         if (
                             pendingTasksUpdatesRef.current === 0 &&
-                            JSON.stringify(tasks) !== JSON.stringify(lastSyncedTasksRef.current)
+                            !isEqual(tasks, lastSyncedTasksRef.current)
                         ) {
                             setLocalTasks(tasks);
                             lastSyncedTasksRef.current = tasks;
