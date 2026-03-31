@@ -247,7 +247,7 @@ export function KanbanTask({
               </span>
 
               {assignees.length > 0 ? (
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
                   <div className="flex -space-x-2">
                     {assignees.slice(0, 3).map((taskAssignee) => (
                       <div
