@@ -155,6 +155,9 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
 
   // Validate input
   validateString(payload.title, "Task title", 200);
+  if (payload.description) {
+    validateString(payload.description, "Description", 2000);
+  }
 
   // SECURE: Verify user owns the board containing this column
   const { data: column, error: colErr } = await supabase
@@ -208,6 +211,9 @@ export const updateTaskAction = async (
   // Validate input if title are being updated
   if (payload.title !== undefined) {
     validateString(payload.title, "Task title", 200);
+  }
+  if (payload.description !== undefined && payload.description !== null) {
+    validateString(payload.description, "Description", 2000);
   }
 
   await verifyTaskAccess(supabase, user.id, taskId);

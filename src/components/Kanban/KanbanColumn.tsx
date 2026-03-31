@@ -217,7 +217,7 @@ export function KanbanColumn({
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
-                className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 ${
+                className={`flex flex-col gap-3 min-h-[60px] rounded-xl p-1 transition-colors duration-200 ${
                   droppableSnapshot.isDraggingOver
                     ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
                     : ""
