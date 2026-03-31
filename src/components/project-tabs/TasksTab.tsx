@@ -155,7 +155,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         editingTask ? "Cập nhật nhiệm vụ thất bại" : "Tạo nhiệm vụ thất bại",
       );
     } else {
-      toast.success(editingTask ? "cập nhập task thành công" : "tạo task thành công");
+      toast.success(editingTask ? "Cập nhật nhiệm vụ thành công" : "Tạo nhiệm vụ thành công");
     }
 
     await fetchData();
