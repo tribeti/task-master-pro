@@ -3,10 +3,17 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-const avatarUrlCache = new Map<string, string | null>();
+type AvatarCacheEntry = {
+  url: string | null;
+  expiresAt: number;
+};
+
+const avatarUrlCache = new Map<string, AvatarCacheEntry>();
 const avatarUrlRequestCache = new Map<string, Promise<string | null>>();
 const SESSION_STORAGE_KEY_PREFIX = "taskmaster:avatar-url:";
 const SESSION_CACHE_TTL_MS = 55 * 60 * 1000;
+const DIRECT_URL_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const FAILED_URL_CACHE_TTL_MS = 30 * 1000;
 let browserSupabaseClient: ReturnType<typeof createClient> | null = null;
 
 function getBrowserSupabaseClient() {
@@ -62,6 +69,29 @@ function persistAvatarUrl(avatarPath: string, signedUrl: string | null) {
   }
 }
 
+function readCachedAvatarUrl(avatarPath: string): string | null | undefined {
+  const cachedEntry = avatarUrlCache.get(avatarPath);
+  if (!cachedEntry) return undefined;
+
+  if (Date.now() >= cachedEntry.expiresAt) {
+    avatarUrlCache.delete(avatarPath);
+    return undefined;
+  }
+
+  return cachedEntry.url;
+}
+
+function writeCachedAvatarUrl(
+  avatarPath: string,
+  url: string | null,
+  ttlMs: number,
+) {
+  avatarUrlCache.set(avatarPath, {
+    url,
+    expiresAt: Date.now() + ttlMs,
+  });
+}
+
 interface UserAvatarProps {
   avatarUrl: string | null;
   displayName: string;
@@ -88,13 +118,13 @@ export function UserAvatar({
     }
 
     if (avatarUrl.startsWith("http")) {
-      avatarUrlCache.set(avatarUrl, avatarUrl);
+      writeCachedAvatarUrl(avatarUrl, avatarUrl, DIRECT_URL_CACHE_TTL_MS);
       setLoading(false);
       setResolvedUrl(avatarUrl);
       return;
     }
 
-    const cachedUrl = avatarUrlCache.get(avatarUrl);
+    const cachedUrl = readCachedAvatarUrl(avatarUrl);
     if (cachedUrl !== undefined) {
       setLoading(false);
       setResolvedUrl(cachedUrl);
@@ -103,7 +133,7 @@ export function UserAvatar({
 
     const persistedUrl = readPersistedAvatarUrl(avatarUrl);
     if (persistedUrl) {
-      avatarUrlCache.set(avatarUrl, persistedUrl);
+      writeCachedAvatarUrl(avatarUrl, persistedUrl, SESSION_CACHE_TTL_MS);
       setLoading(false);
       setResolvedUrl(persistedUrl);
       return;
@@ -122,12 +152,12 @@ export function UserAvatar({
 
         if (error) {
           console.error("Failed to create signed avatar URL:", error);
-          avatarUrlCache.set(avatarUrl, null);
+          writeCachedAvatarUrl(avatarUrl, null, FAILED_URL_CACHE_TTL_MS);
           return null;
         }
 
         const signedUrl = data?.signedUrl || null;
-        avatarUrlCache.set(avatarUrl, signedUrl);
+        writeCachedAvatarUrl(avatarUrl, signedUrl, SESSION_CACHE_TTL_MS);
         persistAvatarUrl(avatarUrl, signedUrl);
         return signedUrl;
       })().finally(() => {
@@ -150,7 +180,7 @@ export function UserAvatar({
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to resolve avatar URL:", error);
-          avatarUrlCache.set(avatarUrl, null);
+          writeCachedAvatarUrl(avatarUrl, null, FAILED_URL_CACHE_TTL_MS);
           setResolvedUrl(null);
         }
       } finally {
