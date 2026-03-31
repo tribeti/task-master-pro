@@ -195,7 +195,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await removeLabelFromTaskAction(taskId, labelId);
       await fetchData();
-      toast.success("xóa nhãn thành công");
+      toast.success("Xóa nhãn thành công");
     } catch (error) {
       console.error("Failed to remove label:", error);
       toast.error("xóa nhãn thất bại");
