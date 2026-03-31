@@ -186,30 +186,29 @@ export function KanbanColumn({
                   : ""
                   }`}
               >
-                {tasks.length === 0 && !droppableSnapshot.isDraggingOver ? (
+                {tasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
                     No tasks yet
                   </div>
-                ) : (
-                  tasks.map((task, taskIndex) => (
-                    <KanbanTask
-                      key={task.id}
-                      id={task.id}
-                      index={taskIndex}
-                      title={task.title}
-                      priority={task.priority}
-                      description={task.description || undefined}
-                      labels={task.labels}
-                      deadline={task.deadline}
-                      assignee={task.assignee}
-                      assignees={task.assignees}
-                      boardLabels={boardLabels}
-                      onAddLabel={onAddLabel}
-                      onRemoveLabel={onRemoveLabel}
-                      onClick={() => onTaskClick(task)}
-                    />
-                  ))
                 )}
+                {tasks.map((task, taskIndex) => (
+                  <KanbanTask
+                    key={task.id}
+                    id={task.id}
+                    index={taskIndex}
+                    title={task.title}
+                    priority={task.priority}
+                    description={task.description || undefined}
+                    labels={task.labels}
+                    deadline={task.deadline}
+                    assignee={task.assignee}
+                    assignees={task.assignees}
+                    boardLabels={boardLabels}
+                    onAddLabel={onAddLabel}
+                    onRemoveLabel={onRemoveLabel}
+                    onClick={() => onTaskClick(task)}
+                  />
+                ))}
                 {droppableProvided.placeholder}
               </div>
             )}
