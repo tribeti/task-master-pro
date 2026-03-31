@@ -40,7 +40,7 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
         <div className="p-8 flex flex-col gap-8">
           <input
             type="text"
-            placeholder="What's on your mind?"
+            placeholder="Bạn đang nghĩ gì?"
             className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
             autoFocus
             required
@@ -50,22 +50,22 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
             <div className="flex items-center gap-3">
               {selectedTags.length > 0 && (
                 <span className="text-xs font-bold text-slate-400 tracking-wider uppercase mr-2">
-                  Quick Tag:
+                  Gắn thẻ nhanh:
                 </span>
               )}
               {[
                 {
-                  label: "Work",
+                  label: "Công việc",
                   icon: <BriefcaseIcon />,
                   active: "bg-[#EAF7FF] text-[#28B8FA]",
                 },
                 {
-                  label: "Personal",
+                  label: "Cá nhân",
                   icon: <UserIcon />,
                   active: "bg-[#D1FAE5] text-[#34D399]",
                 },
                 {
-                  label: "Urgent",
+                  label: "Khẩn cấp",
                   icon: <ZapIcon />,
                   active: "bg-[#FFF2DE] text-[#FF8B5E]",
                 },

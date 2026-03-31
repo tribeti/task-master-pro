@@ -32,7 +32,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
-  const projTag = proj.tag || "Project";
+  const projTag = proj.tag || "Dự án";
   const projTeam = proj.team ?? 3;
 
   return (
@@ -55,7 +55,7 @@ export default function ProjectCard({
                   : "bg-sky-100 text-sky-700"
                 }`}
             >
-              {memberRole}
+              {memberRole === "Owner" ? "Chủ sở hữu" : "Thành viên"}
             </span>
           )}
         </div>
@@ -143,7 +143,7 @@ export default function ProjectCard({
 
       <div className="w-full mb-8">
         <div className="flex justify-between text-xs font-bold mb-3">
-          <span className="text-slate-500">Progress</span>
+          <span className="text-slate-500">Tiến độ</span>
           <span style={{ color: projColor }}>{projProgress}%</span>
         </div>
         <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">

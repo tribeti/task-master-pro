@@ -102,7 +102,7 @@ export default function UpdateProjectModal({
                         </label>
                         <input
                             type="text"
-                            placeholder="e.g. Q4 Brand Sprint"
+                            placeholder="vd: Kế hoạch Q4"
                             value={title}
                             onChange={(e) => {
                                 setTitle(e.target.value);
@@ -149,7 +149,7 @@ export default function UpdateProjectModal({
                             Mô tả
                         </label>
                         <textarea
-                            placeholder="Brief description of the project..."
+                            placeholder="Mô tả ngắn gọn về dự án..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}

@@ -50,13 +50,13 @@ export default function DeleteConfirmModal({
             onClick={onClose}
             className="flex-1 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
           >
-            Cancel
+            Hủy
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-200 transition-colors"
           >
-            Delete
+            Xóa
           </button>
         </div>
       </div>
