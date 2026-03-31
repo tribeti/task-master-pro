@@ -511,7 +511,7 @@ export function TaskDetailsModal({
                           onClick={() => handleRemoveAssigneeClick(taskAssignee.user_id)}
                           disabled={assigneeSubmitting || isSubmitting}
                           className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                          title="xóa người thực hiện"
+                          title="Xóa người thực hiện"
                         >
                           x
                         </button>
