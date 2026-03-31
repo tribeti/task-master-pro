@@ -164,7 +164,7 @@ export function KanbanColumn({
               <button
                 onClick={() => setIsEditing(true)}
                 className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
-                title="Rename column"
+                title="Đổi tên cột"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -186,7 +186,7 @@ export function KanbanColumn({
               <button
                 onClick={handleDeleteClick}
                 className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
-                title="Delete column"
+                title="Xóa cột"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

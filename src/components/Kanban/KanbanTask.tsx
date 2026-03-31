@@ -198,7 +198,7 @@ export function KanbanTask({
                           ? "bg-[#28B8FA] text-white border-[#28B8FA]"
                           : "bg-white text-slate-400 border-slate-200 opacity-0 group-hover/card:opacity-100 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                       }`}
-                    title="Add / Remove Label"
+                    title="Thêm / Xóa nhãn"
                     disabled={labelLoading}
                   >
                     <svg
@@ -269,7 +269,7 @@ export function KanbanTask({
                       })}
                       {boardLabels.length === 0 && (
                         <p className="text-xs text-slate-400 px-2 py-1">
-                          No labels in board
+                          Không có nhãn nào trong bảng
                         </p>
                       )}
                     </div>
