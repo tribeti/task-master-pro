@@ -45,9 +45,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
         .eq("id", user.id)
         .single();
 
-      if (data?.display_name) setSidebarName(data.display_name);
-
-      setSidebarAvatar(data?.avatar_url || null);
+      if (data) {
+        if (data?.display_name) setSidebarName(data.display_name);
+        setSidebarAvatar(data?.avatar_url || null);
+      }
     };
 
     fetchSidebarProfile();
@@ -151,7 +152,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
               {sidebarName}
             </p>
             <p className="text-[10px] font-bold text-[#34D399] uppercase tracking-widest">
-              Luồng đỉnh
+              PEAK FLOW
             </p>
           </div>
         </div>

@@ -38,12 +38,16 @@ function readPersistedAvatarUrl(avatarPath: string): string | null {
     };
 
     if (!parsedValue.signedUrl || !parsedValue.expiresAt) {
-      window.sessionStorage.removeItem(`${SESSION_STORAGE_KEY_PREFIX}${avatarPath}`);
+      window.sessionStorage.removeItem(
+        `${SESSION_STORAGE_KEY_PREFIX}${avatarPath}`,
+      );
       return null;
     }
 
     if (Date.now() >= parsedValue.expiresAt) {
-      window.sessionStorage.removeItem(`${SESSION_STORAGE_KEY_PREFIX}${avatarPath}`);
+      window.sessionStorage.removeItem(
+        `${SESSION_STORAGE_KEY_PREFIX}${avatarPath}`,
+      );
       return null;
     }
 
@@ -118,7 +122,6 @@ export function UserAvatar({
     }
 
     if (avatarUrl.startsWith("http")) {
-      writeCachedAvatarUrl(avatarUrl, avatarUrl, DIRECT_URL_CACHE_TTL_MS);
       setLoading(false);
       setResolvedUrl(avatarUrl);
       return;
@@ -146,8 +149,8 @@ export function UserAvatar({
       }
 
       const request = (async () => {
-        const { data, error } = await getBrowserSupabaseClient().storage
-          .from("avatar")
+        const { data, error } = await getBrowserSupabaseClient()
+          .storage.from("avatar")
           .createSignedUrl(avatarUrl, 3600);
 
         if (error) {
@@ -197,15 +200,18 @@ export function UserAvatar({
     };
   }, [avatarUrl]);
 
-  const initials = displayName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "?";
+  const initials =
+    displayName
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "?";
 
   if (loading) {
-    return <div className={`${className} rounded-full bg-slate-100 animate-pulse`} />;
+    return (
+      <div className={`${className} rounded-full bg-slate-100 animate-pulse`} />
+    );
   }
 
   if (resolvedUrl) {

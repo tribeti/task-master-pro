@@ -58,13 +58,24 @@ export function KanbanTask({
     const status = getDeadlineStatus(deadline);
     if (status.color === "red") {
       cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
-      deadlineBadge = { label: status.urgencyStr, color: "text-red-600 bg-red-100" };
+      deadlineBadge = {
+        label: status.urgencyStr,
+        color: "text-red-600 bg-red-100",
+      };
     } else if (status.color === "orange") {
-      cardClass = "bg-orange-50 border-orange-200 border-l-[4px] border-l-orange-500";
-      deadlineBadge = { label: status.urgencyStr, color: "text-orange-600 bg-orange-100" };
+      cardClass =
+        "bg-orange-50 border-orange-200 border-l-[4px] border-l-orange-500";
+      deadlineBadge = {
+        label: status.urgencyStr,
+        color: "text-orange-600 bg-orange-100",
+      };
     } else if (status.color === "yellow") {
-      cardClass = "bg-yellow-50 border-yellow-200 border-l-[4px] border-l-yellow-400";
-      deadlineBadge = { label: status.urgencyStr, color: "text-yellow-700 bg-yellow-100" };
+      cardClass =
+        "bg-yellow-50 border-yellow-200 border-l-[4px] border-l-yellow-400";
+      deadlineBadge = {
+        label: status.urgencyStr,
+        color: "text-yellow-700 bg-yellow-100",
+      };
     }
   }
 
@@ -77,7 +88,10 @@ export function KanbanTask({
   useEffect(() => {
     if (!showLabelPopover) return;
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
         setShowLabelPopover(false);
       }
     };
@@ -89,7 +103,11 @@ export function KanbanTask({
   const assignedIds = new Set(taskLabels.map((l) => l.id));
   const availableLabels = boardLabels.filter((l) => !assignedIds.has(l.id));
 
-  const handleToggleLabel = async (e: React.MouseEvent, label: Label, isAssigned: boolean) => {
+  const handleToggleLabel = async (
+    e: React.MouseEvent,
+    label: Label,
+    isAssigned: boolean,
+  ) => {
     e.stopPropagation();
     if (labelLoading) return;
     try {
@@ -183,7 +201,16 @@ export function KanbanTask({
                     title="Add / Remove Label"
                     disabled={labelLoading}
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
@@ -193,7 +220,7 @@ export function KanbanTask({
                   {/* Popover dropdown */}
                   {showLabelPopover && (
                     <div
-                      className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 min-w-[160px]"
+                      className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 min-w-40"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
@@ -206,21 +233,34 @@ export function KanbanTask({
                           <button
                             key={label.id}
                             type="button"
-                            onClick={(e) => handleToggleLabel(e, label, isAssigned)}
+                            onClick={(e) =>
+                              handleToggleLabel(e, label, isAssigned)
+                            }
                             disabled={labelLoading}
                             className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
                           >
                             {/* Color dot */}
                             <span
                               className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
-                              style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                              style={{
+                                backgroundColor: label.color_hex || "#E2E8F0",
+                              }}
                             />
                             <span className="text-xs font-semibold text-slate-700 flex-1 text-left truncate">
                               {label.name}
                             </span>
                             {/* Checkmark if assigned */}
                             {isAssigned && (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#28B8FA" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#28B8FA"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
                             )}
@@ -228,7 +268,9 @@ export function KanbanTask({
                         );
                       })}
                       {boardLabels.length === 0 && (
-                        <p className="text-xs text-slate-400 px-2 py-1">No labels in board</p>
+                        <p className="text-xs text-slate-400 px-2 py-1">
+                          No labels in board
+                        </p>
                       )}
                     </div>
                   )}
@@ -238,7 +280,9 @@ export function KanbanTask({
 
             {/* Description */}
             {description && (
-              <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
+              <p className="text-xs text-slate-500 line-clamp-2">
+                {description}
+              </p>
             )}
 
             <div className="flex items-center justify-between gap-3 pt-1">
