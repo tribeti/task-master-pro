@@ -152,7 +152,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     if (error) {
       toast.error(
-        editingTask ? "cập nhập task thất bại" : "tạo task thất bại",
+        editingTask ? "Cập nhật nhiệm vụ thất bại" : "Tạo nhiệm vụ thất bại",
       );
     } else {
       toast.success(editingTask ? "cập nhập task thành công" : "tạo task thành công");
