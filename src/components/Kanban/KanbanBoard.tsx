@@ -67,9 +67,12 @@ export function KanbanBoard({
     // Track if there are pending drags or API calls to avoid UI jumps
     const pendingTasksUpdatesRef = useRef(0);
     const pendingColumnsUpdatesRef = useRef(0);
+    const latestColumnsPropRef = useRef(columns);
+    const latestTasksPropRef = useRef(tasks);
 
     // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
+        latestColumnsPropRef.current = columns;
         if (pendingColumnsUpdatesRef.current === 0) {
             if (!isEqual(columns, lastSyncedColumnsRef.current)) {
                 setLocalColumns(columns);
@@ -79,6 +82,7 @@ export function KanbanBoard({
     }, [columns]);
 
     useEffect(() => {
+        latestTasksPropRef.current = tasks;
         if (pendingTasksUpdatesRef.current === 0) {
             if (!isEqual(tasks, lastSyncedTasksRef.current)) {
                 setLocalTasks(tasks);
@@ -177,9 +181,9 @@ export function KanbanBoard({
                 })
                 .finally(() => {
                     pendingColumnsUpdatesRef.current--;
-                    if (pendingColumnsUpdatesRef.current === 0 && !isEqual(columns, lastSyncedColumnsRef.current)) {
-                        setLocalColumns(columns);
-                        lastSyncedColumnsRef.current = columns;
+                    if (pendingColumnsUpdatesRef.current === 0 && !isEqual(latestColumnsPropRef.current, lastSyncedColumnsRef.current)) {
+                        setLocalColumns(latestColumnsPropRef.current);
+                        lastSyncedColumnsRef.current = latestColumnsPropRef.current;
                     }
                 });
 
@@ -302,7 +306,10 @@ export function KanbanBoard({
                     })
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
-                        // The `useEffect` on `[tasks]` will handle any necessary resync.
+                        if (pendingTasksUpdatesRef.current === 0 && !isEqual(latestTasksPropRef.current, lastSyncedTasksRef.current)) {
+                            setLocalTasks(latestTasksPropRef.current);
+                            lastSyncedTasksRef.current = latestTasksPropRef.current;
+                        }
                     });
             }, 500);
         }

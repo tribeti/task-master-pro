@@ -387,12 +387,12 @@ export const bulkUpdateColumnsAction = async (
     const columnIds = updates.map((u) => u.id);
     const { data: existingColumns, error: fetchErr } = await supabase
         .from("columns")
-        .select("*")
+        .select("id, board_id")
         .in("id", columnIds);
 
-    if (fetchErr || !existingColumns) {
+    if (fetchErr || !existingColumns || existingColumns.length !== new Set(columnIds).size) {
         console.error("bulkUpdateColumnsAction fetch error:", fetchErr?.message);
-        throw new Error("Failed to fetch existing columns.");
+        throw new Error("Failed to fetch existing columns or some columns were not found.");
     }
 
     // 2. Verify access to all involved boards
