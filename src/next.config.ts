@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const ALLOWED_ORIGINS = ["https://taskmasterpro.com", "http://localhost:3000"];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackUseSystemTlsCerts: true,
+  },
   images: {
     remotePatterns: [
       {
