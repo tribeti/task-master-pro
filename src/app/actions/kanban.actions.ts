@@ -154,9 +154,13 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
   if (authErr || !user) throw new Error("Unauthorized");
 
   // Validate input
-  validateString(payload.title, "Task title", 200);
-  if (payload.description) {
-    validateString(payload.description, "Description", 2000);
+  payload.title = validateString(payload.title, "Task title", 200);
+  if (payload.description !== null) {
+    payload.description = validateString(
+      payload.description,
+      "Description",
+      2000,
+    );
   }
 
   // SECURE: Verify user owns the board containing this column
@@ -210,10 +214,14 @@ export const updateTaskAction = async (
 
   // Validate input if title are being updated
   if (payload.title !== undefined) {
-    validateString(payload.title, "Task title", 200);
+    payload.title = validateString(payload.title, "Task title", 200);
   }
-  if (payload.description) {
-    validateString(payload.description, "Description", 2000);
+  if (payload.description !== undefined && payload.description !== null) {
+    payload.description = validateString(
+      payload.description,
+      "Description",
+      2000,
+    );
   }
 
   await verifyTaskAccess(supabase, user.id, taskId);
