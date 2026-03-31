@@ -23,7 +23,9 @@ function getBrowserSupabaseClient() {
   return browserSupabaseClient;
 }
 
-function readPersistedAvatarUrl(avatarPath: string): string | null {
+function readPersistedAvatarUrl(
+  avatarPath: string,
+): { signedUrl: string; expiresAt: number } | null {
   if (typeof window === "undefined") return null;
 
   try {
@@ -51,7 +53,7 @@ function readPersistedAvatarUrl(avatarPath: string): string | null {
       return null;
     }
 
-    return parsedValue.signedUrl;
+    return { signedUrl: parsedValue.signedUrl, expiresAt: parsedValue.expiresAt };
   } catch {
     return null;
   }
@@ -136,11 +138,12 @@ export function UserAvatar({
       return;
     }
 
-    const persistedUrl = readPersistedAvatarUrl(avatarUrl);
-    if (persistedUrl) {
-      writeCachedAvatarUrl(avatarUrl, persistedUrl, SESSION_CACHE_TTL_MS);
+    const persistedEntry = readPersistedAvatarUrl(avatarUrl);
+    if (persistedEntry) {
+      const ttl = persistedEntry.expiresAt - Date.now();
+      writeCachedAvatarUrl(avatarUrl, persistedEntry.signedUrl, ttl);
       setLoading(false);
-      setResolvedUrl(persistedUrl);
+      setResolvedUrl(persistedEntry.signedUrl);
       return;
     }
 
