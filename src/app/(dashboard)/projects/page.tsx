@@ -315,7 +315,7 @@ export default function ProjectsPage() {
                   </>
                 ) : (
                   <>
-                    <PlusIcon /> Thêm công việc
+                    <PlusIcon /> Thêm nhiệm vụ
                   </>
                 )}
               </button>
