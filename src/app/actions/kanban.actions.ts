@@ -155,7 +155,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
 
   // Validate input
   payload.title = validateString(payload.title, "Task title", 200);
-  if (payload.description !== null) {
+  if (payload.description !== undefined && payload.description !== null) {
     payload.description = validateString(
       payload.description,
       "Description",

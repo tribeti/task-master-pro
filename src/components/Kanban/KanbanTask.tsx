@@ -18,7 +18,6 @@ interface KanbanTaskProps {
   description?: string;
   labels?: Label[];
   deadline?: string | null;
-  assignee?: TaskAssignee | null;
   assignees?: TaskAssignee[];
   boardLabels?: Label[];
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;

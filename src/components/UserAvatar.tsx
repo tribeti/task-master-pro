@@ -109,7 +109,9 @@ export function UserAvatar({
   className = "w-8 h-8",
   fallbackClassName = "bg-slate-200 text-slate-700",
 }: UserAvatarProps) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(
+    avatarUrl?.startsWith("http") ? avatarUrl : null,
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
