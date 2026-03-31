@@ -342,7 +342,7 @@ export default function ProjectsPage() {
           <>
             <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
               {[
-                { id: "Tasks", label: "Công việc" },
+                { id: "Tasks", label: "Nhiệm vụ" },
                 { id: "Timeline", label: "Lịch trình" },
                 { id: "Files", label: "Tệp tin" },
                 { id: "Team", label: "Nhóm" }
