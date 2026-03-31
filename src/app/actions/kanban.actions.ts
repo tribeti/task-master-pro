@@ -400,17 +400,10 @@ export const bulkUpdateColumnsAction = async (
     await verifyAllBoardsAccess(supabase, user.id, involvedBoardIds);
 
     // Merge changes
-    const updatesMap = new Map(updates.map((u) => [u.id, u]));
-    const upsertData = existingColumns.map((col) => {
-        const update = updatesMap.get(col.id);
-        if (!update) {
-            throw new Error(`Could not find update for column with id ${col.id}`);
-        }
-        return {
-            ...col,
-            position: update.position,
-        };
-    });
+    const upsertData = updates.map((u) => ({
+        id: u.id,
+        position: u.position,
+    }))
 
     const { error } = await supabase
         .from("columns")
