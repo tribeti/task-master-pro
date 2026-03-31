@@ -387,7 +387,7 @@ export const bulkUpdateColumnsAction = async (
     const columnIds = updates.map((u) => u.id);
     const { data: existingColumns, error: fetchErr } = await supabase
         .from("columns")
-        .select("id, board_id")
+        .select("id, title, position, board_id")
         .in("id", columnIds);
 
     if (fetchErr || !existingColumns || existingColumns.length !== new Set(columnIds).size) {
