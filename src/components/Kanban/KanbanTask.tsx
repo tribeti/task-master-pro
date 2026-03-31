@@ -40,7 +40,6 @@ export function KanbanTask({
   description,
   labels,
   deadline,
-  assignee,
   assignees = [],
   boardLabels = [],
   onAddLabel,
@@ -248,7 +247,7 @@ export function KanbanTask({
               </span>
 
               {assignees.length > 0 ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <div className="flex -space-x-2">
                     {assignees.slice(0, 3).map((taskAssignee) => (
                       <div
@@ -268,11 +267,6 @@ export function KanbanTask({
                   {assignees.length > 3 && (
                     <span className="text-[11px] font-semibold text-slate-500">
                       +{assignees.length - 3}
-                    </span>
-                  )}
-                  {assignee && (
-                    <span className="max-w-24 truncate text-[11px] font-semibold text-slate-600">
-                      {assignee.display_name}
                     </span>
                   )}
                 </div>

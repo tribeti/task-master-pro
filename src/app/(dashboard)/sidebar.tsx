@@ -15,11 +15,12 @@ import {
     BellIcon,
 } from "@/components/icons";
 import { useNotifications } from "@/hooks/useNotifications";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const NAV_ITEMS = [
-    { href: "/command", label: "Command", icon: GridIcon },
-    { href: "/insights", label: "Insights", icon: ChartIcon },
-    { href: "/projects", label: "Projects", icon: RocketIcon },
+    { href: "/command", label: "Điều khiển", icon: GridIcon },
+    { href: "/insights", label: "Thống kê", icon: ChartIcon },
+    { href: "/projects", label: "Dự án", icon: RocketIcon },
 ];
 
 export default function DashboardSidebar({ user }: { user: User }) {
@@ -27,11 +28,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
-    const fallbackAvatar = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user.email || "User")}`;
-    const [sidebarAvatar, setSidebarAvatar] = useState(fallbackAvatar);
+    const [sidebarAvatar, setSidebarAvatar] = useState<string | null>(null);
     const { unreadCount } = useNotifications(user?.id);
     const [sidebarName, setSidebarName] = useState(
-        user.user_metadata?.full_name || user.email?.split("@")[0] || "User"
+        user.user_metadata?.full_name || user.email?.split("@")[0] || "Người dùng"
     );
 
     useEffect(() => {
@@ -45,18 +45,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
             if (data?.display_name) setSidebarName(data.display_name);
 
-            if (data?.avatar_url) {
-                if (data.avatar_url.startsWith('http')) {
-                    setSidebarAvatar(data.avatar_url);
-                } else {
-                    const { data: signedData } = await supabase.storage
-                        .from('avatar')
-                        .createSignedUrl(data.avatar_url, 60 * 60);
-                    if (signedData?.signedUrl) {
-                        setSidebarAvatar(signedData.signedUrl);
-                    }
-                }
-            }
+            setSidebarAvatar(data?.avatar_url || null);
         };
 
         fetchSidebarProfile();
@@ -124,7 +113,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
                             <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
                         )}
                     </div>
-                    Notifications
+                    Thông báo
                 </Link>
 
                 <Link
@@ -134,30 +123,30 @@ export default function DashboardSidebar({ user }: { user: User }) {
                         : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
                         }`}
                 >
-                    <SettingsIcon /> Config
+                    <SettingsIcon /> Cài đặt
                 </Link>
 
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors text-slate-400 hover:text-red-500 hover:bg-red-50"
                 >
-                    <LogOutIcon /> Log Out
+                    <LogOutIcon /> Đăng xuất
                 </button>
 
                 {/* User Info */}
                 <div className="flex items-center gap-3 px-4 pt-4 mt-2 border-t border-slate-100">
-                    <img
-                        src={sidebarAvatar}
-                        onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
-                        alt={sidebarName}
-                        className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm object-cover"
+                    <UserAvatar
+                        avatarUrl={sidebarAvatar}
+                        displayName={sidebarName}
+                        className="w-10 h-10 border-2 border-white shadow-sm"
+                        fallbackClassName="bg-slate-200 text-slate-700"
                     />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 truncate">
                             {sidebarName}
                         </p>
                         <p className="text-[10px] font-bold text-[#34D399] uppercase tracking-widest">
-                            Peak Flow
+                            Luồng đỉnh
                         </p>
                     </div>
                 </div>
