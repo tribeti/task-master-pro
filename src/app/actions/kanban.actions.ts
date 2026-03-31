@@ -372,6 +372,52 @@ export const bulkUpdateTasksAction = async (
     revalidatePath("/projects");
 };
 
+export const bulkUpdateColumnsAction = async (
+    updates: { id: number; position: number }[],
+) => {
+    if (!updates.length) return;
+
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // 1. Fetch existing columns to preserve other fields and check access
+    const columnIds = updates.map((u) => u.id);
+    const { data: existingColumns, error: fetchErr } = await supabase
+        .from("columns")
+        .select("id, title, position, board_id")
+        .in("id", columnIds);
+
+    if (fetchErr || !existingColumns || existingColumns.length !== new Set(columnIds).size) {
+        console.error("bulkUpdateColumnsAction fetch error:", fetchErr?.message);
+        throw new Error("Failed to fetch existing columns or some columns were not found.");
+    }
+
+    // 2. Verify access to all involved boards
+    const involvedBoardIds = new Set<number>(existingColumns.map((col) => col.board_id));
+    await verifyAllBoardsAccess(supabase, user.id, involvedBoardIds);
+
+    // Merge changes
+    const updatesMap = new Map(updates.map((u) => [u.id, u.position]));
+    const upsertData = existingColumns.map((col) => ({
+        ...col,
+        position: updatesMap.get(col.id) ?? col.position,
+    }));
+
+    const { error } = await supabase
+        .from("columns")
+        .upsert(upsertData, { onConflict: "id" });
+
+    if (error) {
+        console.error("bulkUpdateColumnsAction error:", error.message);
+        throw new Error("Failed to bulk update columns.");
+    }
+
+    revalidatePath("/projects");
+};
+
 export const deleteTaskAction = async (taskId: number) => {
     const supabase = await createClient();
     const {

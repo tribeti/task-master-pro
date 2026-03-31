@@ -15,6 +15,7 @@ import {
     createColumnAction,
     updateColumnAction,
     bulkUpdateTasksAction,
+    bulkUpdateColumnsAction,
 } from "@/app/actions/kanban.actions";
 import { toast } from "sonner";
 import {
@@ -65,16 +66,23 @@ export function KanbanBoard({
 
     // Track if there are pending drags or API calls to avoid UI jumps
     const pendingTasksUpdatesRef = useRef(0);
+    const pendingColumnsUpdatesRef = useRef(0);
+    const latestColumnsPropRef = useRef(columns);
+    const latestTasksPropRef = useRef(tasks);
 
     // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
-        if (!isEqual(columns, lastSyncedColumnsRef.current)) {
-            setLocalColumns(columns);
-            lastSyncedColumnsRef.current = columns;
+        latestColumnsPropRef.current = columns;
+        if (pendingColumnsUpdatesRef.current === 0) {
+            if (!isEqual(columns, lastSyncedColumnsRef.current)) {
+                setLocalColumns(columns);
+                lastSyncedColumnsRef.current = columns;
+            }
         }
     }, [columns]);
 
     useEffect(() => {
+        latestTasksPropRef.current = tasks;
         if (pendingTasksUpdatesRef.current === 0) {
             if (!isEqual(tasks, lastSyncedTasksRef.current)) {
                 setLocalTasks(tasks);
@@ -146,20 +154,37 @@ export function KanbanBoard({
             // ── Step 3: Update UI IMMEDIATELY ──
             setLocalColumns(updatedColumns);
 
-            // ── Step 4: Fire API in background (non-blocking) ──
-            Promise.all(
-                updatedColumns.map((col) =>
-                    updateColumnAction(col.id, { position: col.position }),
-                ),
-            )
+            // ── Step 4: Dirty Checking ──
+            const oldColumnsMap = new Map(columns.map(c => [c.id, c]));
+            const changedColumns = updatedColumns.filter((newCol) => {
+                const oldCol = oldColumnsMap.get(newCol.id);
+                if (!oldCol) return false;
+                return oldCol.position !== newCol.position;
+            });
+
+            if (changedColumns.length === 0) return;
+
+            // ── Step 5: Fire API in background (Bulk Update) ──
+            pendingColumnsUpdatesRef.current++;
+            bulkUpdateColumnsAction(changedColumns.map(c => ({
+                id: c.id,
+                position: c.position
+            })))
                 .then(() => {
                     // Sync silently with server after success
-                    onDataChange();
+                    return onDataChange();
                 })
                 .catch(() => {
-                    // ── Step 5: Rollback on error ──
+                    // ── Step 6: Rollback on error ──
                     setLocalColumns(previousColumns);
-                    toast.error("Lưu vị trí thất bại, đang hoàn tác!");
+                    toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
+                })
+                .finally(() => {
+                    pendingColumnsUpdatesRef.current--;
+                    if (pendingColumnsUpdatesRef.current === 0 && !isEqual(latestColumnsPropRef.current, lastSyncedColumnsRef.current)) {
+                        setLocalColumns(latestColumnsPropRef.current);
+                        lastSyncedColumnsRef.current = latestColumnsPropRef.current;
+                    }
                 });
 
             return;
@@ -281,7 +306,10 @@ export function KanbanBoard({
                     })
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
-                        // The `useEffect` on `[tasks]` will handle any necessary resync.
+                        if (pendingTasksUpdatesRef.current === 0 && !isEqual(latestTasksPropRef.current, lastSyncedTasksRef.current)) {
+                            setLocalTasks(latestTasksPropRef.current);
+                            lastSyncedTasksRef.current = latestTasksPropRef.current;
+                        }
                     });
             }, 500);
         }
