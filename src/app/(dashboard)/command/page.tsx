@@ -203,7 +203,7 @@ export default function CommandCenter() {
                                         style={{ animation: "floatUp 0.2s ease-out forwards" }}
                                     >
                                         <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
-                                            <EditIcon /> Cập nhập nhiệm vụ
+                                            <EditIcon /> Cập nhật nhiệm vụ
                                         </button>
                                         <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
                                             <AlertIcon /> Thay đổi mức độ ưu tiên
