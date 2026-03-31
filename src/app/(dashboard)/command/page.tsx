@@ -47,12 +47,12 @@ export default function CommandCenter() {
             <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 py-10">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        Command Center
+                        Trung tâm lệnh
                     </h1>
                     <p className="text-slate-500 text-sm mt-1.5 font-medium">
-                        Daily productivity is at{" "}
+                        Năng suất hàng ngày là{" "}
                         <span className="text-[#34D399] font-bold">84%</span>.
-                        You&apos;re crushing it!
+                        Bạn đang làm rất tốt!
                     </p>
                 </div>
 
@@ -60,7 +60,7 @@ export default function CommandCenter() {
                     <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border border-slate-100 shadow-sm shadow-slate-200/50">
                         <SunIcon />
                         <span className="text-xs font-bold text-slate-800 tracking-wider">
-                            MORNING SESSION
+                            BÀI TẬP BUỔI SÁNG
                         </span>
                     </div>
                     <button
@@ -87,7 +87,7 @@ export default function CommandCenter() {
                         )}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10"></div>
                         <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">
-                            Deep Focus
+                            Tập trung sâu
                         </h3>
                         <div
                             className={`text-5xl font-black tracking-tighter mb-6 transition-colors ${isTimerRunning ? "text-[#28B8FA]" : "text-slate-800"}`}
@@ -100,17 +100,17 @@ export default function CommandCenter() {
                         >
                             {isTimerRunning ? (
                                 <>
-                                    <PauseIcon /> Pause Sprint
+                                    <PauseIcon /> Tạm dừng Sprint
                                 </>
                             ) : (
-                                "Start Sprint"
+                                "Bắt đầu Sprint"
                             )}
                         </button>
                     </div>
 
                     <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
                         <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-6 w-full text-left">
-                            Energy Sync
+                            Đồng bộ năng lượng
                         </h3>
                         <div className="flex items-end gap-2 h-20 mb-4">
                             <div className="w-6 h-8 bg-[#D1FAE5] rounded-t-md"></div>
@@ -129,7 +129,7 @@ export default function CommandCenter() {
                 <div className="lg:col-span-6 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="text-xl font-bold text-slate-900">
-                            Primary Objectives
+                            Mục tiêu chính
                         </h2>
                         <div className="flex gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-[#FF8B5E]"></div>
@@ -203,14 +203,14 @@ export default function CommandCenter() {
                                         style={{ animation: "floatUp 0.2s ease-out forwards" }}
                                     >
                                         <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
-                                            <EditIcon /> Edit Task
+                                            <EditIcon /> Cập nhập nhiệm vụ
                                         </button>
                                         <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-left">
-                                            <AlertIcon /> Change Priority
+                                            <AlertIcon /> Thay đổi mức độ ưu tiên
                                         </button>
                                         <hr className="my-1 border-slate-100" />
                                         <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors text-left">
-                                            <TrashIcon /> Delete
+                                            <TrashIcon /> Xóa
                                         </button>
                                     </div>
                                 )}
@@ -223,11 +223,11 @@ export default function CommandCenter() {
                     >
                         {isQueueExpanded ? (
                             <>
-                                <ChevronUp /> Collapse Queue
+                                <ChevronUp /> Thu gọn hàng đợi
                             </>
                         ) : (
                             <>
-                                <PlusIcon /> Expand Queue
+                                <PlusIcon /> Mở rộng hàng đợi
                             </>
                         )}
                     </button>
@@ -237,13 +237,13 @@ export default function CommandCenter() {
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="bg-linear-to-br from-[#FF8B5E] to-[#FF6B3E] rounded-4xl p-6 shadow-md shadow-orange-200 text-white">
                         <h3 className="text-xs font-bold text-white/80 tracking-widest uppercase mb-4">
-                            Coming Up
+                            Sắp tới
                         </h3>
                         <h2 className="text-2xl font-bold tracking-tight mb-1">
-                            Design Sync
+                            Đồng bộ thiết kế
                         </h2>
                         <p className="text-sm text-white/80 font-medium mb-6">
-                            11:00 AM — Main Lounge
+                            11:00 AM — Phòng chính
                         </p>
                         <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors text-white text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2">
                             <LinkIcon /> meet.taskmasterpro.co...
@@ -253,13 +253,13 @@ export default function CommandCenter() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white rounded-3xl p-5 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                             <span className="text-xs font-bold text-slate-400 mb-1">
-                                Streak
+                                Chuỗi
                             </span>
                             <span className="text-3xl font-black text-[#FF8B5E]">12</span>
                         </div>
                         <div className="bg-white rounded-3xl p-5 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                             <span className="text-xs font-bold text-slate-400 mb-1">
-                                Tasks
+                                Nhiệm vụ
                             </span>
                             <span className="text-3xl font-black text-[#28B8FA]">48</span>
                         </div>
@@ -267,17 +267,17 @@ export default function CommandCenter() {
 
                     <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100">
                         <h3 className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">
-                            Calendar
+                            Lịch
                         </h3>
                         <div className="flex flex-col gap-4">
                             <div className="flex items-stretch gap-3">
                                 <div className="w-1 bg-[#34D399] rounded-full"></div>
                                 <div>
                                     <h4 className="text-sm font-bold text-slate-800">
-                                        Project Launch
+                                        Ra mắt dự án
                                     </h4>
                                     <p className="text-[10px] font-medium text-slate-400 mt-0.5">
-                                        Oct 26 • 2:00 PM
+                                        26 tháng 10 • 2:00 PM
                                     </p>
                                 </div>
                             </div>
@@ -285,10 +285,10 @@ export default function CommandCenter() {
                                 <div className="w-1 bg-[#28B8FA] rounded-full"></div>
                                 <div>
                                     <h4 className="text-sm font-bold text-slate-800">
-                                        Feedback Loop
+                                        Vòng lặp phản hồi
                                     </h4>
                                     <p className="text-[10px] font-medium text-slate-400 mt-0.5">
-                                        Oct 27 • 10:00 AM
+                                        27 tháng 10 • 10:00 AM
                                     </p>
                                 </div>
                             </div>
@@ -319,7 +319,7 @@ export default function CommandCenter() {
                         <div className="p-8 flex flex-col gap-8">
                             <input
                                 type="text"
-                                placeholder="What's on your mind?"
+                                placeholder="Bạn đang nghĩ gì?"
                                 className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
                                 autoFocus
                                 required
@@ -337,19 +337,19 @@ export default function CommandCenter() {
                                         onClick={() => toggleTag("Work")}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Work") ? "bg-[#EAF7FF] text-[#28B8FA]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
                                     >
-                                        <BriefcaseIcon /> Work
+                                        <BriefcaseIcon /> Công việc
                                     </button>
                                     <button
                                         onClick={() => toggleTag("Personal")}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Personal") ? "bg-[#D1FAE5] text-[#34D399]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
                                     >
-                                        <UserIcon /> Personal
+                                        <UserIcon /> Cá nhân
                                     </button>
                                     <button
                                         onClick={() => toggleTag("Urgent")}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes("Urgent") ? "bg-[#FFF2DE] text-[#FF8B5E]" : "bg-slate-50 text-slate-500 hover:bg-slate-100"} `}
                                     >
-                                        <ZapIcon /> Urgent
+                                        <ZapIcon /> Khẩn cấp
                                     </button>
                                 </div>
                                 <div className="ml-auto">
@@ -358,11 +358,11 @@ export default function CommandCenter() {
                                             <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
                                                 <CheckIcon />
                                             </div>
-                                            Create Task
+                                            Tạo nhiệm vụ
                                         </button>
                                     ) : (
                                         <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-all text-white font-bold rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-lg shadow-orange-200 animate-in slide-in-from-right-4">
-                                            Add Task{" "}
+                                            Thêm nhiệm vụ{" "}
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 width="18"

@@ -79,7 +79,7 @@ export const useProjects = (userId?: string) => {
         tag: data.tag,
       });
 
-      toast.success("Project created successfully!");
+      toast.success("Tạo dự án thành công!");
 
       try {
         await createDefaultColumns(newBoard.id);
@@ -110,7 +110,7 @@ export const useProjects = (userId?: string) => {
     setIsSubmitting(true);
     try {
       await updateUserBoard(userId, projectId, data);
-      toast.success("Project updated successfully!");
+      toast.success("Cập nhật dự án thành công!");
       await fetchBoards();
       return true;
     } catch (error: any) {

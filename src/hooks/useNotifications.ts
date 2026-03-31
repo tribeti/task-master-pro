@@ -47,7 +47,7 @@ export function useNotifications(userId: string | undefined) {
 
         // Use a unique channel topic so multiple instances of the hook don't conflict
         const channelName = `notifications-${userId}-${Math.random().toString(36).substring(7)}`;
-        
+
         const channel = supabase
             .channel(channelName)
             .on(
@@ -64,16 +64,16 @@ export function useNotifications(userId: string | undefined) {
                         setNotifications(prev => {
                             const exists = prev.find(n => n.id === newNotification.id);
                             if (exists) return prev;
-                            
+
                             const next = [newNotification, ...prev];
                             setUnreadCount(next.filter(n => !n.is_read).length);
                             return next;
                         });
 
-                        toast("New Notification", {
+                        toast("Thông báo mới", {
                             description: newNotification.content,
                             action: {
-                                label: "Mark Read",
+                                label: "Đã đọc",
                                 onClick: async () => {
                                     await supabase.from("notifications").update({ is_read: true }).eq("id", newNotification.id);
                                 }

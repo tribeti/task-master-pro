@@ -86,21 +86,21 @@ export default function CreateProjectModal({
                 <div className="p-8 flex flex-col gap-5 overflow-y-auto w-full">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">
-                            Create New Project
+                            Tạo dự án mới
                         </h2>
                         <p className="text-sm text-slate-400 font-medium">
-                            Let&apos;s set up your next win.
+                            Hãy thiết lập cho chiến thắng tiếp theo của bạn.
                         </p>
                     </div>
 
                     {/* Project Name */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                            Project Name <span className="text-red-400">*</span>
+                            Tên dự án <span className="text-red-400">*</span>
                         </label>
                         <input
                             type="text"
-                            placeholder="e.g. Q4 Brand Sprint"
+                            placeholder="e.g. Dự án mới"
                             value={title}
                             onChange={(e) => {
                                 setTitle(e.target.value);
@@ -114,7 +114,7 @@ export default function CreateProjectModal({
                         />
                         {nameError && (
                             <p className="text-xs font-medium text-red-400 mt-2 ml-1">
-                                Project name is required.
+                                Tên dự án không được để trống.
                             </p>
                         )}
                     </div>
@@ -144,10 +144,10 @@ export default function CreateProjectModal({
                     {/* Description */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                            Description
+                            Mô tả
                         </label>
                         <textarea
-                            placeholder="Brief description of the project..."
+                            placeholder="Mô tả dự án..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
@@ -159,7 +159,7 @@ export default function CreateProjectModal({
                     {/* Accent Color */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                            Accent Color
+                            Màu sắc
                         </label>
                         <div className="flex gap-3">
                             {["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"].map(
@@ -185,10 +185,10 @@ export default function CreateProjectModal({
                     <div className="flex items-center justify-between">
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                                Private Project
+                                Dự án riêng tư
                             </label>
                             <p className="text-xs text-slate-400 mt-0.5">
-                                Only visible to you and invited members
+                                Chỉ hiển thị với bạn và các thành viên được mời
                             </p>
                         </div>
                         <button
@@ -205,7 +205,7 @@ export default function CreateProjectModal({
                     {/* Team Members */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                            Assign Team Members
+                            Thành viên
                         </label>
                         <div className="flex items-center gap-2 flex-wrap">
                             {selectedTeamMembers.map((member, idx) => (
@@ -240,11 +240,11 @@ export default function CreateProjectModal({
                         {isSubmitting ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Creating...
+                                Đang tạo...
                             </>
                         ) : (
                             <>
-                                Launch Project
+                                Bắt đầu dự án
                                 <svg
                                     width="16"
                                     height="16"
