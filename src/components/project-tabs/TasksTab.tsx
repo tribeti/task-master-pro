@@ -152,10 +152,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     if (error) {
       toast.error(
-        editingTask ? "Failed to update task" : "Failed to create task",
+        editingTask ? "cập nhập task thất bại" : "tạo task thất bại",
       );
     } else {
-      toast.success(editingTask ? "Task updated" : "Task created");
+      toast.success(editingTask ? "cập nhập task thành công" : "tạo task thành công");
     }
 
     await fetchData();
@@ -169,10 +169,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsSubmitting(true);
     try {
       await deleteTaskAction(editingTask.id);
-      toast.success("Task deleted");
+      toast.success("xóa task thành công");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete task");
+      toast.error("xóa task thất bại");
     }
 
     await fetchData();
@@ -184,10 +184,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await addLabelToTaskAction(taskId, labelId);
       await fetchData();
-      toast.success("Label added");
+      toast.success("Thêm nhãn thành công");
     } catch (error) {
       console.error("Failed to add label:", error);
-      toast.error("Failed to add label");
+      toast.error("Thêm nhãn thất bại");
     }
   };
 
@@ -195,10 +195,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await removeLabelFromTaskAction(taskId, labelId);
       await fetchData();
-      toast.success("Label removed");
+      toast.success("xóa nhãn thành công");
     } catch (error) {
       console.error("Failed to remove label:", error);
-      toast.error("Failed to remove label");
+      toast.error("xóa nhãn thất bại");
     }
   };
 
@@ -222,11 +222,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
       const createdLabel = await createLabelAction(projectId, name, color);
       await addLabelToTaskAction(taskId, createdLabel.id);
       await fetchData();
-      toast.success("Label created and assigned");
+      toast.success("Tạo và gán nhãn thành công");
       return createdLabel;
     } catch (error) {
       console.error("Failed to create and assign label:", error);
-      toast.error("Failed to create or assign label");
+      toast.error("Tạo và gán nhãn thất bại");
       throw error;
     }
   };
@@ -246,10 +246,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await createCommentAction(taskId, content);
       await fetchComments(taskId);
-      toast.success("Comment added");
+      toast.success("Thêm bình luận thành công");
     } catch (error) {
       console.error("Failed to add comment:", error);
-      toast.error("Failed to add comment");
+      toast.error("Thêm bình luận thất bại");
     }
   };
 
@@ -259,10 +259,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await deleteCommentAction(commentId);
       await fetchComments(editingTask.id);
-      toast.success("Comment deleted");
+      toast.success("Xóa bình luận thành công");
     } catch (error) {
       console.error("Failed to delete comment:", error);
-      toast.error("Failed to delete comment");
+      toast.error("Xóa bình luận thất bại");
     }
   };
 
@@ -273,10 +273,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await addTaskAssigneeAction(taskId, assigneeId);
       await fetchData();
-      toast.success("Assignee added");
+      toast.success("Thêm người thực hiện thành công");
     } catch (error) {
       console.error("Failed to add assignee:", error);
-      toast.error("Failed to add assignee");
+      toast.error("Thêm người thực hiện thất bại");
       throw error;
     }
   };
@@ -288,10 +288,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await removeTaskAssigneeAction(taskId, assigneeId);
       await fetchData();
-      toast.success("Assignee removed");
+      toast.success("xóa người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove assignee:", error);
-      toast.error("Failed to remove assignee");
+      toast.error("xóa người thực hiện thất bại");
       throw error;
     }
   };
@@ -300,10 +300,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await removeAllTaskAssigneesAction(taskId);
       await fetchData();
-      toast.success("All assignees removed");
+      toast.success("xóa tất cả người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove all assignees:", error);
-      toast.error("Failed to remove all assignees");
+      toast.error("xóa tất cả người thực hiện thất bại");
       throw error;
     }
   };

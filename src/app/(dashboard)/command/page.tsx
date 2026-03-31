@@ -47,7 +47,7 @@ export default function CommandCenter() {
             <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 py-10">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        Trung tâm lệnh
+                        Trung tâm điều khiển
                     </h1>
                     <p className="text-slate-500 text-sm mt-1.5 font-medium">
                         Năng suất hàng ngày là{" "}

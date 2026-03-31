@@ -17,9 +17,9 @@ import {
 import { useNotifications } from "@/hooks/useNotifications";
 
 const NAV_ITEMS = [
-    { href: "/command", label: "Command", icon: GridIcon },
-    { href: "/insights", label: "Insights", icon: ChartIcon },
-    { href: "/projects", label: "Projects", icon: RocketIcon },
+    { href: "/command", label: "Bảng điều khiển", icon: GridIcon },
+    { href: "/insights", label: "Thống kê", icon: ChartIcon },
+    { href: "/projects", label: "Dự án", icon: RocketIcon },
 ];
 
 export default function DashboardSidebar({ user }: { user: User }) {
@@ -124,7 +124,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
                             <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
                         )}
                     </div>
-                    Notifications
+                    Thông báo
                 </Link>
 
                 <Link
@@ -134,14 +134,14 @@ export default function DashboardSidebar({ user }: { user: User }) {
                         : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
                         }`}
                 >
-                    <SettingsIcon /> Config
+                    <SettingsIcon /> Cài đặt
                 </Link>
 
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors text-slate-400 hover:text-red-500 hover:bg-red-50"
                 >
-                    <LogOutIcon /> Log Out
+                    <LogOutIcon /> Đăng xuất
                 </button>
 
                 {/* User Info */}
