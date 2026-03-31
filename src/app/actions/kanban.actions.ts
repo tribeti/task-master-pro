@@ -143,6 +143,23 @@ function validateString(
   return trimmed;
 }
 
+function normalizeOptionalString(
+  value: string | null | undefined,
+  fieldName: string,
+  maxLength: number = 500,
+): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  return validateString(trimmed, fieldName, maxLength);
+}
+
 // fetchKanbanDataAction has been migrated to GET /api/boards/[boardId]/kanban
 
 export const createTaskAction = async (payload: Omit<Task, "id">) => {
@@ -155,13 +172,11 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
 
   // Validate input
   payload.title = validateString(payload.title, "Task title", 200);
-  if (payload.description !== undefined && payload.description !== null) {
-    payload.description = validateString(
-      payload.description,
-      "Description",
-      2000,
-    );
-  }
+  payload.description = normalizeOptionalString(
+    payload.description,
+    "Description",
+    2000,
+  );
 
   // SECURE: Verify user owns the board containing this column
   const { data: column, error: colErr } = await supabase
@@ -216,8 +231,8 @@ export const updateTaskAction = async (
   if (payload.title !== undefined) {
     payload.title = validateString(payload.title, "Task title", 200);
   }
-  if (payload.description !== undefined && payload.description !== null) {
-    payload.description = validateString(
+  if (payload.description !== undefined) {
+    payload.description = normalizeOptionalString(
       payload.description,
       "Description",
       2000,
