@@ -169,7 +169,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsSubmitting(true);
     try {
       await deleteTaskAction(editingTask.id);
-      toast.success("xóa task thành công");
+      toast.success("Xóa nhiệm vụ thành công");
     } catch (error) {
       console.error(error);
       toast.error("xóa task thất bại");
