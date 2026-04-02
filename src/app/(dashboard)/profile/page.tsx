@@ -181,7 +181,6 @@ export default function ProfilePage() {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
 
     // 1. Kiểm tra MIME type thực tế (Bảo mật hơn chỉ check extension)
-    // 1. Kiểm tra MIME type thực tế (Bảo mật hơn chỉ check extension)
     if (!allowedMimeTypes.includes(file.type)) {
       toast.error("Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (JPG, PNG, WebP)");
       event.target.value = "";
