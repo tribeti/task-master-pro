@@ -452,7 +452,7 @@ export function TaskDetailsModal({
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
                       {currentAssignees.length > 0
-                        ? `${currentAssignees.length} người thực hiện${currentAssignees.length > 1 ? "s" : ""}`
+                        ? `${currentAssignees.length} người thực hiện`
                         : "Chưa giao"}
                     </p>
                     <p className="text-xs text-slate-400">
