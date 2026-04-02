@@ -22,6 +22,7 @@ import {
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
 import {
   Label,
   Comment,
@@ -73,6 +74,39 @@ export function TasksTab({ projectId }: { projectId: number }) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Set up Supabase Realtime subscription
+  useEffect(() => {
+    const supabase = createClient();
+    let debounceTimer: NodeJS.Timeout;
+
+    const fetchDebounced = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchData();
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel(`kanban-realtime-board-${projectId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "columns", filter: `board_id=eq.${projectId}` },
+        () => fetchDebounced()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks" },
+        // Tasks don't have a direct board_id, we fetch and let fetchData filter/validate
+        () => fetchDebounced()
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, fetchData]);
 
   const fetchComments = useCallback(async (taskId: number) => {
     try {
