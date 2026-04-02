@@ -33,10 +33,10 @@ export default function NotificationsPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
         <div>
           <h1 className="text-[2.5rem] font-black text-slate-900 tracking-tight leading-none mb-2">
-            Notifications
+            Thông báo
           </h1>
           <p className="text-slate-500 font-medium text-base">
-            Stay on top of your upcoming deadlines and project updates.
+            Cập nhật các hạn chót và thông báo mới nhất về dự án của bạn.
           </p>
         </div>
         {unreadCount > 0 && (
@@ -44,7 +44,7 @@ export default function NotificationsPage() {
             onClick={markAllAsRead}
             className="bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF] transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
           >
-            {unreadCount} UNREAD
+            {unreadCount} CHƯA ĐỌC
           </button>
         )}
       </header>
@@ -64,10 +64,10 @@ export default function NotificationsPage() {
             <CheckCircleIcon />
           </div>
           <h3 className="font-bold text-slate-800 text-lg">
-            You're all caught up!
+            Tuyệt vời! Bạn không có thông báo mới.
           </h3>
           <p className="text-slate-500 text-sm mt-1">
-            No pending notifications at the moment.
+            Hiện tại không có thông báo nào đang chờ.
           </p>
         </div>
       ) : (
@@ -106,8 +106,8 @@ export default function NotificationsPage() {
               : notification.task;
 
             let projectSubject = projObj?.title
-              ? `PROJECT: ${projObj.title}`
-              : "PROJECT UPDATE";
+              ? `DỰ ÁN: ${projObj.title}`
+              : "CẬP NHẬT DỰ ÁN";
             let taskTitle = taskObj?.title || notification.content;
             let acceptUrl = "";
 
@@ -116,17 +116,17 @@ export default function NotificationsPage() {
               iconBgStr = "bg-green-50 text-green-500";
               borderLeftColorStr = "border-l-green-500";
               labelBgStr = "bg-green-50 text-green-500";
-              status = { label: "INVITATION", color: "green" };
-              projectSubject = "PROJECT INVITATION";
+              status = { label: "LỜI MỜI", color: "green" };
+              projectSubject = "LỜI MỜI THAM GIA DỰ ÁN";
 
               try {
                 const payload = JSON.parse(notification.content);
-                taskTitle = `${payload.inviterName} invited you to join "${payload.boardTitle}"`;
+                taskTitle = `${payload.inviterName} đã mời bạn tham gia "${payload.boardTitle}"`;
                 if (payload.token && notification.project_id) {
                   acceptUrl = `/api/boards/${notification.project_id}/invitations/accept?token=${payload.token}`;
                 }
               } catch (e) {
-                taskTitle = "You have a new project invitation";
+                taskTitle = "Bạn có một lời mời tham gia dự án mới";
               }
             }
 
@@ -179,12 +179,12 @@ export default function NotificationsPage() {
                             }}
                             className="px-3 py-1 bg-[#28B8FA] text-white text-xs font-bold rounded-lg hover:bg-blue-500 transition-colors"
                           >
-                            Accept
+                            Chấp nhận
                           </button>
                         )}
                       </div>
                       <div className="text-xs font-medium text-slate-400">
-                        {isRead ? `Read • ${dateFormatted}` : dateFormatted}
+                        {isRead ? `Đã đọc • ${dateFormatted}` : dateFormatted}
                       </div>
                     </div>
                   </div>

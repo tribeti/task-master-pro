@@ -113,11 +113,10 @@ export function KanbanTask({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
-          className={`rounded-2xl shadow-sm border flex flex-col cursor-grab hover:shadow-md transition-all overflow-hidden group/card ${
-            snapshot.isDragging
+          className={`rounded-2xl shadow-sm border flex flex-col cursor-grab hover:shadow-md transition-all overflow-hidden group/card ${snapshot.isDragging
               ? "opacity-80 ring-2 ring-[#28B8FA]/50 scale-[1.02] rotate-1 z-50"
               : ""
-          } ${cardClass}`}
+            } ${cardClass}`}
         >
           {/* AC1: Label Color Stripes - Vạch màu nhãn ở đầu thẻ */}
           {taskLabels.length > 0 && (
@@ -176,10 +175,9 @@ export function KanbanTask({
                       setShowLabelPopover((v) => !v);
                     }}
                     className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-all
-                      ${
-                        showLabelPopover
-                          ? "bg-[#28B8FA] text-white border-[#28B8FA]"
-                          : "bg-white text-slate-400 border-slate-200 opacity-0 group-hover/card:opacity-100 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                      ${showLabelPopover
+                        ? "bg-[#28B8FA] text-white border-[#28B8FA]"
+                        : "bg-white text-slate-400 border-slate-200 opacity-0 group-hover/card:opacity-100 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                       }`}
                     title="Add / Remove Label"
                     disabled={labelLoading}
@@ -188,7 +186,7 @@ export function KanbanTask({
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    Label
+                    Nhãn
                   </button>
 
                   {/* Popover dropdown */}
@@ -198,7 +196,7 @@ export function KanbanTask({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
-                        Labels
+                        Nhãn
                       </p>
                       {/* All board labels — checked if assigned */}
                       {boardLabels.map((label) => {
@@ -278,7 +276,7 @@ export function KanbanTask({
                 </div>
               ) : (
                 <span className="text-[11px] font-semibold text-slate-400">
-                  Unassigned
+                  Chưa giao
                 </span>
               )}
             </div>

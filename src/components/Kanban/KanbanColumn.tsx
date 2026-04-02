@@ -188,7 +188,7 @@ export function KanbanColumn({
               >
                 {tasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
-                    No tasks yet
+                    Chưa có nhiệm vụ
                   </div>
                 )}
                 {tasks.map((task, taskIndex) => (
@@ -219,7 +219,7 @@ export function KanbanColumn({
               onClick={() => onAddTask(column.id)}
               className="w-full mt-1 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
             >
-              <PlusIcon /> Add Task
+              <PlusIcon /> Thêm nhiệm vụ
             </button>
           )}
         </div>

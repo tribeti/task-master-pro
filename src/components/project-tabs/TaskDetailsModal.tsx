@@ -349,46 +349,45 @@ export function TaskDetailsModal({
         <div className="p-8 flex flex-col gap-5 overflow-y-auto w-full">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">
-              {initialData ? "Edit Task" : "Create Task"}
+              {initialData ? "Chỉnh sửa nhiệm vụ" : "Tạo nhiệm vụ"}
             </h2>
             <p className="text-sm text-slate-400 font-medium">
               {initialData
-                ? "Update task details."
-                : "Add a new task to the board."}
+                ? "Cập nhật chi tiết nhiệm vụ."
+                : "Thêm một nhiệm vụ mới vào bảng."}
             </p>
           </div>
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-              Task Name <span className="text-red-400">*</span>
+              Tên nhiệm vụ <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. Design wireframes"
+              placeholder="e.g. Thiết kế giao diện"
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
                 if (e.target.value.trim()) setNameError(false);
               }}
-              className={`w-full bg-white text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${
-                nameError
-                  ? "border-red-400 focus:border-red-400"
-                  : "border-slate-200 focus:border-[#28B8FA]"
-              }`}
+              className={`w-full bg-white text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError
+                ? "border-red-400 focus:border-red-400"
+                : "border-slate-200 focus:border-[#28B8FA]"
+                }`}
               required
               autoFocus
               disabled={isSubmitting}
             />
             {nameError && (
               <p className="text-xs font-medium text-red-400 mt-2 ml-1">
-                Task name is required.
+                Tên nhiệm vụ là cần thiết.
               </p>
             )}
           </div>
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-              Priority
+              Độ ưu tiên
             </label>
             <div className="flex gap-2">
               {(["Low", "Medium", "High"] as const).map((p) => {
@@ -403,11 +402,10 @@ export function TaskDetailsModal({
                     key={p}
                     onClick={() => setPriority(p)}
                     disabled={isSubmitting}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                      priority === p
-                        ? `${colors[p]}`
-                        : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                    }`}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${priority === p
+                      ? `${colors[p]}`
+                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                      }`}
                   >
                     {p}
                   </button>
@@ -418,10 +416,10 @@ export function TaskDetailsModal({
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-              Description
+              Mô tả
             </label>
             <textarea
-              placeholder="Task details..."
+              placeholder="Mô tả chi tiết..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -432,7 +430,7 @@ export function TaskDetailsModal({
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-              Deadline
+              Hạn chót
             </label>
             <input
               type="date"
@@ -446,7 +444,7 @@ export function TaskDetailsModal({
           {initialData && (
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                Assignee
+                Người thực hiện
               </label>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -454,13 +452,13 @@ export function TaskDetailsModal({
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
                       {currentAssignees.length > 0
-                        ? `${currentAssignees.length} assignee${currentAssignees.length > 1 ? "s" : ""}`
-                        : "Unassigned"}
+                        ? `${currentAssignees.length} người thực hiện`
+                        : "Chưa giao"}
                     </p>
                     <p className="text-xs text-slate-400">
                       {currentAssignees.length > 0
-                        ? "You can assign multiple people to the same task."
-                        : "This task does not have an assignee yet."}
+                        ? "Bạn có thể giao nhiều người thực hiện cho cùng một nhiệm vụ."
+                        : "Nhiệm vụ này chưa có người thực hiện."}
                     </p>
                   </div>
 
@@ -483,7 +481,7 @@ export function TaskDetailsModal({
                     </div>
                   ) : (
                     <div className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-500">
-                      Unassigned
+                      Chưa giao
                     </div>
                   )}
                 </div>
@@ -491,7 +489,7 @@ export function TaskDetailsModal({
                 <div className="flex flex-wrap gap-2 mb-4 min-h-8">
                   {currentAssignees.length === 0 ? (
                     <span className="text-sm text-slate-400">
-                      No assignees yet
+                      Chưa có người thực hiện
                     </span>
                   ) : (
                     currentAssignees.map((taskAssignee) => (
@@ -513,7 +511,7 @@ export function TaskDetailsModal({
                           onClick={() => handleRemoveAssigneeClick(taskAssignee.user_id)}
                           disabled={assigneeSubmitting || isSubmitting}
                           className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                          title="Remove assignee"
+                          title="Xóa người thực hiện"
                         >
                           x
                         </button>
@@ -570,7 +568,7 @@ export function TaskDetailsModal({
                     }
                     className="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {assigneeSubmitting ? "Saving..." : "Add Assignee"}
+                    {assigneeSubmitting ? "Đang lưu..." : "Thêm người thực hiện"}
                   </button>
 
                   <button
@@ -583,7 +581,7 @@ export function TaskDetailsModal({
                     }
                     className="px-5 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:border-red-200 hover:text-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Unassign All
+                    Bỏ giao tất cả
                   </button>
                 </div>
 
@@ -594,7 +592,7 @@ export function TaskDetailsModal({
                 )}
 
                 <p className="mt-3 ml-1 text-xs text-slate-400">
-                  Select an available user to assign them to this task.
+                  Chọn một người dùng có sẵn để giao cho nhiệm vụ này.
                 </p>
               </div>
             </div>
@@ -603,13 +601,13 @@ export function TaskDetailsModal({
           {initialData && (
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                Labels
+                Nhãn
               </label>
 
               <div className="flex flex-wrap gap-2 mb-4 min-h-7">
                 {taskLabels.length === 0 ? (
                   <span className="text-sm text-slate-400">
-                    No labels assigned
+                    Chưa có nhãn
                   </span>
                 ) : (
                   taskLabels.map((label) => (
@@ -677,7 +675,7 @@ export function TaskDetailsModal({
                   disabled={!selectedLabelId || labelSubmitting || isSubmitting}
                   className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {labelSubmitting ? "Adding..." : "Add Label"}
+                  {labelSubmitting ? "Đang thêm..." : "Thêm nhãn"}
                 </button>
               </div>
 
@@ -685,10 +683,10 @@ export function TaskDetailsModal({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
-                      Create custom label
+                      Tạo nhãn tùy chỉnh
                     </p>
                     <p className="text-xs text-slate-400">
-                      Create a new label and assign it to this task.
+                      Tạo một nhãn mới và gán nó cho nhiệm vụ này.
                     </p>
                   </div>
                   <button
@@ -700,7 +698,7 @@ export function TaskDetailsModal({
                     disabled={labelSubmitting || isSubmitting}
                     className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#28B8FA] hover:text-[#28B8FA] transition-all disabled:opacity-50"
                   >
-                    {showCreateLabelForm ? "Hide" : "New Label"}
+                    {showCreateLabelForm ? "Ẩn" : "Nhãn mới"}
                   </button>
                 </div>
 
@@ -718,11 +716,10 @@ export function TaskDetailsModal({
                         }}
                         placeholder="e.g. Bug, Backend, QA"
                         disabled={labelSubmitting || isSubmitting}
-                        className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-colors ${
-                          customLabelError
-                            ? "border-red-400 focus:border-red-400"
-                            : "border-slate-200 focus:border-[#28B8FA]"
-                        }`}
+                        className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-colors ${customLabelError
+                          ? "border-red-400 focus:border-red-400"
+                          : "border-slate-200 focus:border-[#28B8FA]"
+                          }`}
                       />
                       {customLabelError && (
                         <p className="mt-2 ml-1 text-xs font-medium text-red-400">
@@ -738,11 +735,10 @@ export function TaskDetailsModal({
                           type="button"
                           onClick={() => setCustomLabelColor(color)}
                           disabled={labelSubmitting || isSubmitting}
-                          className={`h-7 w-7 rounded-full transition-all hover:scale-110 ${
-                            customLabelColor === color
-                              ? "ring-2 ring-slate-400 ring-offset-2"
-                              : ""
-                          }`}
+                          className={`h-7 w-7 rounded-full transition-all hover:scale-110 ${customLabelColor === color
+                            ? "ring-2 ring-slate-400 ring-offset-2"
+                            : ""
+                            }`}
                           style={{ backgroundColor: color }}
                           title={color}
                         />
@@ -750,7 +746,7 @@ export function TaskDetailsModal({
 
                       <label
                         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"
-                        title="Pick custom color"
+                        title="Chọn màu tùy chỉnh"
                       >
                         <input
                           type="color"
@@ -759,14 +755,14 @@ export function TaskDetailsModal({
                           disabled={labelSubmitting || isSubmitting}
                           className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
                         />
-                        Custom
+                        Tùy chỉnh
                       </label>
 
                       <span
                         className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-slate-900"
                         style={{ backgroundColor: customLabelColor }}
                       >
-                        {customLabelName.trim() || "Preview"}
+                        {customLabelName.trim() || "Xem trước"}
                       </span>
                     </div>
 
@@ -781,7 +777,7 @@ export function TaskDetailsModal({
                         }
                         className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {labelSubmitting ? "Creating..." : "Create And Assign"}
+                        {labelSubmitting ? "Đang tạo..." : "Tạo và gán"}
                       </button>
                     </div>
                   </div>
@@ -793,16 +789,16 @@ export function TaskDetailsModal({
           {initialData && (
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                Comments
+                Bình luận
               </label>
 
               <div className="space-y-3 mb-4 max-h-64 overflow-y-auto pr-1">
                 {commentsLoading ? (
                   <div className="text-sm text-slate-400">
-                    Loading comments...
+                    Đang tải bình luận...
                   </div>
                 ) : comments.length === 0 ? (
-                  <div className="text-sm text-slate-400">No comments yet</div>
+                  <div className="text-sm text-slate-400">Chưa có bình luận</div>
                 ) : (
                   comments.map((comment) => {
                     const isOwner = comment.user_id === currentUserId;
@@ -831,7 +827,7 @@ export function TaskDetailsModal({
                               disabled={commentSubmitting || isSubmitting}
                               className="text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
                             >
-                              Delete
+                              Xóa
                             </button>
                           )}
                         </div>
@@ -849,7 +845,7 @@ export function TaskDetailsModal({
                 <textarea
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
-                  placeholder="Write a comment..."
+                  placeholder="Viết bình luận..."
                   rows={3}
                   disabled={commentSubmitting || isSubmitting}
                   className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
@@ -864,7 +860,7 @@ export function TaskDetailsModal({
                     }
                     className="px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {commentSubmitting ? "Posting..." : "Post Comment"}
+                    {commentSubmitting ? "Đang đăng..." : "Đăng bình luận"}
                   </button>
                 </div>
               </div>
@@ -877,7 +873,7 @@ export function TaskDetailsModal({
                 onClick={onDelete}
                 disabled={isSubmitting}
                 className="p-3 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50"
-                title="Delete Task"
+                title="Xóa nhiệm vụ"
               >
                 <TrashIcon />
               </button>
@@ -890,9 +886,9 @@ export function TaskDetailsModal({
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : initialData ? (
-                "Save Changes"
+                "Lưu thay đổi"
               ) : (
-                "Create Task"
+                "Tạo nhiệm vụ"
               )}
             </button>
           </div>

@@ -23,14 +23,14 @@ export function getDeadlineStatus(deadline: string | null | Date): DeadlineStatu
   threeDaysFromNow.setDate(now.getDate() + 3);
 
   if (deadlineDate < now) {
-    return { label: "OVERDUE", color: "red", urgencyStr: "OVERDUE" };
+    return { label: "QUÁ HẠN", color: "red", urgencyStr: "QUÁ HẠN" };
   } else if (deadlineDate.getTime() === now.getTime()) {
-    return { label: "DUE TODAY", color: "red", urgencyStr: "DUE TODAY" };
+    return { label: "HÔM NAY", color: "red", urgencyStr: "HÔM NAY" };
   } else if (deadlineDate.getTime() === tomorrow.getTime()) {
-    return { label: "DUE TOMORROW", color: "orange", urgencyStr: "DUE TOMORROW" };
+    return { label: "NGÀY MAI", color: "orange", urgencyStr: "NGÀY MAI" };
   } else if (deadlineDate <= threeDaysFromNow) {
-    return { label: "IN 3 DAYS", color: "yellow", urgencyStr: "IN 3 DAYS" };
+    return { label: "TRONG 3 NGÀY", color: "yellow", urgencyStr: "TRONG 3 NGÀY" };
   }
 
-  return { label: "UPCOMING", color: "slate", urgencyStr: "UPCOMING" };
+  return { label: "SẮP TỚI", color: "slate", urgencyStr: "SẮP TỚI" };
 }

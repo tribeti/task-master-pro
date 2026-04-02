@@ -159,7 +159,7 @@ export default function ProjectsPage() {
       <div className="mb-4">
         <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-          My Projects
+          Dự án của tôi
           <span className="text-sm font-semibold text-slate-400 ml-1">
             ({ownedBoards.length})
           </span>
@@ -169,20 +169,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-              <ProjectCard
-                key={proj.id}
-                proj={proj}
-                index={index}
-                openMenuProjectId={openMenuProjectId}
-                setOpenMenuProjectId={setOpenMenuProjectId}
-                menuRef={menuRef}
-                handleUpdateProject={handleUpdateProject}
-                handleDeleteProject={handleDeleteProject}
-                setSelectedProject={setSelectedProject}
-                currentUserId={userId}
-                memberRole="Owner"
-              />
-            ))}
+            <ProjectCard
+              key={proj.id}
+              proj={proj}
+              index={index}
+              openMenuProjectId={openMenuProjectId}
+              setOpenMenuProjectId={setOpenMenuProjectId}
+              menuRef={menuRef}
+              handleUpdateProject={handleUpdateProject}
+              handleDeleteProject={handleDeleteProject}
+              setSelectedProject={setSelectedProject}
+              currentUserId={userId}
+              memberRole="Owner"
+            />
+          ))}
 
         {/* Create New Project Card */}
         <div
@@ -192,9 +192,9 @@ export default function ProjectsPage() {
           <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform">
             <PlusIcon />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">New Project</h3>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Dự án mới</h3>
           <p className="text-sm text-slate-400 font-medium px-4">
-            Start tracking a new initiative.
+            Bắt đầu theo dõi một sáng kiến mới.
           </p>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
           <div className="mt-12 mb-4">
             <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
-              Joined Projects
+              Dự án đã tham gia
               <span className="text-sm font-semibold text-slate-400 ml-1">
                 ({joinedBoards.length})
               </span>
@@ -244,8 +244,8 @@ export default function ProjectsPage() {
           {selectedProject ? (
             <>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                <span className="text-[#28B8FA]">ACTIVE SPRINT</span>{" "}
-                <span className="mx-2 text-slate-300">&gt;</span> Q4 INITIATIVES
+                <span className="text-[#28B8FA]">GIAI ĐOẠN HIỆN TẠI</span>{" "}
+                <span className="mx-2 text-slate-300">&gt;</span> KẾ HOẠCH Q4
               </p>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
@@ -273,14 +273,14 @@ export default function ProjectsPage() {
           ) : (
             <>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                Active Projects
+                Dự án hoạt động
               </h1>
               <p className="text-sm text-slate-500 font-medium mt-1">
-                You have{" "}
+                Bạn đang có{" "}
                 <span className="text-[#34D399] font-bold">
-                  {totalProjects} active
+                  {totalProjects} dự án
                 </span>{" "}
-                projects pushing forward.
+                đang được triển khai.
               </p>
             </>
           )}
@@ -311,11 +311,11 @@ export default function ProjectsPage() {
               >
                 {projectTab === "Team" ? (
                   <>
-                    <UserIcon /> Invite Member
+                    <UserIcon /> Mời thành viên
                   </>
                 ) : (
                   <>
-                    <PlusIcon /> Add Task
+                    <PlusIcon /> Thêm nhiệm vụ
                   </>
                 )}
               </button>
@@ -328,7 +328,7 @@ export default function ProjectsPage() {
               <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
                 <PlusIcon />
               </div>
-              New Project
+              Dự án mới
             </button>
           )}
         </div>
@@ -341,14 +341,19 @@ export default function ProjectsPage() {
         ) : (
           <>
             <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
-              {["Tasks", "Timeline", "Files", "Team"].map((tab) => (
+              {[
+                { id: "Tasks", label: "Nhiệm vụ" },
+                { id: "Timeline", label: "Lịch trình" },
+                { id: "Files", label: "Tệp tin" },
+                { id: "Team", label: "Nhóm" }
+              ].map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setProjectTab(tab as any)}
-                  className={`pb-4 font-bold text-sm transition-colors relative ${projectTab === tab ? "text-[#28B8FA]" : "text-slate-400 hover:text-slate-600"}`}
+                  key={tab.id}
+                  onClick={() => setProjectTab(tab.id as any)}
+                  className={`pb-4 font-bold text-sm transition-colors relative ${projectTab === tab.id ? "text-[#28B8FA]" : "text-slate-400 hover:text-slate-600"}`}
                 >
-                  {tab}
-                  {projectTab === tab && (
+                  {tab.label}
+                  {projectTab === tab.id && (
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#28B8FA] rounded-t-full"></div>
                   )}
                 </button>
@@ -371,11 +376,10 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject ? (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
-            projectTab === "Timeline"
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
               ? "bg-[#1E293B] shadow-slate-400"
               : "bg-[#34D399] shadow-emerald-200"
-          }`}
+            }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
