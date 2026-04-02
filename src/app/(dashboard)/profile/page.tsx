@@ -94,8 +94,9 @@ export default function ProfilePage() {
       let oldAvatarPath: string | null = null;
 
       if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop()?.toLowerCase();
-        const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+        const fileExt = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const randomId = crypto.randomUUID();
+        const fileName = `${user.id}/avatar-${randomId}.${fileExt}`;
 
         // Lấy path ảnh cũ để xóa SAU KHI mọi thứ thành công
         const { data: oldData } = await supabase
@@ -175,11 +176,19 @@ export default function ProfilePage() {
     }
 
     const file = event.target.files[0];
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
     const fileExt = file.name.split(".").pop()?.toLowerCase();
-    const allowedTypes = ["jpg", "jpeg", "png", "webp"];
 
-    if (!fileExt || !allowedTypes.includes(fileExt)) {
-      toast.error("Chỉ cho phép định dạng ảnh .jpg, .png, .webp");
+    // 1. Kiểm tra MIME type thực tế (Bảo mật hơn chỉ check extension)
+    if (!allowedMimeTypes.includes(file.type)) {
+      toast.error("Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (JPG, PNG, WebP)");
+      return;
+    }
+
+    // 2. Dự phòng kiểm tra extension
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+      toast.error("Đuôi file không được hỗ trợ.");
       return;
     }
 
