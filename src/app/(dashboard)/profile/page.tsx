@@ -95,7 +95,7 @@ export default function ProfilePage() {
 
       if (avatarFile) {
         const fileExt = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
-        const randomId = crypto.randomUUID();
+        const randomId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
         const fileName = `${user.id}/avatar-${randomId}.${fileExt}`;
 
         // Lấy path ảnh cũ để xóa SAU KHI mọi thứ thành công
