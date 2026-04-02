@@ -177,7 +177,7 @@ export default function ProfilePage() {
 
     const file = event.target.files[0];
     const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-    const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
     const fileExt = file.name.split(".").pop()?.toLowerCase();
 
     // 1. Kiểm tra MIME type thực tế (Bảo mật hơn chỉ check extension)
