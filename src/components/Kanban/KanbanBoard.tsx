@@ -11,9 +11,7 @@ import {
 import { KanbanColumn } from "./KanbanColumn";
 import { PlusIcon } from "@/components/icons";
 import {
-    updateTaskAction,
     createColumnAction,
-    updateColumnAction,
     bulkUpdateTasksAction,
     bulkUpdateColumnsAction,
 } from "@/app/actions/kanban.actions";
@@ -102,13 +100,17 @@ export function KanbanBoard({
         }
     }, [isAddingColumn]);
 
-    // Ref timer for debouncing task updates
+    // Ref timer for debouncing updates
     const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
-    // Cleanup timer khi component bị hủy (Unmount)
+    const debounceColumnTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // Cleanup timers khi component bị hủy (Unmount)
     useEffect(() => {
         return () => {
             if (debounceTaskTimerRef.current) {
                 clearTimeout(debounceTaskTimerRef.current);
+            }
+            if (debounceColumnTimerRef.current) {
+                clearTimeout(debounceColumnTimerRef.current);
             }
         };
     }, []);
@@ -164,28 +166,31 @@ export function KanbanBoard({
 
             if (changedColumns.length === 0) return;
 
-            // ── Step 5: Fire API in background (Bulk Update) ──
-            pendingColumnsUpdatesRef.current++;
-            bulkUpdateColumnsAction(changedColumns.map(c => ({
-                id: c.id,
-                position: c.position
-            })))
-                .then(() => {
-                    // Sync silently with server after success
-                    return onDataChange();
-                })
-                .catch(() => {
-                    // ── Step 6: Rollback on error ──
-                    setLocalColumns(previousColumns);
-                    toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
-                })
-                .finally(() => {
-                    pendingColumnsUpdatesRef.current--;
-                    if (pendingColumnsUpdatesRef.current === 0 && !isEqual(latestColumnsPropRef.current, lastSyncedColumnsRef.current)) {
-                        setLocalColumns(latestColumnsPropRef.current);
-                        lastSyncedColumnsRef.current = latestColumnsPropRef.current;
-                    }
-                });
+            // ── Step 5: Debounce API Call & Bulk Update ──
+            if (debounceColumnTimerRef.current) {
+                clearTimeout(debounceColumnTimerRef.current);
+            } else {
+                pendingColumnsUpdatesRef.current++;
+            }
+
+            debounceColumnTimerRef.current = setTimeout(() => {
+                debounceColumnTimerRef.current = null;
+                bulkUpdateColumnsAction(changedColumns.map(c => ({
+                    id: c.id,
+                    position: c.position
+                })))
+                    .catch(() => {
+                        setLocalColumns(previousColumns);
+                        toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
+                    })
+                    .finally(() => {
+                        pendingColumnsUpdatesRef.current--;
+                        if (pendingColumnsUpdatesRef.current === 0 && !isEqual(latestColumnsPropRef.current, lastSyncedColumnsRef.current)) {
+                            setLocalColumns(latestColumnsPropRef.current);
+                            lastSyncedColumnsRef.current = latestColumnsPropRef.current;
+                        }
+                    });
+            }, 500);
 
             return;
         }
@@ -296,9 +301,6 @@ export function KanbanBoard({
                     column_id: t.column_id,
                     position: t.position,
                 })))
-                    .then(() => {
-                        return onDataChange();
-                    })
                     .catch(() => {
                         // Rollback to the state before this drag operation started
                         setLocalTasks(previousTasks);

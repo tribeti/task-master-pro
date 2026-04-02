@@ -3,6 +3,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
+const AVATAR_CACHE_PREFIX = "avatar_cache_";
+const AVATAR_CACHE_TTL_MS = 50 * 60 * 1000; // 50 minutes (signed URL lasts 60 min)
+
+function getCachedAvatarUrl(key: string): string | null {
+  try {
+    const raw = localStorage.getItem(AVATAR_CACHE_PREFIX + key);
+    if (!raw) return null;
+    const { url, exp } = JSON.parse(raw);
+    if (Date.now() > exp) {
+      localStorage.removeItem(AVATAR_CACHE_PREFIX + key);
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAvatarUrl(key: string, url: string): void {
+  try {
+    localStorage.setItem(
+      AVATAR_CACHE_PREFIX + key,
+      JSON.stringify({ url, exp: Date.now() + AVATAR_CACHE_TTL_MS }),
+    );
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
 interface UserAvatarProps {
   avatarUrl: string | null;
   displayName: string;
@@ -33,6 +62,13 @@ export function UserAvatar({
       return;
     }
 
+    // Check localStorage cache first
+    const cached = getCachedAvatarUrl(avatarUrl);
+    if (cached) {
+      setResolvedUrl(cached);
+      return;
+    }
+
     const fetchSignedUrl = async () => {
       try {
         setLoading(true);
@@ -45,7 +81,11 @@ export function UserAvatar({
             console.error("Failed to create signed avatar URL:", error);
             setResolvedUrl(null);
           } else {
-            setResolvedUrl(data?.signedUrl || null);
+            const signedUrl = data?.signedUrl || null;
+            setResolvedUrl(signedUrl);
+            if (signedUrl) {
+              setCachedAvatarUrl(avatarUrl, signedUrl);
+            }
           }
         }
       } catch (error) {

@@ -240,46 +240,31 @@ export function KanbanTask({
               <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
             )}
 
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {assignees.length > 0 ? "Assigned" : "Unassigned"}
-              </span>
-
-              {assignees.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {assignees.slice(0, 3).map((taskAssignee) => (
-                      <div
-                        key={taskAssignee.user_id}
-                        className="ring-2 ring-white rounded-full"
-                        title={taskAssignee.display_name}
-                      >
-                        <UserAvatar
-                          avatarUrl={taskAssignee.avatar_url}
-                          displayName={taskAssignee.display_name}
-                          className="w-7 h-7"
-                          fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {assignees.length > 3 && (
-                    <span className="text-[11px] font-semibold text-slate-500">
-                      +{assignees.length - 3}
-                    </span>
-                  )}
-                  {assignee && (
-                    <span className="max-w-24 truncate text-[11px] font-semibold text-slate-600">
-                      {assignee.display_name}
-                    </span>
-                  )}
+            {assignees.length > 0 && (
+              <div className="flex items-center justify-end gap-1 pt-1">
+                <div className="flex -space-x-2">
+                  {assignees.slice(0, 3).map((taskAssignee) => (
+                    <div
+                      key={taskAssignee.user_id}
+                      className="ring-2 ring-white rounded-full"
+                      title={taskAssignee.display_name}
+                    >
+                      <UserAvatar
+                        avatarUrl={taskAssignee.avatar_url}
+                        displayName={taskAssignee.display_name}
+                        className="w-7 h-7"
+                        fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <span className="text-[11px] font-semibold text-slate-400">
-                  Chưa giao
-                </span>
-              )}
-            </div>
+                {assignees.length > 3 && (
+                  <span className="text-[10px] font-bold text-slate-400">
+                    +{assignees.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
