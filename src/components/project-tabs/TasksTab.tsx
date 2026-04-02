@@ -152,10 +152,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     if (error) {
       toast.error(
-        editingTask ? "cập nhập nhiệm vụ thất bại" : "tạo nhiệm vụ thất bại",
+        editingTask ? "cập nhật nhiệm vụ thất bại" : "tạo nhiệm vụ thất bại",
       );
     } else {
-      toast.success(editingTask ? "cập nhập nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
+      toast.success(editingTask ? "cập nhật nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
     }
 
     await fetchData();
