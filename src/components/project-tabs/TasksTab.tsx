@@ -152,10 +152,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     if (error) {
       toast.error(
-        editingTask ? "Cập nhật nhiệm vụ thất bại" : "Tạo nhiệm vụ thất bại",
+        editingTask ? "cập nhập nhiệm vụ thất bại" : "tạo nhiệm vụ thất bại",
       );
     } else {
-      toast.success(editingTask ? "Cập nhật nhiệm vụ thành công" : "Tạo nhiệm vụ thành công");
+      toast.success(editingTask ? "cập nhập nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
     }
 
     await fetchData();
@@ -169,10 +169,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsSubmitting(true);
     try {
       await deleteTaskAction(editingTask.id);
-      toast.success("Xóa nhiệm vụ thành công");
+      toast.success("xóa nhiệm vụ thành công");
     } catch (error) {
       console.error(error);
-      toast.error("xóa task thất bại");
+      toast.error("xóa nhiệm vụ thất bại");
     }
 
     await fetchData();
@@ -195,7 +195,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await removeLabelFromTaskAction(taskId, labelId);
       await fetchData();
-      toast.success("Xóa nhãn thành công");
+      toast.success("xóa nhãn thành công");
     } catch (error) {
       console.error("Failed to remove label:", error);
       toast.error("xóa nhãn thất bại");
