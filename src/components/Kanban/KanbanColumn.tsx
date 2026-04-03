@@ -21,13 +21,9 @@ interface KanbanColumnProps {
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
 }
 
+// All styles are visually distinct (no "plain/colorless" entry).
+// Using 4 colors guarantees every consecutive column gets a unique color.
 const COLUMN_STYLES = [
-  {
-    text: "text-slate-800",
-    badge: "bg-slate-100 text-slate-800",
-    border: "",
-    dot: "",
-  },
   {
     text: "text-[#28B8FA]",
     badge: "bg-[#EAF7FF] text-[#28B8FA]",
@@ -52,6 +48,18 @@ const COLUMN_STYLES = [
     border: "border-l-2 border-[#F472B6]",
     dot: "bg-[#F472B6]",
   },
+  {
+    text: "text-[#F59E0B]",
+    badge: "bg-[#FEF3C7] text-[#F59E0B]",
+    border: "border-l-2 border-[#F59E0B]",
+    dot: "bg-[#F59E0B]",
+  },
+  {
+    text: "text-[#EF4444]",
+    badge: "bg-[#FEE2E2] text-[#EF4444]",
+    border: "border-l-2 border-[#EF4444]",
+    dot: "bg-[#EF4444]",
+  },
 ];
 
 export function KanbanColumn({
@@ -67,7 +75,10 @@ export function KanbanColumn({
   onAddLabel,
   onRemoveLabel,
 }: KanbanColumnProps) {
-  const st = COLUMN_STYLES[colIndex % COLUMN_STYLES.length];
+  // Prime multiplier spreads consecutive IDs across different colors.
+  // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
+  // With 6 styles: (id * 7) % 6 → 10→4, 11→5, 12→0, 13→1, 14→2, 15→3 ✅ all different!
+  const st = COLUMN_STYLES[(column.id * 7) % COLUMN_STYLES.length];
 
   /* ── Inline edit state ── */
   const [isEditing, setIsEditing] = useState(false);

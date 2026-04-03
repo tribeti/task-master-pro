@@ -28,6 +28,8 @@ interface KanbanBoardProps {
     tasks: KanbanTask[];
     boardLabels?: Label[];
     isDraggingRef: React.RefObject<boolean>;
+    markLocalWrite: () => void;
+    onColumnAdded: (column: Column) => void;
     onDataChange: () => Promise<void>;
     onTaskClick: (task: KanbanTask) => void;
     onAddTask: (columnId: number) => void;
@@ -43,6 +45,8 @@ export function KanbanBoard({
     tasks,
     boardLabels = [],
     isDraggingRef,
+    markLocalWrite,
+    onColumnAdded,
     onDataChange,
     onTaskClick,
     onAddTask,
@@ -106,6 +110,20 @@ export function KanbanBoard({
     // Ref timer for debouncing updates
     const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
     const debounceColumnTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const dragCooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Release isDraggingRef with a cooldown so Realtime events from our OWN
+    // DB writes are ignored (they arrive within ~1s of the commit).
+    const releaseDragLock = () => {
+        if (dragCooldownTimerRef.current) {
+            clearTimeout(dragCooldownTimerRef.current);
+        }
+        dragCooldownTimerRef.current = setTimeout(() => {
+            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+            dragCooldownTimerRef.current = null;
+        }, 1500); // > Realtime debounce (500ms) + network jitter
+    };
+
     // Cleanup timers khi component bị hủy (Unmount)
     useEffect(() => {
         return () => {
@@ -114,6 +132,9 @@ export function KanbanBoard({
             }
             if (debounceColumnTimerRef.current) {
                 clearTimeout(debounceColumnTimerRef.current);
+            }
+            if (dragCooldownTimerRef.current) {
+                clearTimeout(dragCooldownTimerRef.current);
             }
         };
     }, []);
@@ -183,7 +204,7 @@ export function KanbanBoard({
                     // Nothing actually changed vs server — just release the lock
                     pendingColumnsUpdatesRef.current--;
                     if (pendingColumnsUpdatesRef.current === 0) {
-                        (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+                        releaseDragLock();
                         setColumnSyncTrigger(c => c + 1);
                     }
                     return;
@@ -200,7 +221,7 @@ export function KanbanBoard({
                     .finally(() => {
                         pendingColumnsUpdatesRef.current--;
                         if (pendingColumnsUpdatesRef.current === 0) {
-                            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+                            releaseDragLock();
                             setColumnSyncTrigger(c => c + 1);
                         }
                     });
@@ -313,7 +334,7 @@ export function KanbanBoard({
                 if (changedTasks.length === 0) {
                     pendingTasksUpdatesRef.current--;
                     if (pendingTasksUpdatesRef.current === 0) {
-                        (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+                        releaseDragLock();
                         setTaskSyncTrigger(c => c + 1);
                     }
                     return;
@@ -331,7 +352,7 @@ export function KanbanBoard({
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
                         if (pendingTasksUpdatesRef.current === 0) {
-                            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+                            releaseDragLock();
                             setTaskSyncTrigger(c => c + 1);
                         }
                     });
@@ -347,11 +368,13 @@ export function KanbanBoard({
                 ? Math.max(...localColumns.map((c) => c.position)) + 1
                 : 0;
         try {
-            await createColumnAction(projectId, newColumnTitle.trim(), nextPos);
+            const newColumn = await createColumnAction(projectId, newColumnTitle.trim(), nextPos);
             toast.success("Column added");
             setNewColumnTitle("");
             setIsAddingColumn(false);
-            await onDataChange();
+            
+            // Cập nhật state trực tiếp từ kết quả trả về, KHÔNG fetch lại data
+            onColumnAdded(newColumn);
         } catch {
             toast.error("Failed to add column");
         }
