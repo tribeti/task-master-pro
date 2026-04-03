@@ -9,11 +9,13 @@ interface ProjectCardProps {
   proj: Board;
   index: number;
   openMenuProjectId: number | null;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLDivElement | null>;
   setOpenMenuProjectId: (id: number | null) => void;
   handleUpdateProject: (proj: Board) => void;
   handleDeleteProject: (id: number, title: string) => void;
   setSelectedProject: (proj: Board) => void;
+  currentUserId?: string;
+  memberRole?: string;
 }
 
 export default function ProjectCard({
@@ -25,10 +27,12 @@ export default function ProjectCard({
   handleUpdateProject,
   handleDeleteProject,
   setSelectedProject,
+  currentUserId,
+  memberRole,
 }: ProjectCardProps) {
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
-  const projTag = proj.tag || "Project";
+  const projTag = proj.tag || "Dự án";
   const projTeam = proj.team ?? 3;
 
   return (
@@ -37,12 +41,24 @@ export default function ProjectCard({
       className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
     >
       <div className="flex items-center justify-between mb-4">
-        <span
-          className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
-          style={{ backgroundColor: projColor }}
-        >
-          {projTag}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[10px] font-bold text-white px-3 py-1.5 rounded-full uppercase"
+            style={{ backgroundColor: projColor }}
+          >
+            {projTag}
+          </span>
+          {memberRole && (
+            <span
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${memberRole === "Owner"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-sky-100 text-sky-700"
+                }`}
+            >
+              {memberRole === "Owner" ? "Chủ sở hữu" : "Thành viên"}
+            </span>
+          )}
+        </div>
         <div
           className="relative"
           ref={
@@ -51,18 +67,20 @@ export default function ProjectCard({
               : null
           }
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenMenuProjectId(
-                openMenuProjectId === proj.id ? null : proj.id,
-              );
-            }}
-            className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
-          >
-            <MoreIcon />
-          </button>
-          {openMenuProjectId === proj.id && (
+          {proj.owner_id === currentUserId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuProjectId(
+                  openMenuProjectId === proj.id ? null : proj.id,
+                );
+              }}
+              className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
+            >
+              <MoreIcon />
+            </button>
+          )}
+          {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50">
               <button
                 onClick={(e) => {
@@ -84,7 +102,7 @@ export default function ProjectCard({
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
-                Update
+                Cập nhật
               </button>
               <button
                 onClick={(e) => {
@@ -108,7 +126,7 @@ export default function ProjectCard({
                   <line x1="10" y1="11" x2="10" y2="17"></line>
                   <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
-                Delete
+                Xóa
               </button>
             </div>
           )}
@@ -125,7 +143,7 @@ export default function ProjectCard({
 
       <div className="w-full mb-8">
         <div className="flex justify-between text-xs font-bold mb-3">
-          <span className="text-slate-500">Progress</span>
+          <span className="text-slate-500">Tiến độ</span>
           <span style={{ color: projColor }}>{projProgress}%</span>
         </div>
         <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">

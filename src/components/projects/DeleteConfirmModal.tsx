@@ -36,27 +36,27 @@ export default function DeleteConfirmModal({
           </svg>
         </div>
         <h3 className="text-xl font-extrabold text-slate-900 text-center mb-2">
-          Delete Project
+          Xóa dự án
         </h3>
         <p className="text-sm text-slate-500 text-center font-medium mb-8 leading-relaxed">
-          Are you sure you want to delete{" "}
+          Bạn có chắc chắn muốn xóa{" "}
           <span className="font-bold text-slate-700">
             &ldquo;{projectTitle}&rdquo;
           </span>
-          ? This action cannot be undone.
+          ? Hành động này không thể hoàn tác.
         </p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
             className="flex-1 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
           >
-            Cancel
+            Hủy
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-200 transition-colors"
           >
-            Delete
+            Xóa
           </button>
         </div>
       </div>

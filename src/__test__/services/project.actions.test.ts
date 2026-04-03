@@ -32,6 +32,7 @@ function buildMockSupabase(overrides: Record<string, any> = {}) {
     insert: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
     auth: {
@@ -126,17 +127,80 @@ describe('project.actions', () => {
   //  deleteUserBoardAction
   // ══════════════════════════════════════════════════════════════════════════
   describe('deleteUserBoardAction', () => {
-    it('deletes successfully', async () => {
-      const secondEq = jest.fn().mockResolvedValue({ error: null });
-      const mockSupabase = buildMockSupabase({
-        eq: jest.fn().mockReturnValue({ eq: secondEq }),
-      });
+    it('deletes successfully when all tasks are in done column', async () => {
+      const columns = [
+        { id: 1, title: 'To Do' },
+        { id: 2, title: 'Done' },
+      ];
+
+      const mockSupabase = {
+        from: jest.fn((table: string) => {
+          if (table === 'boards') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              delete: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'id') {
+                  return {
+                    eq: jest.fn().mockResolvedValue({ error: null }),
+                    single: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }),
+                  };
+                }
+                if (field === 'owner_id') {
+                  return Promise.resolve({ data: { id: 10 }, error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+            };
+          }
+
+          if (table === 'columns') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              delete: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'board_id') {
+                  return Promise.resolve({ data: columns, error: null });
+                }
+                return Promise.resolve({ error: null });
+              }),
+            };
+          }
+
+          if (table === 'tasks') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              delete: jest.fn().mockReturnThis(),
+              in: jest.fn().mockImplementation((field: string) => {
+                if (field === 'column_id') {
+                  // First call for non-done tasks (empty), second for done tasks delete
+                  return Promise.resolve({ data: [], error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+            };
+          }
+
+          return {
+            select: jest.fn().mockReturnThis(),
+            delete: jest.fn().mockReturnThis(),
+            eq: jest.fn(),
+            in: jest.fn(),
+          };
+        }),
+        auth: {
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+        },
+      };
+
       (createClient as jest.Mock).mockResolvedValue(mockSupabase);
 
       await expect(deleteUserBoardAction(10, 'user-1')).resolves.toBeUndefined();
-      expect(mockSupabase.delete).toHaveBeenCalled();
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', 10);
-      expect(secondEq).toHaveBeenCalledWith('owner_id', 'user-1');
+      expect(mockSupabase.from).toHaveBeenCalledWith('boards');
+      expect(mockSupabase.from).toHaveBeenCalledWith('columns');
+      expect(mockSupabase.from).toHaveBeenCalledWith('tasks');
     });
 
     it('throws Unauthorized when user is null', async () => {
@@ -169,13 +233,157 @@ describe('project.actions', () => {
       );
     });
 
+    it('throws Access denied when user does not own the board', async () => {
+      const mockSupabase = {
+        from: jest.fn((table: string) => {
+          if (table === 'boards') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'id') {
+                  return {
+                    eq: jest.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+                    single: jest.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+                  };
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+            };
+          }
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn(),
+          };
+        }),
+        auth: {
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+        },
+      };
+
+      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+
+      await expect(deleteUserBoardAction(10, 'user-1')).rejects.toThrow(
+        'Access denied',
+      );
+    });
+
+    it('throws when tasks exist outside done column', async () => {
+      const columns = [
+        { id: 1, title: 'To Do' },
+        { id: 2, title: 'Done' },
+      ];
+
+      const mockSupabase = {
+        from: jest.fn((table: string) => {
+          if (table === 'boards') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'id') {
+                  return {
+                    single: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }),
+                  };
+                }
+                if (field === 'owner_id') {
+                  return Promise.resolve({ data: { id: 10 }, error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+            };
+          }
+
+          if (table === 'columns') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'board_id') {
+                  return Promise.resolve({ data: columns, error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+            };
+          }
+
+          if (table === 'tasks') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              in: jest.fn().mockResolvedValue({ data: [{ id: 123 }], error: null }),
+            };
+          }
+
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn(),
+            in: jest.fn(),
+          };
+        }),
+        auth: {
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+        },
+      };
+
+      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+
+      await expect(deleteUserBoardAction(10, 'user-1')).rejects.toThrow(
+        'Cannot delete project while there are tasks outside the Done column',
+      );
+    });
+
     it('throws when delete query returns an error', async () => {
-      const secondEq = jest
-        .fn()
-        .mockResolvedValue({ error: { message: 'Delete failed' } });
-      const mockSupabase = buildMockSupabase({
-        eq: jest.fn().mockReturnValue({ eq: secondEq }),
-      });
+      const columns: Array<{ id: number; title: string }> = [];
+
+      const mockSupabase = {
+        from: jest.fn((table: string) => {
+          if (table === 'boards') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              delete: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'id') {
+                  return {
+                    eq: jest.fn().mockResolvedValue({ error: { message: 'Delete failed' } }),
+                    single: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }),
+                  };
+                }
+                if (field === 'owner_id') {
+                  return Promise.resolve({ data: { id: 10 }, error: null });
+                }
+                return Promise.resolve({ error: null });
+              }),
+            };
+          }
+
+          if (table === 'columns') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockImplementation((field: string) => {
+                if (field === 'board_id') {
+                  return Promise.resolve({ data: columns, error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              }),
+              delete: jest.fn().mockReturnThis(),
+            };
+          }
+
+          return {
+            select: jest.fn().mockReturnThis(),
+            delete: jest.fn().mockReturnThis(),
+            eq: jest.fn(),
+            in: jest.fn(),
+          };
+        }),
+        auth: {
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+        },
+      };
+
       (createClient as jest.Mock).mockResolvedValue(mockSupabase);
 
       await expect(deleteUserBoardAction(10, 'user-1')).rejects.toThrow(

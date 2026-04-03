@@ -4,6 +4,8 @@ import {
   updateTaskAction,
   deleteTaskAction,
   createColumnAction,
+  updateColumnAction,
+  deleteColumnAction,
 } from '@/app/actions/kanban.actions';
 import { createClient } from '@/utils/supabase/server';
 
@@ -75,7 +77,10 @@ describe('fetchKanbanDataAction', () => {
 
     const result = await fetchKanbanDataAction(1);
     expect(result.columns).toEqual(mockColumns);
-    expect(result.tasks).toEqual(mockTasks);
+    // fetchKanbanDataAction wraps each task with labels: []
+    expect(result.tasks).toEqual(
+      mockTasks.map((t) => ({ ...t, labels: [] })),
+    );
   });
 
   it('returns empty tasks when there are no columns', async () => {
@@ -382,5 +387,118 @@ describe('createColumnAction', () => {
     supabase.insert.mockResolvedValue({ error: { message: 'insert failed' } });
     (createClient as jest.Mock).mockResolvedValue(supabase);
     await expect(createColumnAction(1, 'Sprint', 0)).rejects.toThrow('Failed to create column.');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  updateColumnAction
+// ══════════════════════════════════════════════════════════════════════════
+describe('updateColumnAction', () => {
+  it('updates a column title successfully', async () => {
+    const supabase = buildSupabase({ id: 'user-1' });
+    let singleCallCount = 0;
+    supabase.single.mockImplementation(() => {
+      singleCallCount++;
+      if (singleCallCount === 1) return Promise.resolve({ data: { board_id: 1 }, error: null });
+      return Promise.resolve({ data: { id: 1 }, error: null });
+    });
+    supabase.update.mockImplementation(() => ({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    }));
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+
+    await expect(updateColumnAction(10, { title: 'Done' })).resolves.toBeUndefined();
+  });
+
+  it('throws Unauthorized when no user', async () => {
+    const supabase = buildSupabase(null);
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(updateColumnAction(10, { title: 'X' })).rejects.toThrow('Unauthorized');
+  });
+
+  it('throws when column not found', async () => {
+    const supabase = buildSupabase({ id: 'user-1' }, null, { message: 'not found' });
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(updateColumnAction(10, { title: 'X' })).rejects.toThrow('Column not found.');
+  });
+
+  it('validates title - throws when empty', async () => {
+    const supabase = buildSupabase({ id: 'user-1' });
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(updateColumnAction(10, { title: '  ' })).rejects.toThrow('Column title is required.');
+  });
+
+  it('throws when update query returns error', async () => {
+    const supabase = buildSupabase({ id: 'user-1' });
+    let singleCallCount = 0;
+    supabase.single.mockImplementation(() => {
+      singleCallCount++;
+      if (singleCallCount === 1) return Promise.resolve({ data: { board_id: 1 }, error: null });
+      return Promise.resolve({ data: { id: 1 }, error: null });
+    });
+    supabase.update.mockImplementation(() => ({
+      eq: jest.fn().mockResolvedValue({ error: { message: 'update error' } }),
+    }));
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(updateColumnAction(10, { title: 'X' })).rejects.toThrow('Không thể cập nhật cột lúc này.');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  deleteColumnAction
+// ══════════════════════════════════════════════════════════════════════════
+describe('deleteColumnAction', () => {
+  it('deletes a column successfully', async () => {
+    const supabase = buildSupabase({ id: 'user-1' });
+    let singleCallCount = 0;
+    supabase.single.mockImplementation(() => {
+      singleCallCount++;
+      if (singleCallCount === 1) return Promise.resolve({ data: { board_id: 1 }, error: null });
+      return Promise.resolve({ data: { id: 1 }, error: null });
+    });
+    // Mock the task-count select: returns count: 0 (empty column)
+    supabase.select.mockReturnThis();
+    supabase.eq.mockImplementation(() => {
+      // Return count result for task count query
+      return Promise.resolve({ count: 0, error: null });
+    });
+    supabase.delete.mockImplementation(() => ({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    }));
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+
+    await expect(deleteColumnAction(10)).resolves.toBeUndefined();
+  });
+
+  it('throws Unauthorized when no user', async () => {
+    const supabase = buildSupabase(null);
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(deleteColumnAction(10)).rejects.toThrow('Unauthorized');
+  });
+
+  it('throws when column not found', async () => {
+    const supabase = buildSupabase({ id: 'user-1' }, null, { message: 'not found' });
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(deleteColumnAction(10)).rejects.toThrow('Column not found.');
+  });
+
+  it('throws when delete query returns error', async () => {
+    const supabase = buildSupabase({ id: 'user-1' });
+    let singleCallCount = 0;
+    supabase.single.mockImplementation(() => {
+      singleCallCount++;
+      if (singleCallCount === 1) return Promise.resolve({ data: { board_id: 1 }, error: null });
+      return Promise.resolve({ data: { id: 1 }, error: null });
+    });
+    // Mock count query: count = 0 (empty column, allow delete)
+    supabase.select.mockReturnThis();
+    supabase.eq.mockImplementation(() =>
+      Promise.resolve({ count: 0, error: null }),
+    );
+    supabase.delete.mockImplementation(() => ({
+      eq: jest.fn().mockResolvedValue({ error: { message: 'delete error' } }),
+    }));
+    (createClient as jest.Mock).mockResolvedValue(supabase);
+    await expect(deleteColumnAction(10)).rejects.toThrow('Không thể xóa cột lúc này.');
   });
 });

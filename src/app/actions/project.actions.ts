@@ -4,6 +4,24 @@ import { createClient } from "@/utils/supabase/server";
 import { Board } from "@/types/project";
 import { revalidatePath } from "next/cache";
 
+// ── Helper: Verify user owns a board ──
+async function verifyBoardOwnership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  boardId: number,
+) {
+  const { data: board, error } = await supabase
+    .from("boards")
+    .select("id")
+    .eq("id", boardId)
+    .eq("owner_id", userId)
+    .single();
+
+  if (error || !board) {
+    throw new Error("Access denied.");
+  }
+}
+
 // ── Helper: Validate string input ──
 function validateString(
   value: string,
@@ -58,6 +76,77 @@ export const deleteUserBoardAction = async (
   } = await supabase.auth.getUser();
   if (!user || user.id !== userId) {
     throw new Error("Unauthorized access");
+  }
+
+  // SECURE: Verify user owns this board before any mutations
+  await verifyBoardOwnership(supabase, userId, projectId);
+
+  // Load columns for this board to determine DONE vs non-DONE locations
+  const { data: columns, error: columnsError } = await supabase
+    .from("columns")
+    .select("id,title")
+    .eq("board_id", projectId);
+
+  if (columnsError) {
+    console.error("deleteUserBoardAction error while fetching columns:", columnsError.message);
+    throw new Error("Failed to delete project.");
+  }
+  const DONE_COLUMN_TITLE = 'done';
+  const boardColumns = (columns as Array<{ id: number; title: string }>) || [];
+  const { doneColumnIds, nonDoneColumnIds } = boardColumns.reduce(
+    (acc, column) => {
+      if (column.title?.trim().toLowerCase() === DONE_COLUMN_TITLE) {
+        acc.doneColumnIds.push(column.id);
+      } else {
+        acc.nonDoneColumnIds.push(column.id);
+      }
+      return acc;
+    },
+    { doneColumnIds: [] as number[], nonDoneColumnIds: [] as number[] },
+  );
+
+  // Block if any task exists in non-DONE columns
+  if (nonDoneColumnIds.length > 0) {
+    const { data: nonDoneTasks, error: tasksError } = await supabase
+      .from("tasks")
+      .select("id")
+      .in("column_id", nonDoneColumnIds);
+
+    if (tasksError) {
+      console.error("deleteUserBoardAction error while fetching tasks:", tasksError.message);
+      throw new Error("Failed to delete project.");
+    }
+
+    if (nonDoneTasks && nonDoneTasks.length > 0) {
+      throw new Error(
+        "Cannot delete project while there are tasks outside the Done column. Please complete or move tasks to Done before deleting.",
+      );
+    }
+  }
+
+  // If we reach here, only DONE tasks may exist; clean up tasks and columns before deleting board.
+  if (doneColumnIds.length > 0) {
+    const { error: deleteTasksError } = await supabase
+      .from("tasks")
+      .delete()
+      .in("column_id", doneColumnIds);
+
+    if (deleteTasksError) {
+      console.error("deleteUserBoardAction error while deleting done tasks:", deleteTasksError.message);
+      throw new Error("Failed to delete project.");
+    }
+  }
+
+  if (boardColumns.length > 0) {
+    const { error: deleteColumnsError } = await supabase
+      .from("columns")
+      .delete()
+      .eq("board_id", projectId);
+
+    if (deleteColumnsError) {
+      console.error("deleteUserBoardAction error while deleting columns:", deleteColumnsError.message);
+      throw new Error("Failed to delete project.");
+    }
   }
 
   const { error } = await supabase
@@ -163,6 +252,42 @@ export const createDefaultColumnsAction = async (
   if (error) {
     console.error("createDefaultColumnsAction error:", error.message);
     throw new Error("Failed to create default columns.");
+  }
+
+  revalidatePath("/projects");
+};
+
+export const updateUserBoardAction = async (
+  userId: string,
+  boardId: number,
+  boardData: Partial<Board>
+): Promise<void> => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    throw new Error("Unauthorized access");
+  }
+
+  await verifyBoardOwnership(supabase, userId, boardId);
+
+  const updates: Partial<Board> = {};
+  if (boardData.title !== undefined) updates.title = validateString(boardData.title, "Project title", 100);
+  if (boardData.description !== undefined) updates.description = boardData.description ? boardData.description.trim().slice(0, 1000) : null;
+  if (boardData.color !== undefined) updates.color = validateString(boardData.color as string, "Color", 20);
+  if (boardData.tag !== undefined) updates.tag = validateString(boardData.tag as string, "Tag", 50);
+  if (boardData.is_private !== undefined) updates.is_private = boardData.is_private;
+
+  const { error } = await supabase
+    .from("boards")
+    .update(updates)
+    .eq("id", boardId);
+
+  if (error) {
+    console.error("updateUserBoardAction error:", error.message);
+    throw new Error("Failed to update project.");
   }
 
   revalidatePath("/projects");

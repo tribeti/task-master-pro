@@ -4,18 +4,21 @@ import {
   deleteUserBoard,
   createNewBoard,
   createDefaultColumns,
+  updateUserBoard,
 } from "@/services/project.service";
-import { Board } from "@/types/project";
+import { Board, JoinedBoard } from "@/types/project";
 import { toast } from "sonner";
 
 export const useProjects = (userId?: string) => {
-  const [boards, setBoards] = useState<Board[]>([]);
+  const [ownedBoards, setOwnedBoards] = useState<Board[]>([]);
+  const [joinedBoards, setJoinedBoards] = useState<JoinedBoard[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBoards = useCallback(async () => {
     if (!userId) {
-      setBoards([]);
+      setOwnedBoards([]);
+      setJoinedBoards([]);
       setBoardsLoading(false);
       return;
     }
@@ -23,13 +26,15 @@ export const useProjects = (userId?: string) => {
     setBoardsLoading(true);
 
     try {
-      const data = await fetchUserBoards(userId);
-      setBoards(data);
+      const data = await fetchUserBoards();
+      setOwnedBoards(data.ownedBoards);
+      setJoinedBoards(data.joinedBoards);
     } catch (error: any) {
       toast.error(
         `Failed to fetch projects: ${error.message || "Unknown error"}`,
       );
-      setBoards([]);
+      setOwnedBoards([]);
+      setJoinedBoards([]);
     } finally {
       setBoardsLoading(false);
     }
@@ -60,7 +65,6 @@ export const useProjects = (userId?: string) => {
     is_private: boolean;
     color: string;
     tag: string;
-    projectDeadline: string;
     selectedTeamMembers: string[];
   }) => {
     if (!userId) return false;
@@ -75,7 +79,7 @@ export const useProjects = (userId?: string) => {
         tag: data.tag,
       });
 
-      toast.success("Project created successfully!");
+      toast.success("Tạo dự án thành công!");
 
       try {
         await createDefaultColumns(newBoard.id);
@@ -97,12 +101,36 @@ export const useProjects = (userId?: string) => {
     }
   };
 
+  const handleUpdateExistingProject = async (
+    projectId: number,
+    data: Partial<Board>
+  ) => {
+    if (!userId) return false;
+
+    setIsSubmitting(true);
+    try {
+      await updateUserBoard(userId, projectId, data);
+      toast.success("Cập nhật dự án thành công!");
+      await fetchBoards();
+      return true;
+    } catch (error: any) {
+      toast.error(
+        `Failed to update project: ${error.message || "Unknown error"}`
+      );
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return {
-    boards,
+    ownedBoards,
+    joinedBoards,
     boardsLoading,
     isSubmitting,
     fetchBoards,
     confirmDeleteProject,
     handleCreateProject,
+    handleUpdateExistingProject,
   };
 };

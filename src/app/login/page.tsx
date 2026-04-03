@@ -4,6 +4,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/logo";
+import {
+  checkEmailExistsAction,
+  requestPasswordResetAction,
+} from "@/app/actions/auth.actions";
+import { validatePassword, isValidEmail } from "@/lib/auth/validators";
 
 import {
   MailIcon,
@@ -16,21 +21,6 @@ import {
 
 type AuthView = "login" | "register" | "forgot";
 
-// Password validation rules
-const PASSWORD_RULES = [
-  { test: (p: string) => p.length >= 6, label: "At least 6 characters" },
-  { test: (p: string) => /[0-9]/.test(p), label: "One number" },
-];
-
-function validatePassword(password: string): string | null {
-  for (const rule of PASSWORD_RULES) {
-    if (!rule.test(password)) {
-      return `Password must have: ${rule.label}`;
-    }
-  }
-  return null;
-}
-
 export default function TaskFlowAuth() {
   const [view, setView] = useState<AuthView>("login");
   const [email, setEmail] = useState("");
@@ -40,6 +30,7 @@ export default function TaskFlowAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [emailFormatError, setEmailFormatError] = useState("");
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -55,9 +46,18 @@ export default function TaskFlowAuth() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setErrorMsg("");
+
+    // Preserve redirectTo query param for the callback page
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get("redirectTo");
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (redirectTo) {
+      callbackUrl.searchParams.set("redirectTo", redirectTo);
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl.toString() },
     });
     if (error) setErrorMsg(error.message);
     setIsLoading(false);
@@ -75,12 +75,24 @@ export default function TaskFlowAuth() {
       localStorage.removeItem("remembered_email");
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) setErrorMsg(error.message);
-    else router.push("/command");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Đăng nhập thất bại.");
+      } else {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectTo = searchParams.get("redirectTo");
+        router.push(redirectTo || "/command");
+      }
+    } catch {
+      setErrorMsg("Đã xảy ra lỗi. Vui lòng thử lại.");
+    }
     setIsLoading(false);
   };
 
@@ -90,7 +102,7 @@ export default function TaskFlowAuth() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    // Validate password strength
+    // Validate password strength (client-side for instant feedback)
     const passwordError = validatePassword(password);
     if (passwordError) {
       setErrorMsg(passwordError);
@@ -98,30 +110,64 @@ export default function TaskFlowAuth() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    if (error) setErrorMsg(error.message);
-    else {
-      setSuccessMsg("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
-      setView("login");
+    // Preserve redirectTo for the email confirmation link
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectTo = searchParams.get("redirectTo");
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName, redirectTo }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Đăng ký thất bại.");
+      } else {
+        setSuccessMsg(data.message || "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+        setView("login");
+      }
+    } catch {
+      setErrorMsg("Đã xảy ra lỗi. Vui lòng thử lại.");
     }
     setIsLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
+    setEmailFormatError("");
+
+    if (!isValidEmail(email)) {
+      setEmailFormatError(
+        "Email không đúng định dạng. Ví dụ: example@gmail.com",
+      );
+      return;
+    }
+
+    setIsLoading(true);
+
+    // ── Kiểm tra email có tồn tại trong hệ thống ──
+    const { exists, error: checkError } = await checkEmailExistsAction(email);
+    if (checkError) {
+      setErrorMsg(checkError);
+      setIsLoading(false);
+      return;
+    }
+    if (!exists) {
+      setErrorMsg("Email không tồn tại. Vui lòng kiểm tra lại.");
+      setIsLoading(false);
+      return;
+    }
+
+    // ── Gửi link reset password ──
+    const { success, error: resetError } =
+      await requestPasswordResetAction(email);
+    if (resetError) {
+      setErrorMsg(resetError);
+    } else if (success) {
       setSuccessMsg(
         "Đã gửi link reset password vào email! Vui lòng kiểm tra inbox.",
       );
@@ -132,7 +178,6 @@ export default function TaskFlowAuth() {
   return (
     <div className="flex min-h-screen w-full bg-[#F8FAFC] font-sans relative">
       {/* --- LOGO CHO MOBILE/TABLET --- */}
-      {/* Sẽ hiển thị nổi bật ở giữa màn hình trên cùng, tự động ẩn khi lên Desktop */}
       <div className="absolute top-8 left-0 w-full flex justify-center lg:hidden z-20 animate-in fade-in slide-in-from-top-4 duration-700">
         <Logo isDarkTheme={false} />
       </div>
@@ -436,19 +481,59 @@ export default function TaskFlowAuth() {
                 </p>
               </div>
 
-              <form className="space-y-6" onSubmit={handleForgotPassword}>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#FF8B5E] transition-colors">
-                    <MailIcon />
+              <form className="space-y-5" onSubmit={handleForgotPassword}>
+                <div className="space-y-1">
+                  <div className="relative group">
+                    <div
+                      className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${
+                        emailFormatError
+                          ? "text-red-400"
+                          : "text-slate-400 group-focus-within:text-[#FF8B5E]"
+                      }`}
+                    >
+                      <MailIcon />
+                    </div>
+                    <input
+                      type="text"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        // AC3: Xoá lỗi format khi người dùng đang gõ
+                        if (emailFormatError) setEmailFormatError("");
+                      }}
+                      placeholder="Email address"
+                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${
+                        emailFormatError
+                          ? "border-red-300 focus:border-red-400"
+                          : "border-slate-200 focus:border-[#FF8B5E]"
+                      }`}
+                      aria-describedby="email-format-error"
+                    />
                   </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email address"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#FF8B5E] focus:bg-white transition-all placeholder:text-slate-400"
-                    required
-                  />
+                  {/* AC3: Inline email format error */}
+                  {emailFormatError && (
+                    <p
+                      id="email-format-error"
+                      className="text-xs font-medium text-red-500 pl-1 flex items-center gap-1"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      {emailFormatError}
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -456,7 +541,7 @@ export default function TaskFlowAuth() {
                   disabled={isLoading}
                   className="w-full py-4 px-6 bg-[#FF8B5E] hover:bg-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-orange-500/30 transition-all disabled:opacity-70"
                 >
-                  {isLoading ? "Sending..." : "Send Reset Link"}
+                  {isLoading ? "Đang gửi..." : "Gửi Link Reset"}
                 </button>
               </form>
             </div>

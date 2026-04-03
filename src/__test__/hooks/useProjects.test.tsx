@@ -31,7 +31,8 @@ describe('useProjects Hook', () => {
     const { result } = renderHook(() => useProjects());
 
     expect(result.current.boardsLoading).toBe(false);
-    expect(result.current.boards).toEqual([]);
+    expect(result.current.ownedBoards).toEqual([]);
+    expect(result.current.joinedBoards).toEqual([]);
     expect(fetchUserBoards).not.toHaveBeenCalled();
   });
 
@@ -43,8 +44,11 @@ describe('useProjects Hook', () => {
   // ── fetchBoards ────────────────────────────────────────────────────────────
 
   it('fetches boards on mount if userId is provided', async () => {
-    const mockBoards = [{ id: 1, title: 'Test Board' }];
-    (fetchUserBoards as jest.Mock).mockResolvedValue(mockBoards);
+    const mockBoardsData = {
+      ownedBoards: [{ id: 1, title: 'Test Board' }],
+      joinedBoards: [{ id: 2, title: 'Joined Board' }]
+    };
+    (fetchUserBoards as jest.Mock).mockResolvedValue(mockBoardsData);
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -56,7 +60,8 @@ describe('useProjects Hook', () => {
 
     expect(fetchUserBoards).toHaveBeenCalledWith('user-1');
     expect(result.current.boardsLoading).toBe(false);
-    expect(result.current.boards).toEqual(mockBoards);
+    expect(result.current.ownedBoards).toEqual(mockBoardsData.ownedBoards);
+    expect(result.current.joinedBoards).toEqual(mockBoardsData.joinedBoards);
   });
 
   it('handles fetch board errors (covers lines 50-54: catch branch)', async () => {
@@ -71,7 +76,8 @@ describe('useProjects Hook', () => {
     // Covers the catch block that calls toast.error and resets boards
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Fetch failed'));
     expect(result.current.boardsLoading).toBe(false);
-    expect(result.current.boards).toEqual([]);
+    expect(result.current.ownedBoards).toEqual([]);
+    expect(result.current.joinedBoards).toEqual([]);
   });
 
   it('handles fetch error with no message (covers unknown error branch)', async () => {
@@ -86,14 +92,15 @@ describe('useProjects Hook', () => {
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining('Unknown error'),
     );
-    expect(result.current.boards).toEqual([]);
+    expect(result.current.ownedBoards).toEqual([]);
+    expect(result.current.joinedBoards).toEqual([]);
   });
 
   // ── confirmDeleteProject ───────────────────────────────────────────────────
 
   it('deletes a project and refetches boards', async () => {
     (deleteUserBoard as jest.Mock).mockResolvedValue(true);
-    (fetchUserBoards as jest.Mock).mockResolvedValue([]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -126,7 +133,7 @@ describe('useProjects Hook', () => {
 
   it('handles delete error and returns false (covers delete catch branch)', async () => {
     (deleteUserBoard as jest.Mock).mockRejectedValue(new Error('Delete failed'));
-    (fetchUserBoards as jest.Mock).mockResolvedValue([]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -145,7 +152,7 @@ describe('useProjects Hook', () => {
 
   it('handles delete error with no message (unknown error branch)', async () => {
     (deleteUserBoard as jest.Mock).mockRejectedValue({});
-    (fetchUserBoards as jest.Mock).mockResolvedValue([]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -170,7 +177,7 @@ describe('useProjects Hook', () => {
     const mockCreatedBoard = { id: 99, title: 'New Board' };
     (createNewBoard as jest.Mock).mockResolvedValue(mockCreatedBoard);
     (createDefaultColumns as jest.Mock).mockResolvedValue(true);
-    (fetchUserBoards as jest.Mock).mockResolvedValue([mockCreatedBoard]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [mockCreatedBoard], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -184,7 +191,6 @@ describe('useProjects Hook', () => {
       is_private: true,
       color: 'red',
       tag: 'design',
-      projectDeadline: '',
       selectedTeamMembers: [],
     };
 
@@ -216,7 +222,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -230,7 +235,7 @@ describe('useProjects Hook', () => {
     (createNewBoard as jest.Mock).mockResolvedValue(mockCreatedBoard);
     // createDefaultColumns throws so we hit the inner catch
     (createDefaultColumns as jest.Mock).mockRejectedValue(new Error('Columns failed'));
-    (fetchUserBoards as jest.Mock).mockResolvedValue([mockCreatedBoard]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [mockCreatedBoard], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -246,7 +251,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -261,7 +265,7 @@ describe('useProjects Hook', () => {
 
   it('handles createNewBoard failure and returns false (covers lines 91-94)', async () => {
     (createNewBoard as jest.Mock).mockRejectedValue(new Error('Board creation failed'));
-    (fetchUserBoards as jest.Mock).mockResolvedValue([]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -277,7 +281,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -292,7 +295,7 @@ describe('useProjects Hook', () => {
 
   it('handles createNewBoard failure with no message (unknown error branch)', async () => {
     (createNewBoard as jest.Mock).mockRejectedValue({});
-    (fetchUserBoards as jest.Mock).mockResolvedValue([]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -308,7 +311,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'blue',
         tag: 'work',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });
@@ -323,7 +325,7 @@ describe('useProjects Hook', () => {
     const mockCreatedBoard = { id: 77, title: 'No Desc Board' };
     (createNewBoard as jest.Mock).mockResolvedValue(mockCreatedBoard);
     (createDefaultColumns as jest.Mock).mockResolvedValue(true);
-    (fetchUserBoards as jest.Mock).mockResolvedValue([mockCreatedBoard]);
+    (fetchUserBoards as jest.Mock).mockResolvedValue({ ownedBoards: [mockCreatedBoard], joinedBoards: [] });
 
     const { result } = renderHook(() => useProjects('user-1'));
 
@@ -338,7 +340,6 @@ describe('useProjects Hook', () => {
         is_private: false,
         color: 'green',
         tag: 'personal',
-        projectDeadline: '',
         selectedTeamMembers: [],
       });
     });

@@ -40,7 +40,7 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
         <div className="p-8 flex flex-col gap-8">
           <input
             type="text"
-            placeholder="What's on your mind?"
+            placeholder="Bạn đang nghĩ gì?"
             className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
             autoFocus
             required
@@ -50,22 +50,22 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
             <div className="flex items-center gap-3">
               {selectedTags.length > 0 && (
                 <span className="text-xs font-bold text-slate-400 tracking-wider uppercase mr-2">
-                  Quick Tag:
+                  Gắn thẻ nhanh:
                 </span>
               )}
               {[
                 {
-                  label: "Work",
+                  label: "Công việc",
                   icon: <BriefcaseIcon />,
                   active: "bg-[#EAF7FF] text-[#28B8FA]",
                 },
                 {
-                  label: "Personal",
+                  label: "Cá nhân",
                   icon: <UserIcon />,
                   active: "bg-[#D1FAE5] text-[#34D399]",
                 },
                 {
-                  label: "Urgent",
+                  label: "Khẩn cấp",
                   icon: <ZapIcon />,
                   active: "bg-[#FFF2DE] text-[#FF8B5E]",
                 },
@@ -73,11 +73,10 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
                 <button
                   key={label}
                   onClick={() => toggleTag(label)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                    selectedTags.includes(label)
-                      ? active
-                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes(label)
+                    ? active
+                    : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                    }`}
                 >
                   {icon} {label}
                 </button>
@@ -89,11 +88,11 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
                   <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
                     <CheckIcon />
                   </div>
-                  Create Task
+                  Tạo nhiệm vụ
                 </button>
               ) : (
                 <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-all text-white font-bold rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-lg shadow-orange-200 animate-in slide-in-from-right-4">
-                  Add Task{" "}
+                  Thêm nhiệm vụ{" "}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
