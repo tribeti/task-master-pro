@@ -88,10 +88,13 @@ export const deleteUserBoardAction = async (
     .eq("board_id", projectId);
 
   if (columnsError) {
-    console.error("deleteUserBoardAction error while fetching columns:", columnsError.message);
+    console.error(
+      "deleteUserBoardAction error while fetching columns:",
+      columnsError.message,
+    );
     throw new Error("Failed to delete project.");
   }
-  const DONE_COLUMN_TITLE = 'done';
+  const DONE_COLUMN_TITLE = "done";
   const boardColumns = (columns as Array<{ id: number; title: string }>) || [];
   const { doneColumnIds, nonDoneColumnIds } = boardColumns.reduce(
     (acc, column) => {
@@ -113,7 +116,10 @@ export const deleteUserBoardAction = async (
       .in("column_id", nonDoneColumnIds);
 
     if (tasksError) {
-      console.error("deleteUserBoardAction error while fetching tasks:", tasksError.message);
+      console.error(
+        "deleteUserBoardAction error while fetching tasks:",
+        tasksError.message,
+      );
       throw new Error("Failed to delete project.");
     }
 
@@ -132,7 +138,10 @@ export const deleteUserBoardAction = async (
       .in("column_id", doneColumnIds);
 
     if (deleteTasksError) {
-      console.error("deleteUserBoardAction error while deleting done tasks:", deleteTasksError.message);
+      console.error(
+        "deleteUserBoardAction error while deleting done tasks:",
+        deleteTasksError.message,
+      );
       throw new Error("Failed to delete project.");
     }
   }
@@ -144,7 +153,10 @@ export const deleteUserBoardAction = async (
       .eq("board_id", projectId);
 
     if (deleteColumnsError) {
-      console.error("deleteUserBoardAction error while deleting columns:", deleteColumnsError.message);
+      console.error(
+        "deleteUserBoardAction error while deleting columns:",
+        deleteColumnsError.message,
+      );
       throw new Error("Failed to delete project.");
     }
   }
@@ -260,7 +272,7 @@ export const createDefaultColumnsAction = async (
 export const updateUserBoardAction = async (
   userId: string,
   boardId: number,
-  boardData: Partial<Board>
+  boardData: Partial<Board>,
 ): Promise<void> => {
   const supabase = await createClient();
 
@@ -274,11 +286,18 @@ export const updateUserBoardAction = async (
   await verifyBoardOwnership(supabase, userId, boardId);
 
   const updates: Partial<Board> = {};
-  if (boardData.title !== undefined) updates.title = validateString(boardData.title, "Project title", 100);
-  if (boardData.description !== undefined) updates.description = boardData.description ? boardData.description.trim().slice(0, 1000) : null;
-  if (boardData.color !== undefined) updates.color = validateString(boardData.color as string, "Color", 20);
-  if (boardData.tag !== undefined) updates.tag = validateString(boardData.tag as string, "Tag", 50);
-  if (boardData.is_private !== undefined) updates.is_private = boardData.is_private;
+  if (boardData.title !== undefined)
+    updates.title = validateString(boardData.title, "Project title", 100);
+  if (boardData.description !== undefined)
+    updates.description = boardData.description
+      ? boardData.description.trim().slice(0, 1000)
+      : null;
+  if (boardData.color !== undefined)
+    updates.color = validateString(boardData.color as string, "Color", 20);
+  if (boardData.tag !== undefined)
+    updates.tag = validateString(boardData.tag as string, "Tag", 50);
+  if (boardData.is_private !== undefined)
+    updates.is_private = boardData.is_private;
 
   const { error } = await supabase
     .from("boards")

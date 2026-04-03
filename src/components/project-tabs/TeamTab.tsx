@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
@@ -130,6 +124,16 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Remove member state
+  const [memberToRemove, setMemberToRemove] = useState<BoardMember | null>(
+    null,
+  );
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const isCurrentUserOwner = useMemo(() => {
+    return members.some((m) => m.role === "Owner" && m.user_id === user?.id);
+  }, [members, user?.id]);
+
   // ── Fetch members ──
   const fetchMembers = useCallback(async () => {
     try {
@@ -194,6 +198,33 @@ export function TeamTab({ boardId }: TeamTabProps) {
     }
   };
 
+  // ── Remove member handler ──
+  const executeRemoveMember = async () => {
+    if (!memberToRemove) return;
+    setIsRemoving(true);
+    try {
+      const res = await fetch(
+        `/api/boards/${boardId}/members/${memberToRemove.user_id}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Xóa thành viên thất bại");
+      } else {
+        toast.success("Đã xóa thành viên khỏi dự án");
+        setMembers((prev) =>
+          prev.filter((m) => m.user_id !== memberToRemove.user_id),
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi kết nối khi xóa thành viên");
+    } finally {
+      setIsRemoving(false);
+      setMemberToRemove(null);
+    }
+  };
+
   // ── Filter by search ──
   const filteredMembers = members.filter((m) =>
     m.display_name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -237,9 +268,31 @@ export function TeamTab({ boardId }: TeamTabProps) {
                   key={member.user_id}
                   className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
                 >
-                  <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
-                    <MoreIcon />
-                  </button>
+                  {isCurrentUserOwner && member.role !== "Owner" && (
+                    <button
+                      onClick={() => setMemberToRemove(member)}
+                      title="Xóa thành viên"
+                      className="absolute top-6 right-6 text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors rounded-full p-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
+                  )}
 
                   {/* Avatar */}
                   <div className="relative mb-4">
@@ -435,6 +488,66 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Remove Member Modal ── */}
+      {memberToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !isRemoving && setMemberToRemove(null)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-extrabold text-slate-900 mb-2">
+              Xóa thành viên
+            </h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              Bạn có chắc chắn muốn xóa{" "}
+              <strong className="text-slate-800">
+                {memberToRemove.display_name}
+              </strong>{" "}
+              khỏi dự án này? Người dùng sẽ ngay lập tức mất quyền truy cập và
+              được gỡ khỏi tất cả công việc đang được giao.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                disabled={isRemoving}
+                className="flex-[1] py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                onClick={executeRemoveMember}
+                disabled={isRemoving}
+                className="flex-[1] py-2.5 rounded-xl bg-rose-500 text-white font-bold text-sm hover:bg-rose-600 shadow-md shadow-rose-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isRemoving ? (
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                ) : (
+                  "Xóa"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
