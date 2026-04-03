@@ -11,9 +11,7 @@ import {
 import { KanbanColumn } from "./KanbanColumn";
 import { PlusIcon } from "@/components/icons";
 import {
-    updateTaskAction,
     createColumnAction,
-    updateColumnAction,
     bulkUpdateTasksAction,
     bulkUpdateColumnsAction,
 } from "@/app/actions/kanban.actions";
@@ -29,6 +27,9 @@ interface KanbanBoardProps {
     columns: Column[];
     tasks: KanbanTask[];
     boardLabels?: Label[];
+    isDraggingRef: React.MutableRefObject<boolean>;
+    markLocalWrite: () => void;
+    onColumnAdded: (column: Column) => void;
     onDataChange: () => Promise<void>;
     onTaskClick: (task: KanbanTask) => void;
     onAddTask: (columnId: number) => void;
@@ -43,6 +44,9 @@ export function KanbanBoard({
     columns,
     tasks,
     boardLabels = [],
+    isDraggingRef,
+    markLocalWrite,
+    onColumnAdded,
     onDataChange,
     onTaskClick,
     onAddTask,
@@ -67,29 +71,30 @@ export function KanbanBoard({
     // Track if there are pending drags or API calls to avoid UI jumps
     const pendingTasksUpdatesRef = useRef(0);
     const pendingColumnsUpdatesRef = useRef(0);
-    const latestColumnsPropRef = useRef(columns);
-    const latestTasksPropRef = useRef(tasks);
+
+    // When pending transitions from >0 to 0, we need to re-trigger the sync useEffect.
+    // Refs don't cause re-renders, so we use a state-based "signal" to force re-evaluation.
+    const [columnSyncTrigger, setColumnSyncTrigger] = useState(0);
+    const [taskSyncTrigger, setTaskSyncTrigger] = useState(0);
 
     // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
-        latestColumnsPropRef.current = columns;
         if (pendingColumnsUpdatesRef.current === 0) {
             if (!isEqual(columns, lastSyncedColumnsRef.current)) {
                 setLocalColumns(columns);
                 lastSyncedColumnsRef.current = columns;
             }
         }
-    }, [columns]);
+    }, [columns, columnSyncTrigger]);
 
     useEffect(() => {
-        latestTasksPropRef.current = tasks;
         if (pendingTasksUpdatesRef.current === 0) {
             if (!isEqual(tasks, lastSyncedTasksRef.current)) {
                 setLocalTasks(tasks);
                 lastSyncedTasksRef.current = tasks;
             }
         }
-    }, [tasks]);
+    }, [tasks, taskSyncTrigger]);
 
     // Add column state
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -102,13 +107,34 @@ export function KanbanBoard({
         }
     }, [isAddingColumn]);
 
-    // Ref timer for debouncing task updates
+    // Ref timer for debouncing updates
     const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
-    // Cleanup timer khi component bị hủy (Unmount)
+    const debounceColumnTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const dragCooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Release isDraggingRef with a cooldown so Realtime events from our OWN
+    // DB writes are ignored (they arrive within ~1s of the commit).
+    const releaseDragLock = () => {
+        if (dragCooldownTimerRef.current) {
+            clearTimeout(dragCooldownTimerRef.current);
+        }
+        dragCooldownTimerRef.current = setTimeout(() => {
+            isDraggingRef.current = false;
+            dragCooldownTimerRef.current = null;
+        }, 1500); // > Realtime debounce (500ms) + network jitter
+    };
+
+    // Cleanup timers khi component bị hủy (Unmount)
     useEffect(() => {
         return () => {
             if (debounceTaskTimerRef.current) {
                 clearTimeout(debounceTaskTimerRef.current);
+            }
+            if (debounceColumnTimerRef.current) {
+                clearTimeout(debounceColumnTimerRef.current);
+            }
+            if (dragCooldownTimerRef.current) {
+                clearTimeout(dragCooldownTimerRef.current);
             }
         };
     }, []);
@@ -154,38 +180,53 @@ export function KanbanBoard({
             // ── Step 3: Update UI IMMEDIATELY ──
             setLocalColumns(updatedColumns);
 
-            // ── Step 4: Dirty Checking ──
-            const oldColumnsMap = new Map(columns.map(c => [c.id, c]));
-            const changedColumns = updatedColumns.filter((newCol) => {
-                const oldCol = oldColumnsMap.get(newCol.id);
-                if (!oldCol) return false;
-                return oldCol.position !== newCol.position;
-            });
+            // ── Step 4: Debounce API Call & Bulk Update ──
+            // Always manage the timer first to avoid orphaned timers
+            if (debounceColumnTimerRef.current) {
+                clearTimeout(debounceColumnTimerRef.current);
+            } else {
+                pendingColumnsUpdatesRef.current++;
+                isDraggingRef.current = true;
+            }
 
-            if (changedColumns.length === 0) return;
+            debounceColumnTimerRef.current = setTimeout(() => {
+                debounceColumnTimerRef.current = null;
 
-            // ── Step 5: Fire API in background (Bulk Update) ──
-            pendingColumnsUpdatesRef.current++;
-            bulkUpdateColumnsAction(changedColumns.map(c => ({
-                id: c.id,
-                position: c.position
-            })))
-                .then(() => {
-                    // Sync silently with server after success
-                    return onDataChange();
-                })
-                .catch(() => {
-                    // ── Step 6: Rollback on error ──
-                    setLocalColumns(previousColumns);
-                    toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
-                })
-                .finally(() => {
-                    pendingColumnsUpdatesRef.current--;
-                    if (pendingColumnsUpdatesRef.current === 0 && !isEqual(latestColumnsPropRef.current, lastSyncedColumnsRef.current)) {
-                        setLocalColumns(latestColumnsPropRef.current);
-                        lastSyncedColumnsRef.current = latestColumnsPropRef.current;
-                    }
+                // Dirty Checking: only send changes that actually differ from server state
+                const oldColumnsMap = new Map(columns.map(c => [c.id, c]));
+                const changedColumns = updatedColumns.filter((newCol) => {
+                    const oldCol = oldColumnsMap.get(newCol.id);
+                    if (!oldCol) return false;
+                    return oldCol.position !== newCol.position;
                 });
+
+                if (changedColumns.length === 0) {
+                    // Nothing actually changed vs server — just release the lock
+                    pendingColumnsUpdatesRef.current--;
+                    if (pendingColumnsUpdatesRef.current === 0) {
+                        releaseDragLock();
+                        setColumnSyncTrigger(c => c + 1);
+                    }
+                    return;
+                }
+
+                markLocalWrite();
+                bulkUpdateColumnsAction(changedColumns.map(c => ({
+                    id: c.id,
+                    position: c.position
+                })))
+                    .catch(() => {
+                        setLocalColumns(previousColumns);
+                        toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
+                    })
+                    .finally(() => {
+                        pendingColumnsUpdatesRef.current--;
+                        if (pendingColumnsUpdatesRef.current === 0) {
+                            releaseDragLock();
+                            setColumnSyncTrigger(c => c + 1);
+                        }
+                    });
+            }, 500);
 
             return;
         }
@@ -268,47 +309,53 @@ export function KanbanBoard({
             // ── Step 3: Update UI IMMEDIATELY ──
             setLocalTasks(newTasks);
 
-            // ── Step 4: Dirty Checking ──
-            const oldTasksMap = new Map(tasks.map(t => [t.id, t]));
-            const changedTasks = newTasks.filter((newTask) => {
-                // Compare with original props (tasks) representing the server state
-                const oldTask = oldTasksMap.get(newTask.id);
-                if (!oldTask) return false;
-                return (
-                    oldTask.column_id !== newTask.column_id ||
-                    oldTask.position !== newTask.position
-                );
-            });
-
             // ── Step 5: Debounce API Call & Bulk Update ──
+            // Always manage the timer first to avoid orphaned timers
             if (debounceTaskTimerRef.current) {
                 clearTimeout(debounceTaskTimerRef.current);
             } else {
-                // Only increment if we are starting a fresh debounce cycle
                 pendingTasksUpdatesRef.current++;
+                isDraggingRef.current = true;
             }
 
             debounceTaskTimerRef.current = setTimeout(() => {
-                // clear timer ref so a new drag during API execution will increment pending
                 debounceTaskTimerRef.current = null;
+
+                // Dirty Checking: only send changes that actually differ from server state
+                const oldTasksMap = new Map(tasks.map(t => [t.id, t]));
+                const changedTasks = newTasks.filter((newTask) => {
+                    const oldTask = oldTasksMap.get(newTask.id);
+                    if (!oldTask) return false;
+                    return (
+                        oldTask.column_id !== newTask.column_id ||
+                        oldTask.position !== newTask.position
+                    );
+                });
+
+                if (changedTasks.length === 0) {
+                    pendingTasksUpdatesRef.current--;
+                    if (pendingTasksUpdatesRef.current === 0) {
+                        releaseDragLock();
+                        setTaskSyncTrigger(c => c + 1);
+                    }
+                    return;
+                }
+
+                markLocalWrite();
                 bulkUpdateTasksAction(changedTasks.map(t => ({
                     id: t.id,
                     column_id: t.column_id,
                     position: t.position,
                 })))
-                    .then(() => {
-                        return onDataChange();
-                    })
                     .catch(() => {
-                        // Rollback to the state before this drag operation started
                         setLocalTasks(previousTasks);
                         toast.error("Lưu vị trí tác vụ thất bại, đang hoàn tác!");
                     })
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
-                        if (pendingTasksUpdatesRef.current === 0 && !isEqual(latestTasksPropRef.current, lastSyncedTasksRef.current)) {
-                            setLocalTasks(latestTasksPropRef.current);
-                            lastSyncedTasksRef.current = latestTasksPropRef.current;
+                        if (pendingTasksUpdatesRef.current === 0) {
+                            releaseDragLock();
+                            setTaskSyncTrigger(c => c + 1);
                         }
                     });
             }, 500);
@@ -323,11 +370,14 @@ export function KanbanBoard({
                 ? Math.max(...localColumns.map((c) => c.position)) + 1
                 : 0;
         try {
-            await createColumnAction(projectId, newColumnTitle.trim(), nextPos);
+            markLocalWrite();
+            const newColumn = await createColumnAction(projectId, newColumnTitle.trim(), nextPos);
             toast.success("Column added");
             setNewColumnTitle("");
             setIsAddingColumn(false);
-            await onDataChange();
+
+            // Cập nhật state trực tiếp từ kết quả trả về, KHÔNG fetch lại data
+            onColumnAdded(newColumn);
         } catch {
             toast.error("Failed to add column");
         }

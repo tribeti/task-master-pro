@@ -368,7 +368,6 @@ export const bulkUpdateTasksAction = async (
         console.error("bulkUpdateTasksAction error:", error.message);
         throw new Error("Failed to bulk update tasks.");
     }
-
     revalidatePath("/projects");
 };
 
@@ -414,7 +413,6 @@ export const bulkUpdateColumnsAction = async (
         console.error("bulkUpdateColumnsAction error:", error.message);
         throw new Error("Failed to bulk update columns.");
     }
-
     revalidatePath("/projects");
 };
 
@@ -694,15 +692,18 @@ export const createColumnAction = async (
     // SECURE: Verify user owns this board
     await verifyBoardAccess(supabase, user.id, projectId);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from("columns")
-        .insert([{ title: cleanTitle, board_id: projectId, position }]);
+        .insert([{ title: cleanTitle, board_id: projectId, position }])
+        .select()
+        .single();
     if (error) {
         console.error("createColumnAction error:", error.message);
         throw new Error("Failed to create column.");
     }
 
     revalidatePath("/projects");
+    return data;
 };
 // update column
 export const updateColumnAction = async (

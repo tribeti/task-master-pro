@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -22,6 +22,7 @@ import {
 } from "@/app/actions/kanban.actions";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
 import {
   Label,
   Comment,
@@ -44,6 +45,22 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
+
+  // ══════════════════════════════════════════════════════════════
+  //  SHARED REF: KanbanBoard sets this to true while dragging
+  //  Realtime subscription reads it to skip fetch during drags
+  // ══════════════════════════════════════════════════════════════
+  const isDraggingRef = useRef(false);
+
+  // Tracks the timestamp of our most recent local write operation.
+  // Realtime events arriving within 2s of a local write are suppressed
+  // because they're echoes of our OWN changes (not other users').
+  const lastLocalWriteRef = useRef(0);
+
+  // Wrapper: call this around any CRUD action to stamp the write time
+  const markLocalWrite = () => {
+    lastLocalWriteRef.current = Date.now();
+  };
 
   const fetchData = useCallback(async () => {
     // Only show loading spinner on initial load, not on subsequent refreshes
@@ -70,9 +87,79 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   }, [projectId]);
 
+  // Initial data fetch (ONLY on mount / projectId change)
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ══════════════════════════════════════════════════════════════
+  //  SUPABASE REALTIME — Stabilized subscription
+  //
+  //  Key design decisions:
+  //  1. Use a REF to track column IDs, not state. This prevents
+  //     the infinite re-subscribe loop (fetchData → setColumns →
+  //     columns ref changes → useEffect re-runs → new channel).
+  //  2. Skip fetchData when isDraggingRef is true (anti-race).
+  //  3. Skip fetchData within 2s of a local write (anti-echo).
+  //  4. Debounce 500ms to batch rapid DB changes.
+  // ══════════════════════════════════════════════════════════════
+  // Derive a stable string of column IDs. It only changes when columns are added or removed.
+  // This solves the infinite re-subscribe loop while ensuring new columns are tracked.
+  const columnIdsString = useMemo(() => {
+    return columns.map((c) => c.id).sort((a, b) => a - b).join(",");
+  }, [columns]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let debounceTimer: NodeJS.Timeout;
+
+    const handleRealtimeEvent = () => {
+      // 🛡️ Guard 1: If user is actively dragging, skip entirely
+      if (isDraggingRef.current) return;
+
+      // 🛡️ Guard 2: If this is an echo of our own recent write, skip
+      if (Date.now() - lastLocalWriteRef.current < 2000) return;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchData();
+      }, 500);
+    };
+
+    const channelBuilder = supabase
+      .channel(`kanban-realtime-board-${projectId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "columns", filter: `board_id=eq.${projectId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setColumns(prev => {
+              // Anti-Duplication: check if we already appended it locally
+              if (prev.some(c => c.id === payload.new.id)) return prev;
+              return [...prev, payload.new as Column].sort((a, b) => a.position - b.position);
+            });
+          } else {
+            handleRealtimeEvent();
+          }
+        }
+      );
+
+    if (columnIdsString) {
+      channelBuilder.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${columnIdsString})` },
+        () => handleRealtimeEvent()
+      );
+    }
+
+    const channel = channelBuilder.subscribe();
+
+    return () => {
+      clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+    // Include columnIdsString here so it auto-re-subscribes when columns are added/removed!
+  }, [projectId, fetchData, columnIdsString]);
 
   const fetchComments = useCallback(async (taskId: number) => {
     try {
@@ -103,6 +190,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
     await fetchComments(task.id);
   };
+
+  // ══════════════════════════════════════════════════════════════
+  //  CRUD Handlers
+  //  Each handler calls markLocalWrite() before fetchData() to
+  //  suppress Realtime echo (prevents double GET)
+  // ══════════════════════════════════════════════════════════════
 
   const handleSaveTask = async (data: {
     title: string;
@@ -158,6 +251,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
       toast.success(editingTask ? "cập nhật nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
     }
 
+    // Realtime will auto-refresh, but for CRUD we want immediate feedback
+    markLocalWrite();
     await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
@@ -175,6 +270,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       toast.error("xóa nhiệm vụ thất bại");
     }
 
+    markLocalWrite();
     await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
@@ -183,6 +279,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleAddLabel = async (taskId: number, labelId: number) => {
     try {
       await addLabelToTaskAction(taskId, labelId);
+      markLocalWrite();
       await fetchData();
       toast.success("Thêm nhãn thành công");
     } catch (error) {
@@ -194,6 +291,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleRemoveLabel = async (taskId: number, labelId: number) => {
     try {
       await removeLabelFromTaskAction(taskId, labelId);
+      markLocalWrite();
       await fetchData();
       toast.success("xóa nhãn thành công");
     } catch (error) {
@@ -205,6 +303,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleCreateLabel = async (name: string, color: string) => {
     try {
       await createLabelAction(projectId, name, color);
+      markLocalWrite();
       await fetchData();
       toast.success("Tạo nhãn thành công");
     } catch (error) {
@@ -221,6 +320,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       const createdLabel = await createLabelAction(projectId, name, color);
       await addLabelToTaskAction(taskId, createdLabel.id);
+      markLocalWrite();
       await fetchData();
       toast.success("Tạo và gán nhãn thành công");
       return createdLabel;
@@ -234,6 +334,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleDeleteLabel = async (labelId: number) => {
     try {
       await deleteLabelAction(labelId);
+      markLocalWrite();
       await fetchData();
       toast.success("Đã xóa nhãn");
     } catch (error) {
@@ -272,6 +373,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   ) => {
     try {
       await addTaskAssigneeAction(taskId, assigneeId);
+      markLocalWrite();
       await fetchData();
       toast.success("Thêm người thực hiện thành công");
     } catch (error) {
@@ -287,6 +389,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   ) => {
     try {
       await removeTaskAssigneeAction(taskId, assigneeId);
+      markLocalWrite();
       await fetchData();
       toast.success("xóa người thực hiện thành công");
     } catch (error) {
@@ -299,6 +402,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleRemoveAllAssignees = async (taskId: number) => {
     try {
       await removeAllTaskAssigneesAction(taskId);
+      markLocalWrite();
       await fetchData();
       toast.success("xóa tất cả người thực hiện thành công");
     } catch (error) {
@@ -312,6 +416,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await updateColumnAction(columnId, { title: newTitle });
       toast.success("Cập nhật cột thành công");
+      markLocalWrite();
       await fetchData();
     } catch (error) {
       console.error("Failed to update column:", error);
@@ -323,6 +428,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     try {
       await deleteColumnAction(columnId);
       toast.success("Đã xóa cột");
+      markLocalWrite();
       await fetchData();
     } catch (error) {
       console.error("Failed to delete column:", error);
@@ -365,6 +471,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
         columns={columns}
         tasks={tasks}
         boardLabels={boardLabels}
+        isDraggingRef={isDraggingRef}
+        markLocalWrite={markLocalWrite}
+        onColumnAdded={(col) => setColumns(prev => {
+          if (prev.some(c => c.id === col.id)) return prev;
+          return [...prev, col].sort((a, b) => a.position - b.position);
+        })}
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
