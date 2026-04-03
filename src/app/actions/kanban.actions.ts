@@ -251,7 +251,11 @@ export const updateTaskAction = async (
     validateString(payload.title, "Task title", 200);
   }
 
-  if (payload.description !== undefined && payload.description !== null) {
+  if (
+    payload.description !== undefined &&
+    payload.description !== null &&
+    payload.description !== ""
+  ) {
     validateString(payload.description, "Description", 2000);
   }
 
