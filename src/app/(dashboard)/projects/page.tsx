@@ -39,6 +39,12 @@ export default function ProjectsPage() {
     "Tasks" | "Timeline" | "Files" | "Team"
   >("Timeline");
   const [selectedProject, setSelectedProject] = useState<Board | null>(null);
+  const selectedProjectRef = useRef<Board | null>(null);
+
+  // Keep the ref in sync so the realtime callback always sees the latest value
+  useEffect(() => {
+    selectedProjectRef.current = selectedProject;
+  }, [selectedProject]);
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
@@ -87,8 +93,9 @@ export default function ProjectsPage() {
         (payload) => {
           const oldRow = payload.old as { user_id?: string; board_id?: number };
           if (oldRow?.user_id === userId) {
-            // If user is currently viewing the board they got kicked from
-            if (selectedProject && oldRow.board_id === selectedProject.id) {
+            // Read from ref to avoid stale closure
+            const current = selectedProjectRef.current;
+            if (current && oldRow.board_id === current.id) {
               toast.error("Bạn đã bị xóa khỏi dự án này.");
               setSelectedProject(null);
             }

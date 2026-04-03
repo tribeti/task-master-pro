@@ -52,55 +52,112 @@ export async function DELETE(
       );
     }
 
-    // ── Find all tasks of the board ──
-    const { data: columns } = await supabase
+    // ── Find all tasks of the board & unassign the removed user ──
+    const { data: columns, error: colsError } = await supabase
       .from("columns")
       .select("id")
       .eq("board_id", boardId);
 
+    if (colsError) {
+      console.error("Failed to fetch columns:", colsError);
+      return NextResponse.json(
+        { error: "Failed to remove member" },
+        { status: 500 },
+      );
+    }
+
     if (columns && columns.length > 0) {
       const columnIds = columns.map((c) => c.id);
 
-      const { data: tasks } = await supabase
+      const { data: tasks, error: tasksError } = await supabase
         .from("tasks")
         .select("id")
         .in("column_id", columnIds);
 
+      if (tasksError) {
+        console.error("Failed to fetch tasks:", tasksError);
+        return NextResponse.json(
+          { error: "Failed to remove member" },
+          { status: 500 },
+        );
+      }
+
       if (tasks && tasks.length > 0) {
         const taskIds = tasks.map((t) => t.id);
 
-        // Find which of these tasks the user is assigned to
-        const { data: affectedAssignees } = await supabase
-          .from("task_assignees")
-          .select("task_id")
-          .eq("user_id", targetUserId)
-          .in("task_id", taskIds);
+        const { data: affectedAssignees, error: assigneesError } =
+          await supabase
+            .from("task_assignees")
+            .select("task_id")
+            .eq("user_id", targetUserId)
+            .in("task_id", taskIds);
+
+        if (assigneesError) {
+          console.error("Failed to fetch assignees:", assigneesError);
+          return NextResponse.json(
+            { error: "Failed to remove member" },
+            { status: 500 },
+          );
+        }
 
         if (affectedAssignees && affectedAssignees.length > 0) {
           const affectedTaskIds = affectedAssignees.map((a) => a.task_id);
 
           // Remove the assignees
-          await supabase
+          const { error: deleteAssigneesError } = await supabase
             .from("task_assignees")
             .delete()
             .eq("user_id", targetUserId)
             .in("task_id", affectedTaskIds);
 
+          if (deleteAssigneesError) {
+            console.error(
+              "Failed to delete task assignees:",
+              deleteAssigneesError,
+            );
+            return NextResponse.json(
+              { error: "Failed to remove member" },
+              { status: 500 },
+            );
+          }
+
           // Re-sync primary assignees for affected tasks one by one
           for (const tId of affectedTaskIds) {
-            const { data: assigneeRows } = await supabase
+            const { data: assigneeRows, error: syncFetchError } = await supabase
               .from("task_assignees")
               .select("user_id, assigned_at, id")
               .eq("task_id", tId)
               .order("assigned_at", { ascending: true })
               .order("id", { ascending: true });
 
+            if (syncFetchError) {
+              console.error(
+                "Failed to fetch remaining assignees:",
+                syncFetchError,
+              );
+              return NextResponse.json(
+                { error: "Failed to remove member" },
+                { status: 500 },
+              );
+            }
+
             const primaryAssigneeId = assigneeRows?.[0]?.user_id || null;
 
-            await supabase
+            const { error: syncUpdateError } = await supabase
               .from("tasks")
               .update({ assignee_id: primaryAssigneeId })
               .eq("id", tId);
+
+            if (syncUpdateError) {
+              console.error(
+                "Failed to sync primary assignee:",
+                syncUpdateError,
+              );
+              return NextResponse.json(
+                { error: "Failed to remove member" },
+                { status: 500 },
+              );
+            }
           }
         }
       }
@@ -125,7 +182,7 @@ export async function DELETE(
   } catch (err: any) {
     console.error("DELETE board member unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal server error: " + (err.message || String(err)) },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
