@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -106,7 +112,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
   // Derive a stable string of column IDs. It only changes when columns are added or removed.
   // This solves the infinite re-subscribe loop while ensuring new columns are tracked.
   const columnIdsString = useMemo(() => {
-    return columns.map((c) => c.id).sort((a, b) => a - b).join(",");
+    return columns
+      .map((c) => c.id)
+      .sort((a, b) => a - b)
+      .join(",");
   }, [columns]);
 
   useEffect(() => {
@@ -130,25 +139,37 @@ export function TasksTab({ projectId }: { projectId: number }) {
       .channel(`kanban-realtime-board-${projectId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "columns", filter: `board_id=eq.${projectId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "columns",
+          filter: `board_id=eq.${projectId}`,
+        },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setColumns(prev => {
+            setColumns((prev) => {
               // Anti-Duplication: check if we already appended it locally
-              if (prev.some(c => c.id === payload.new.id)) return prev;
-              return [...prev, payload.new as Column].sort((a, b) => a.position - b.position);
+              if (prev.some((c) => c.id === payload.new.id)) return prev;
+              return [...prev, payload.new as Column].sort(
+                (a, b) => a.position - b.position,
+              );
             });
           } else {
             handleRealtimeEvent();
           }
-        }
+        },
       );
 
     if (columnIdsString) {
       channelBuilder.on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${columnIdsString})` },
-        () => handleRealtimeEvent()
+        {
+          event: "*",
+          schema: "public",
+          table: "tasks",
+          filter: `column_id=in.(${columnIdsString})`,
+        },
+        () => handleRealtimeEvent(),
       );
     }
 
@@ -248,7 +269,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
         editingTask ? "cập nhật nhiệm vụ thất bại" : "tạo nhiệm vụ thất bại",
       );
     } else {
-      toast.success(editingTask ? "cập nhật nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
+      toast.success(
+        editingTask
+          ? "cập nhật nhiệm vụ thành công"
+          : "tạo nhiệm vụ thành công",
+      );
     }
 
     // Realtime will auto-refresh, but for CRUD we want immediate feedback
@@ -367,10 +392,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleAddAssignee = async (
-    taskId: number,
-    assigneeId: string,
-  ) => {
+  const handleAddAssignee = async (taskId: number, assigneeId: string) => {
     try {
       await addTaskAssigneeAction(taskId, assigneeId);
       markLocalWrite();
@@ -383,10 +405,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleRemoveAssignee = async (
-    taskId: number,
-    assigneeId: string,
-  ) => {
+  const handleRemoveAssignee = async (taskId: number, assigneeId: string) => {
     try {
       await removeTaskAssigneeAction(taskId, assigneeId);
       markLocalWrite();
@@ -450,22 +469,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex-1 mt-4">
-      {/* Toolbar: Manage Labels button */}
-      <div className="flex justify-end mb-3">
-        <button
-          type="button"
-          onClick={() => setIsManageLabelsOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white text-slate-600 text-xs font-bold hover:border-[#28B8FA] hover:text-[#28B8FA] transition-all shadow-sm"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 5 4 4" />
-            <path d="M13 7 8.7 2.7a2.72 2.72 0 0 0-3.86 0L2.7 4.86A2.72 2.72 0 0 0 2.7 8.7L13 19l9-9-4.7-4.7z" />
-            <path d="m8.5 2.5 5 5" />
-            <path d="m2 22 8-8" />
-          </svg>
-          Tạo label
-        </button>
-      </div>
       <KanbanBoard
         projectId={projectId}
         columns={columns}
@@ -473,10 +476,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardLabels={boardLabels}
         isDraggingRef={isDraggingRef}
         markLocalWrite={markLocalWrite}
-        onColumnAdded={(col) => setColumns(prev => {
-          if (prev.some(c => c.id === col.id)) return prev;
-          return [...prev, col].sort((a, b) => a.position - b.position);
-        })}
+        onColumnAdded={(col) =>
+          setColumns((prev) => {
+            if (prev.some((c) => c.id === col.id)) return prev;
+            return [...prev, col].sort((a, b) => a.position - b.position);
+          })
+        }
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
