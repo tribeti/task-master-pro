@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -103,14 +103,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
   //  3. Skip fetchData within 2s of a local write (anti-echo).
   //  4. Debounce 500ms to batch rapid DB changes.
   // ══════════════════════════════════════════════════════════════
-  const columnIdsRef = useRef<string>("");
-
-  // Keep columnIdsRef in sync (no effect re-run, just ref update)
-  useEffect(() => {
-    const newColIds = columns.map((c) => c.id).sort((a, b) => a - b).join(",");
-    if (newColIds !== columnIdsRef.current) {
-      columnIdsRef.current = newColIds;
-    }
+  // Derive a stable string of column IDs. It only changes when columns are added or removed.
+  // This solves the infinite re-subscribe loop while ensuring new columns are tracked.
+  const columnIdsString = useMemo(() => {
+    return columns.map((c) => c.id).sort((a, b) => a - b).join(",");
   }, [columns]);
 
   useEffect(() => {
@@ -130,9 +126,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
       }, 500);
     };
 
-    // Build column ID filter from ref (stable, doesn't cause re-subscribe)
-    const colIds = columnIdsRef.current;
-
     const channelBuilder = supabase
       .channel(`kanban-realtime-board-${projectId}`)
       .on(
@@ -151,10 +144,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
         }
       );
 
-    if (colIds) {
+    if (columnIdsString) {
       channelBuilder.on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${colIds})` },
+        { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${columnIdsString})` },
         () => handleRealtimeEvent()
       );
     }
@@ -165,8 +158,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
       clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-    // Only re-subscribe when projectId changes (NOT on every columns change)
-  }, [projectId, fetchData]);
+    // Include columnIdsString here so it auto-re-subscribes when columns are added/removed!
+  }, [projectId, fetchData, columnIdsString]);
 
   const fetchComments = useCallback(async (taskId: number) => {
     try {

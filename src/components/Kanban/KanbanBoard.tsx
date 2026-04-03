@@ -27,7 +27,7 @@ interface KanbanBoardProps {
     columns: Column[];
     tasks: KanbanTask[];
     boardLabels?: Label[];
-    isDraggingRef: React.RefObject<boolean>;
+    isDraggingRef: React.MutableRefObject<boolean>;
     markLocalWrite: () => void;
     onColumnAdded: (column: Column) => void;
     onDataChange: () => Promise<void>;
@@ -186,7 +186,7 @@ export function KanbanBoard({
                 clearTimeout(debounceColumnTimerRef.current);
             } else {
                 pendingColumnsUpdatesRef.current++;
-                (isDraggingRef as React.MutableRefObject<boolean>).current = true;
+                isDraggingRef.current = true;
             }
 
             debounceColumnTimerRef.current = setTimeout(() => {
@@ -210,6 +210,7 @@ export function KanbanBoard({
                     return;
                 }
 
+                markLocalWrite();
                 bulkUpdateColumnsAction(changedColumns.map(c => ({
                     id: c.id,
                     position: c.position
@@ -314,7 +315,7 @@ export function KanbanBoard({
                 clearTimeout(debounceTaskTimerRef.current);
             } else {
                 pendingTasksUpdatesRef.current++;
-                (isDraggingRef as React.MutableRefObject<boolean>).current = true;
+                isDraggingRef.current = true;
             }
 
             debounceTaskTimerRef.current = setTimeout(() => {
@@ -340,6 +341,7 @@ export function KanbanBoard({
                     return;
                 }
 
+                markLocalWrite();
                 bulkUpdateTasksAction(changedTasks.map(t => ({
                     id: t.id,
                     column_id: t.column_id,
@@ -368,11 +370,12 @@ export function KanbanBoard({
                 ? Math.max(...localColumns.map((c) => c.position)) + 1
                 : 0;
         try {
+            markLocalWrite();
             const newColumn = await createColumnAction(projectId, newColumnTitle.trim(), nextPos);
             toast.success("Column added");
             setNewColumnTitle("");
             setIsAddingColumn(false);
-            
+
             // Cập nhật state trực tiếp từ kết quả trả về, KHÔNG fetch lại data
             onColumnAdded(newColumn);
         } catch {
