@@ -66,6 +66,11 @@ export function KanbanBoard({
     const pendingTasksUpdatesRef = useRef(0);
     const pendingColumnsUpdatesRef = useRef(0);
 
+    // When pending transitions from >0 to 0, we need to re-trigger the sync useEffect.
+    // Refs don't cause re-renders, so we use a state-based "signal" to force re-evaluation.
+    const [columnSyncTrigger, setColumnSyncTrigger] = useState(0);
+    const [taskSyncTrigger, setTaskSyncTrigger] = useState(0);
+
     // Sync with parent state only when actual data changes (ignore reference changes during optimistic updates)
     useEffect(() => {
         if (pendingColumnsUpdatesRef.current === 0) {
@@ -74,7 +79,7 @@ export function KanbanBoard({
                 lastSyncedColumnsRef.current = columns;
             }
         }
-    }, [columns]);
+    }, [columns, columnSyncTrigger]);
 
     useEffect(() => {
         if (pendingTasksUpdatesRef.current === 0) {
@@ -83,7 +88,7 @@ export function KanbanBoard({
                 lastSyncedTasksRef.current = tasks;
             }
         }
-    }, [tasks]);
+    }, [tasks, taskSyncTrigger]);
 
     // Add column state
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -152,17 +157,8 @@ export function KanbanBoard({
             // ── Step 3: Update UI IMMEDIATELY ──
             setLocalColumns(updatedColumns);
 
-            // ── Step 4: Dirty Checking ──
-            const oldColumnsMap = new Map(columns.map(c => [c.id, c]));
-            const changedColumns = updatedColumns.filter((newCol) => {
-                const oldCol = oldColumnsMap.get(newCol.id);
-                if (!oldCol) return false;
-                return oldCol.position !== newCol.position;
-            });
-
-            if (changedColumns.length === 0) return;
-
-            // ── Step 5: Debounce API Call & Bulk Update ──
+            // ── Step 4: Debounce API Call & Bulk Update ──
+            // Always manage the timer first to avoid orphaned timers
             if (debounceColumnTimerRef.current) {
                 clearTimeout(debounceColumnTimerRef.current);
             } else {
@@ -171,6 +167,24 @@ export function KanbanBoard({
 
             debounceColumnTimerRef.current = setTimeout(() => {
                 debounceColumnTimerRef.current = null;
+
+                // Dirty Checking: only send changes that actually differ from server state
+                const oldColumnsMap = new Map(columns.map(c => [c.id, c]));
+                const changedColumns = updatedColumns.filter((newCol) => {
+                    const oldCol = oldColumnsMap.get(newCol.id);
+                    if (!oldCol) return false;
+                    return oldCol.position !== newCol.position;
+                });
+
+                if (changedColumns.length === 0) {
+                    // Nothing actually changed vs server — just release the lock
+                    pendingColumnsUpdatesRef.current--;
+                    if (pendingColumnsUpdatesRef.current === 0) {
+                        setColumnSyncTrigger(c => c + 1);
+                    }
+                    return;
+                }
+
                 bulkUpdateColumnsAction(changedColumns.map(c => ({
                     id: c.id,
                     position: c.position
@@ -181,6 +195,9 @@ export function KanbanBoard({
                     })
                     .finally(() => {
                         pendingColumnsUpdatesRef.current--;
+                        if (pendingColumnsUpdatesRef.current === 0) {
+                            setColumnSyncTrigger(c => c + 1);
+                        }
                     });
             }, 500);
 
@@ -265,41 +282,50 @@ export function KanbanBoard({
             // ── Step 3: Update UI IMMEDIATELY ──
             setLocalTasks(newTasks);
 
-            // ── Step 4: Dirty Checking ──
-            const oldTasksMap = new Map(tasks.map(t => [t.id, t]));
-            const changedTasks = newTasks.filter((newTask) => {
-                // Compare with original props (tasks) representing the server state
-                const oldTask = oldTasksMap.get(newTask.id);
-                if (!oldTask) return false;
-                return (
-                    oldTask.column_id !== newTask.column_id ||
-                    oldTask.position !== newTask.position
-                );
-            });
-
             // ── Step 5: Debounce API Call & Bulk Update ──
+            // Always manage the timer first to avoid orphaned timers
             if (debounceTaskTimerRef.current) {
                 clearTimeout(debounceTaskTimerRef.current);
             } else {
-                // Only increment if we are starting a fresh debounce cycle
                 pendingTasksUpdatesRef.current++;
             }
 
             debounceTaskTimerRef.current = setTimeout(() => {
-                // clear timer ref so a new drag during API execution will increment pending
                 debounceTaskTimerRef.current = null;
+
+                // Dirty Checking: only send changes that actually differ from server state
+                const oldTasksMap = new Map(tasks.map(t => [t.id, t]));
+                const changedTasks = newTasks.filter((newTask) => {
+                    const oldTask = oldTasksMap.get(newTask.id);
+                    if (!oldTask) return false;
+                    return (
+                        oldTask.column_id !== newTask.column_id ||
+                        oldTask.position !== newTask.position
+                    );
+                });
+
+                if (changedTasks.length === 0) {
+                    pendingTasksUpdatesRef.current--;
+                    if (pendingTasksUpdatesRef.current === 0) {
+                        setTaskSyncTrigger(c => c + 1);
+                    }
+                    return;
+                }
+
                 bulkUpdateTasksAction(changedTasks.map(t => ({
                     id: t.id,
                     column_id: t.column_id,
                     position: t.position,
                 })))
                     .catch(() => {
-                        // Rollback to the state before this drag operation started
                         setLocalTasks(previousTasks);
                         toast.error("Lưu vị trí tác vụ thất bại, đang hoàn tác!");
                     })
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
+                        if (pendingTasksUpdatesRef.current === 0) {
+                            setTaskSyncTrigger(c => c + 1);
+                        }
                     });
             }, 500);
         }

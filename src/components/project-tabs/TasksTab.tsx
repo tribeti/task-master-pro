@@ -88,7 +88,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       }, 500);
     };
 
-    const colIds = columns.map((c) => c.id).join(",");
+    const colIds = columns.map((c) => c.id).sort((a, b) => a - b).join(",");
 
     const channelBuilder = supabase
       .channel(`kanban-realtime-board-${projectId}-${colIds}`)
