@@ -76,6 +76,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }, [fetchData]);
 
   // Set up Supabase Realtime subscription
+  // Re-subscribes when columns change so the task filter stays up-to-date
   useEffect(() => {
     const supabase = createClient();
     let debounceTimer: NodeJS.Timeout;
@@ -87,26 +88,32 @@ export function TasksTab({ projectId }: { projectId: number }) {
       }, 500);
     };
 
-    const channel = supabase
-      .channel(`kanban-realtime-board-${projectId}`)
+    const colIds = columns.map((c) => c.id).join(",");
+
+    const channelBuilder = supabase
+      .channel(`kanban-realtime-board-${projectId}-${colIds}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "columns", filter: `board_id=eq.${projectId}` },
         () => fetchDebounced()
-      )
-      .on(
+      );
+
+    // Only subscribe to tasks if we have columns (avoids empty `in.()` filter)
+    if (colIds) {
+      channelBuilder.on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        // Tasks don't have a direct board_id, we fetch and let fetchData filter/validate
+        { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${colIds})` },
         () => fetchDebounced()
-      )
-      .subscribe();
+      );
+    }
+
+    const channel = channelBuilder.subscribe();
 
     return () => {
       clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [projectId, fetchData]);
+  }, [projectId, columns, fetchData]);
 
   const fetchComments = useCallback(async (taskId: number) => {
     try {
