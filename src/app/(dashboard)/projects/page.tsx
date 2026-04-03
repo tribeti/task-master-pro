@@ -16,6 +16,8 @@ import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
 import { useDashboardUser } from "../provider";
 import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 export default function ProjectsPage() {
   const { user } = useDashboardUser();
@@ -26,6 +28,7 @@ export default function ProjectsPage() {
     joinedBoards,
     boardsLoading,
     isSubmitting,
+    fetchBoards,
     confirmDeleteProject,
     handleCreateProject,
     handleUpdateExistingProject,
@@ -65,6 +68,40 @@ export default function ProjectsPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // ── Realtime: detect when current user is removed from ANY board ──
+  // This runs always so the board list updates even on the Dashboard view.
+  useEffect(() => {
+    if (!userId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`board-members-kick-global-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "board_members",
+        },
+        (payload) => {
+          const oldRow = payload.old as { user_id?: string; board_id?: number };
+          if (oldRow?.user_id === userId) {
+            // If user is currently viewing the board they got kicked from
+            if (selectedProject && oldRow.board_id === selectedProject.id) {
+              toast.error("Bạn đã bị xóa khỏi dự án này.");
+              setSelectedProject(null);
+            }
+            fetchBoards();
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchBoards]);
 
   // --- HANDLERS ---
   const handleDeleteProject = (projectId: number, projectTitle: string) => {
@@ -169,20 +206,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-            <ProjectCard
-              key={proj.id}
-              proj={proj}
-              index={index}
-              openMenuProjectId={openMenuProjectId}
-              setOpenMenuProjectId={setOpenMenuProjectId}
-              menuRef={menuRef}
-              handleUpdateProject={handleUpdateProject}
-              handleDeleteProject={handleDeleteProject}
-              setSelectedProject={setSelectedProject}
-              currentUserId={userId}
-              memberRole="Owner"
-            />
-          ))}
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole="Owner"
+              />
+            ))}
 
         {/* Create New Project Card */}
         <div
@@ -345,7 +382,7 @@ export default function ProjectsPage() {
                 { id: "Tasks", label: "Nhiệm vụ" },
                 { id: "Timeline", label: "Lịch trình" },
                 { id: "Files", label: "Tệp tin" },
-                { id: "Team", label: "Nhóm" }
+                { id: "Team", label: "Nhóm" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -376,10 +413,11 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject ? (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
+            projectTab === "Timeline"
               ? "bg-[#1E293B] shadow-slate-400"
               : "bg-[#34D399] shadow-emerald-200"
-            }`}
+          }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
