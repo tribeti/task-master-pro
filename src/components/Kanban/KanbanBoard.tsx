@@ -27,6 +27,7 @@ interface KanbanBoardProps {
     columns: Column[];
     tasks: KanbanTask[];
     boardLabels?: Label[];
+    isDraggingRef: React.RefObject<boolean>;
     onDataChange: () => Promise<void>;
     onTaskClick: (task: KanbanTask) => void;
     onAddTask: (columnId: number) => void;
@@ -41,6 +42,7 @@ export function KanbanBoard({
     columns,
     tasks,
     boardLabels = [],
+    isDraggingRef,
     onDataChange,
     onTaskClick,
     onAddTask,
@@ -163,6 +165,7 @@ export function KanbanBoard({
                 clearTimeout(debounceColumnTimerRef.current);
             } else {
                 pendingColumnsUpdatesRef.current++;
+                (isDraggingRef as React.MutableRefObject<boolean>).current = true;
             }
 
             debounceColumnTimerRef.current = setTimeout(() => {
@@ -180,6 +183,7 @@ export function KanbanBoard({
                     // Nothing actually changed vs server — just release the lock
                     pendingColumnsUpdatesRef.current--;
                     if (pendingColumnsUpdatesRef.current === 0) {
+                        (isDraggingRef as React.MutableRefObject<boolean>).current = false;
                         setColumnSyncTrigger(c => c + 1);
                     }
                     return;
@@ -196,6 +200,7 @@ export function KanbanBoard({
                     .finally(() => {
                         pendingColumnsUpdatesRef.current--;
                         if (pendingColumnsUpdatesRef.current === 0) {
+                            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
                             setColumnSyncTrigger(c => c + 1);
                         }
                     });
@@ -288,6 +293,7 @@ export function KanbanBoard({
                 clearTimeout(debounceTaskTimerRef.current);
             } else {
                 pendingTasksUpdatesRef.current++;
+                (isDraggingRef as React.MutableRefObject<boolean>).current = true;
             }
 
             debounceTaskTimerRef.current = setTimeout(() => {
@@ -307,6 +313,7 @@ export function KanbanBoard({
                 if (changedTasks.length === 0) {
                     pendingTasksUpdatesRef.current--;
                     if (pendingTasksUpdatesRef.current === 0) {
+                        (isDraggingRef as React.MutableRefObject<boolean>).current = false;
                         setTaskSyncTrigger(c => c + 1);
                     }
                     return;
@@ -324,6 +331,7 @@ export function KanbanBoard({
                     .finally(() => {
                         pendingTasksUpdatesRef.current--;
                         if (pendingTasksUpdatesRef.current === 0) {
+                            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
                             setTaskSyncTrigger(c => c + 1);
                         }
                     });

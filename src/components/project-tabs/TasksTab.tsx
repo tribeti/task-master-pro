@@ -46,6 +46,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
 
+  // ══════════════════════════════════════════════════════════════
+  //  SHARED REF: KanbanBoard sets this to true while dragging
+  //  Realtime subscription reads it to skip fetch during drags
+  // ══════════════════════════════════════════════════════════════
+  const isDraggingRef = useRef(false);
+
   const fetchData = useCallback(async () => {
     // Only show loading spinner on initial load, not on subsequent refreshes
     if (isInitialLoad.current) {
@@ -71,39 +77,63 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   }, [projectId]);
 
+  // Initial data fetch (ONLY on mount / projectId change)
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Set up Supabase Realtime subscription
-  // Re-subscribes when columns change so the task filter stays up-to-date
+  // ══════════════════════════════════════════════════════════════
+  //  SUPABASE REALTIME — Stabilized subscription
+  //
+  //  Key design decisions:
+  //  1. Use a REF to track column IDs, not state. This prevents
+  //     the infinite re-subscribe loop (fetchData → setColumns →
+  //     columns ref changes → useEffect re-runs → new channel).
+  //  2. Skip fetchData when isDraggingRef is true (anti-race).
+  //  3. Debounce 500ms to batch rapid DB changes.
+  // ══════════════════════════════════════════════════════════════
+  const columnIdsRef = useRef<string>("");
+
+  // Keep columnIdsRef in sync (no effect re-run, just ref update)
+  useEffect(() => {
+    const newColIds = columns.map((c) => c.id).sort((a, b) => a - b).join(",");
+    if (newColIds !== columnIdsRef.current) {
+      columnIdsRef.current = newColIds;
+    }
+  }, [columns]);
+
   useEffect(() => {
     const supabase = createClient();
     let debounceTimer: NodeJS.Timeout;
 
-    const fetchDebounced = () => {
+    const handleRealtimeEvent = () => {
+      // 🛡️ Anti-Race Condition: If user is actively dragging,
+      // skip the fetch entirely. The drag's .finally() + syncTrigger
+      // will handle re-sync when the drag completes.
+      if (isDraggingRef.current) return;
+
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         fetchData();
       }, 500);
     };
 
-    const colIds = columns.map((c) => c.id).sort((a, b) => a - b).join(",");
+    // Build column ID filter from ref (stable, doesn't cause re-subscribe)
+    const colIds = columnIdsRef.current;
 
     const channelBuilder = supabase
-      .channel(`kanban-realtime-board-${projectId}-${colIds}`)
+      .channel(`kanban-realtime-board-${projectId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "columns", filter: `board_id=eq.${projectId}` },
-        () => fetchDebounced()
+        () => handleRealtimeEvent()
       );
 
-    // Only subscribe to tasks if we have columns (avoids empty `in.()` filter)
     if (colIds) {
       channelBuilder.on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tasks", filter: `column_id=in.(${colIds})` },
-        () => fetchDebounced()
+        () => handleRealtimeEvent()
       );
     }
 
@@ -113,7 +143,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
       clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [projectId, columns, fetchData]);
+    // Only re-subscribe when projectId changes (NOT on every columns change)
+  }, [projectId, fetchData]);
 
   const fetchComments = useCallback(async (taskId: number) => {
     try {
@@ -144,6 +175,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
     await fetchComments(task.id);
   };
+
+  // ══════════════════════════════════════════════════════════════
+  //  CRUD Handlers — NO manual fetchData() calls!
+  //  Realtime subscription will detect the DB change and refresh.
+  //  This eliminates the "double fetch" problem.
+  // ══════════════════════════════════════════════════════════════
 
   const handleSaveTask = async (data: {
     title: string;
@@ -199,6 +236,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       toast.success(editingTask ? "cập nhật nhiệm vụ thành công" : "tạo nhiệm vụ thành công");
     }
 
+    // Realtime will auto-refresh, but for CRUD we want immediate feedback
     await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
@@ -406,6 +444,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         columns={columns}
         tasks={tasks}
         boardLabels={boardLabels}
+        isDraggingRef={isDraggingRef}
         onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
