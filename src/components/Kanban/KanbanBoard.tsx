@@ -107,6 +107,44 @@ export function KanbanBoard({
         }
     }, [isAddingColumn]);
 
+    // Drag-to-Scroll State & Refs
+    const boardRef = useRef<HTMLDivElement | null>(null);
+    const [isDraggingBoard, setIsDraggingBoard] = useState(false);
+    const startXRef = useRef(0);
+    const scrollLeftRef = useRef(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Bỏ qua nếu đang click/drag vào Cột, Task, Button, Input
+        if (
+            target.closest('[data-rbd-drag-handle-draggable-id]') ||
+            target.closest('[data-no-dnd-board-scroll="true"]') ||
+            target.closest('button') ||
+            target.closest('input')
+        ) {
+            return;
+        }
+        setIsDraggingBoard(true);
+        startXRef.current = e.pageX - (boardRef.current?.offsetLeft || 0);
+        scrollLeftRef.current = boardRef.current?.scrollLeft || 0;
+    };
+
+    const handleMouseLeave = () => {
+        setIsDraggingBoard(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDraggingBoard(false);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDraggingBoard || !boardRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - (boardRef.current.offsetLeft || 0);
+        const walk = (x - startXRef.current) * 2; // Tốc độ cuộn x2
+        boardRef.current.scrollLeft = scrollLeftRef.current - walk;
+    };
+
     // Ref timer for debouncing updates
     const debounceTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
     const debounceColumnTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -387,7 +425,7 @@ export function KanbanBoard({
     if (!isMounted) {
         return (
             <div
-                className="h-full w-full overflow-x-auto flex gap-6 pb-2"
+                className="h-[calc(100vh-100px)] w-full overflow-x-auto flex items-start gap-6 pb-6"
                 style={{
                     backgroundImage:
                         "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
@@ -413,9 +451,17 @@ export function KanbanBoard({
             <Droppable droppableId="board" type="COLUMN" direction="horizontal">
                 {(provided: DroppableProvided) => (
                     <div
-                        ref={provided.innerRef}
+                        ref={(el) => {
+                            provided.innerRef(el);
+                            boardRef.current = el;
+                        }}
                         {...provided.droppableProps}
-                        className="h-full w-full overflow-x-auto flex gap-6 pb-2"
+                        onMouseDown={handleMouseDown}
+                        onMouseLeave={handleMouseLeave}
+                        onMouseUp={handleMouseUp}
+                        onMouseMove={handleMouseMove}
+                        className={`h-[calc(100vh-100px)] w-full overflow-x-auto flex items-start gap-6 pb-6 ${isDraggingBoard ? "cursor-grabbing select-none" : ""
+                            }`}
                         style={{
                             backgroundImage:
                                 "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
@@ -450,7 +496,7 @@ export function KanbanBoard({
 
                         {/* Add Column Card */}
                         {isAddingColumn ? (
-                            <div className="w-80 shrink-0 flex flex-col gap-3 bg-slate-50/80 p-4 rounded-2xl border-2 border-dashed border-slate-200">
+                            <div data-no-dnd-board-scroll="true" className="w-80 shrink-0 flex flex-col gap-3 bg-slate-50/80 p-4 rounded-2xl border-2 border-dashed border-slate-200">
                                 <input
                                     ref={newColInputRef}
                                     type="text"
@@ -486,6 +532,7 @@ export function KanbanBoard({
                             </div>
                         ) : (
                             <button
+                                data-no-dnd-board-scroll="true"
                                 onClick={() => setIsAddingColumn(true)}
                                 className="w-80 shrink-0 min-h-30 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 hover:border-slate-300 transition-all cursor-pointer group"
                             >

@@ -116,7 +116,8 @@ export function KanbanColumn({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 ${snapshot.isDragging
+          data-no-dnd-board-scroll="true"
+          className={`w-80 shrink-0 flex flex-col gap-2 p-2 rounded-2xl transition-shadow duration-200 h-max max-h-full ${snapshot.isDragging
             ? "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20"
             : "bg-slate-50/80"
             } ${st.border}`}
@@ -192,7 +193,7 @@ export function KanbanColumn({
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
-                className={`flex flex-col gap-3 min-h-[60px] rounded-xl p-1 transition-colors duration-200 ${droppableSnapshot.isDraggingOver
+                className={`flex flex-col gap-3 min-h-[60px] rounded-xl p-1 pr-1.5 transition-colors duration-200 flex-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [scrollbar-width:thin] ${droppableSnapshot.isDraggingOver
                   ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
                   : ""
                   }`}
