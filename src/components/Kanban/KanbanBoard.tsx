@@ -119,7 +119,7 @@ export function KanbanBoard({
             clearTimeout(dragCooldownTimerRef.current);
         }
         dragCooldownTimerRef.current = setTimeout(() => {
-            (isDraggingRef as React.MutableRefObject<boolean>).current = false;
+            isDraggingRef.current = false;
             dragCooldownTimerRef.current = null;
         }, 1500); // > Realtime debounce (500ms) + network jitter
     };
