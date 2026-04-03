@@ -368,6 +368,7 @@ export const bulkUpdateTasksAction = async (
         console.error("bulkUpdateTasksAction error:", error.message);
         throw new Error("Failed to bulk update tasks.");
     }
+    revalidatePath("/projects");
 };
 
 export const bulkUpdateColumnsAction = async (
@@ -412,6 +413,7 @@ export const bulkUpdateColumnsAction = async (
         console.error("bulkUpdateColumnsAction error:", error.message);
         throw new Error("Failed to bulk update columns.");
     }
+    revalidatePath("/projects");
 };
 
 export const deleteTaskAction = async (taskId: number) => {
