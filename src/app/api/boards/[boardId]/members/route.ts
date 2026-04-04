@@ -1,31 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-
-/**
- * Verify the current user is the owner of the given board.
- * @param supabase - Authenticated Supabase client (server-side).
- * @param userId  - The UUID of the current user.
- * @param boardId - The numeric ID of the board.
- * @returns `true` if the user owns the board, `false` otherwise.
- */
-async function verifyBoardOwnership(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  boardId: number,
-) {
-  const { data: board, error } = await supabase
-    .from("boards")
-    .select("id")
-    .eq("id", boardId)
-    .eq("owner_id", userId)
-    .single();
-
-  if (error || !board) {
-    return false;
-  }
-  return true;
-}
+import { verifyBoardOwnership } from "@/utils/verify-board-ownership";
 
 // ────────────────────────────────────────────────────────────────────────────
 // GET /api/boards/[boardId]/members
