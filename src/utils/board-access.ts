@@ -70,27 +70,20 @@ export async function verifyTaskAccess(
   userId: string,
   taskId: number,
 ) {
-  const { data: task, error: taskError } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
-    .select("column_id")
+    .select("columns(board_id)")
     .eq("id", taskId)
     .single();
 
-  if (taskError || !task) {
+  const boardId = (data as { columns: { board_id: number } | null } | null)
+    ?.columns?.board_id;
+
+  if (error || !boardId) {
     throw new Error("Access denied.");
   }
 
-  const { data: column, error: colError } = await supabase
-    .from("columns")
-    .select("board_id")
-    .eq("id", task.column_id)
-    .single();
-
-  if (colError || !column) {
-    throw new Error("Access denied.");
-  }
-
-  await verifyBoardAccess(supabase, userId, column.board_id);
+  await verifyBoardAccess(supabase, userId, boardId);
 }
 
 export async function getTaskBoardId(
