@@ -18,10 +18,11 @@ export async function verifyBoardOwnership(
     .select("id")
     .eq("id", boardId)
     .eq("owner_id", userId)
-    .single();
+    .maybeSingle();
 
-  if (error || !board) {
-    return false;
+  if (error) {
+    throw error;
   }
-  return true;
+
+  return !!board;
 }
