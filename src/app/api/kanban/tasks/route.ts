@@ -5,6 +5,7 @@ import {
   verifyBoardAccess,
   verifyAllBoardsAccess,
   validateString,
+  AuthorizationError,
 } from "@/utils/board-access";
 
 export async function POST(request: Request) {
@@ -98,9 +99,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(insertedTask);
   } catch (error: any) {
+    if (error instanceof AuthorizationError || error.name === "AuthorizationError") {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
+    console.error("POST /api/kanban/tasks error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: error.status || 500 },
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
@@ -209,6 +214,10 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    if (error instanceof AuthorizationError || error.name === "AuthorizationError") {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
+    console.error("PUT /api/kanban/tasks error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -1,5 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 
+export class AuthorizationError extends Error {
+  constructor(message: string = "Access denied.") {
+    super(message);
+    this.name = "AuthorizationError";
+  }
+}
+
 export async function verifyBoardAccess(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -22,7 +29,7 @@ export async function verifyBoardAccess(
     .maybeSingle();
 
   if (!membership) {
-    throw new Error("Access denied.");
+    throw new AuthorizationError("Access denied.");
   }
 }
 
@@ -60,7 +67,7 @@ export async function verifyAllBoardsAccess(
   // Kiểm tra từng board — throw nếu thiếu quyền
   for (const boardId of ids) {
     if (!accessibleIds.has(boardId)) {
-      throw new Error(`Access denied for board: ${boardId}`);
+      throw new AuthorizationError(`Access denied for board: ${boardId}`);
     }
   }
 }
@@ -80,7 +87,7 @@ export async function verifyTaskAccess(
     ?.columns?.board_id;
 
   if (error || !boardId) {
-    throw new Error("Access denied.");
+    throw new AuthorizationError("Access denied.");
   }
 
   await verifyBoardAccess(supabase, userId, boardId);
