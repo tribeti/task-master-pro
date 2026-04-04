@@ -78,7 +78,8 @@ export async function PUT(
 
 // ────────────────────────────────────────────────
 // DELETE /api/boards/[boardId]
-// Deletes a board. Only the board owner may delete.
+// Deletes a board atomically via an RPC function.
+// Only the board owner may delete.
 // Blocks if any tasks exist outside the "Done" column.
 // ────────────────────────────────────────────────
 export async function DELETE(
@@ -101,62 +102,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isOwner = await verifyBoardOwnership(supabase, user.id, boardId);
-    if (!isOwner) {
-      return NextResponse.json({ error: "Access denied." }, { status: 403 });
-    }
+    const { error } = await supabase.rpc("delete_board", {
+      p_board_id: boardId,
+      p_owner_id: user.id,
+    });
 
-    // Load columns for this board to determine DONE vs non-DONE locations
-    const { data: columns, error: columnsError } = await supabase
-      .from("columns")
-      .select("id,title")
-      .eq("board_id", boardId);
-
-    if (columnsError) {
-      console.error(
-        "DELETE /api/boards/[boardId] error fetching columns:",
-        columnsError.message,
-      );
-      return NextResponse.json(
-        { error: "Failed to delete project." },
-        { status: 500 },
-      );
-    }
-
-    const DONE_COLUMN_TITLE = "done";
-    const boardColumns =
-      (columns as Array<{ id: number; title: string }>) || [];
-    const { doneColumnIds, nonDoneColumnIds } = boardColumns.reduce(
-      (acc, column) => {
-        if (column.title?.trim().toLowerCase() === DONE_COLUMN_TITLE) {
-          acc.doneColumnIds.push(column.id);
-        } else {
-          acc.nonDoneColumnIds.push(column.id);
-        }
-        return acc;
-      },
-      { doneColumnIds: [] as number[], nonDoneColumnIds: [] as number[] },
-    );
-
-    // Block if any task exists in non-DONE columns
-    if (nonDoneColumnIds.length > 0) {
-      const { data: nonDoneTasks, error: tasksError } = await supabase
-        .from("tasks")
-        .select("id")
-        .in("column_id", nonDoneColumnIds);
-
-      if (tasksError) {
-        console.error(
-          "DELETE /api/boards/[boardId] error fetching tasks:",
-          tasksError.message,
-        );
+    if (error) {
+      // Map Postgres error codes from the RPC function to HTTP statuses
+      if (error.code === "P0002") {
         return NextResponse.json(
-          { error: "Failed to delete project." },
-          { status: 500 },
+          { error: "Board not found." },
+          { status: 404 },
         );
       }
-
-      if (nonDoneTasks && nonDoneTasks.length > 0) {
+      if (error.code === "P0003") {
+        return NextResponse.json(
+          { error: "Access denied." },
+          { status: 403 },
+        );
+      }
+      if (error.code === "P0004") {
         return NextResponse.json(
           {
             error:
@@ -165,55 +130,8 @@ export async function DELETE(
           { status: 409 },
         );
       }
-    }
 
-    // Clean up DONE tasks before deleting board
-    if (doneColumnIds.length > 0) {
-      const { error: deleteTasksError } = await supabase
-        .from("tasks")
-        .delete()
-        .in("column_id", doneColumnIds);
-
-      if (deleteTasksError) {
-        console.error(
-          "DELETE /api/boards/[boardId] error deleting done tasks:",
-          deleteTasksError.message,
-        );
-        return NextResponse.json(
-          { error: "Failed to delete project." },
-          { status: 500 },
-        );
-      }
-    }
-
-    // Delete columns
-    if (boardColumns.length > 0) {
-      const { error: deleteColumnsError } = await supabase
-        .from("columns")
-        .delete()
-        .eq("board_id", boardId);
-
-      if (deleteColumnsError) {
-        console.error(
-          "DELETE /api/boards/[boardId] error deleting columns:",
-          deleteColumnsError.message,
-        );
-        return NextResponse.json(
-          { error: "Failed to delete project." },
-          { status: 500 },
-        );
-      }
-    }
-
-    // Delete the board itself
-    const { error } = await supabase
-      .from("boards")
-      .delete()
-      .eq("id", boardId)
-      .eq("owner_id", user.id);
-
-    if (error) {
-      console.error("DELETE /api/boards/[boardId] error:", error.message);
+      console.error("DELETE /api/boards/[boardId] RPC error:", error.message);
       return NextResponse.json(
         { error: "Failed to delete project." },
         { status: 500 },

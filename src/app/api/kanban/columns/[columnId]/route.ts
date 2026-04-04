@@ -12,8 +12,21 @@ export async function PUT(request: Request, context: any) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Whitelist: only allow title and position to be updated
+    const updatePayload: Record<string, unknown> = {};
     if (payload.title !== undefined) {
-      payload.title = validateString(payload.title, "Column title", 100);
+      updatePayload.title = validateString(payload.title, "Column title", 100);
+    }
+    if (payload.position !== undefined) {
+      const pos = Number(payload.position);
+      if (!Number.isInteger(pos) || pos < 0) {
+        return NextResponse.json({ error: "Invalid position." }, { status: 400 });
+      }
+      updatePayload.position = pos;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
     }
 
     const { data: column, error: colErr } = await supabase
@@ -25,7 +38,7 @@ export async function PUT(request: Request, context: any) {
     if (colErr || !column) return NextResponse.json({ error: "Column not found." }, { status: 404 });
     await verifyBoardAccess(supabase, user.id, column.board_id);
 
-    const { error } = await supabase.from("columns").update(payload).eq("id", columnId);
+    const { error } = await supabase.from("columns").update(updatePayload).eq("id", columnId);
     if (error) return NextResponse.json({ error: "Không thể cập nhật cột lúc này." }, { status: 500 });
 
     return NextResponse.json({ success: true });
