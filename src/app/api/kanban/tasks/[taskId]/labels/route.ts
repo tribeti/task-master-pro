@@ -16,28 +16,27 @@ export async function POST(request: Request, context: any) {
 
     await verifyTaskAccess(supabase, user.id, taskId);
 
-    // Single query with join instead of two sequential round-trips
-    const { data: task, error: taskErr } = await supabase
-      .from("tasks")
-      .select("columns(board_id)")
-      .eq("id", taskId)
-      .single();
-    if (taskErr || !task)
+    // Gộp 2 query task + label thành 1 lần parallel fetch
+    const [taskResult, labelResult] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select("columns(board_id)")
+        .eq("id", taskId)
+        .single(),
+      supabase.from("labels").select("id, board_id").eq("id", labelId).single(),
+    ]);
+
+    if (taskResult.error || !taskResult.data)
       return NextResponse.json({ error: "Task not found." }, { status: 404 });
 
-    const column = (task as any).columns;
+    if (labelResult.error || !labelResult.data)
+      return NextResponse.json({ error: "Label not found." }, { status: 404 });
+
+    const column = (taskResult.data as any).columns;
     if (!column)
       return NextResponse.json({ error: "Column not found." }, { status: 404 });
 
-    const { data: label, error: labelErr } = await supabase
-      .from("labels")
-      .select("id, board_id")
-      .eq("id", labelId)
-      .single();
-    if (labelErr || !label)
-      return NextResponse.json({ error: "Label not found." }, { status: 404 });
-
-    if (label.board_id !== column.board_id) {
+    if (labelResult.data.board_id !== column.board_id) {
       return NextResponse.json(
         { error: "Label does not belong to this board." },
         { status: 403 },
@@ -50,6 +49,7 @@ export async function POST(request: Request, context: any) {
         onConflict: "task_id,label_id",
         ignoreDuplicates: true,
       });
+
     if (error)
       return NextResponse.json(
         { error: "Failed to add label to task." },
@@ -64,6 +64,7 @@ export async function POST(request: Request, context: any) {
     );
   }
 }
+
 export async function DELETE(request: Request, context: any) {
   const params = await context.params;
   const taskId = parseInt(params.taskId);

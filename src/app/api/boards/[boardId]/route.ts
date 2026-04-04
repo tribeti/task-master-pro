@@ -3,7 +3,6 @@ import { createClient } from "@/utils/supabase/server";
 import { validateString } from "@/utils/validate-string";
 import { verifyBoardOwnership } from "@/utils/verify-board-ownership";
 import { Board } from "@/types/project";
-import { use } from "react";
 
 // ────────────────────────────────────────────────
 // PUT /api/boards/[boardId]
