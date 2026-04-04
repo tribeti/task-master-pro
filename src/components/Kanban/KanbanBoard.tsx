@@ -10,11 +10,6 @@ import {
 } from "@hello-pangea/dnd";
 import { KanbanColumn } from "./KanbanColumn";
 import { PlusIcon } from "@/components/icons";
-import {
-  createColumnAction,
-  bulkUpdateTasksAction,
-  bulkUpdateColumnsAction,
-} from "@/app/actions/kanban.actions";
 import { toast } from "sonner";
 import { KanbanColumn as Column, KanbanTask, Label } from "@/types/project";
 
@@ -213,12 +208,19 @@ export function KanbanBoard({
         }
 
         markLocalWrite();
-        bulkUpdateColumnsAction(
-          changedColumns.map((c) => ({
-            id: c.id,
-            position: c.position,
-          })),
-        )
+        fetch("/api/kanban/columns", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            changedColumns.map((c) => ({
+              id: c.id,
+              position: c.position,
+            })),
+          ),
+        })
+          .then(async (res) => {
+            if (!res.ok) throw new Error();
+          })
           .catch(() => {
             setLocalColumns(previousColumns);
             toast.error("Lưu vị trí cột thất bại, đang hoàn tác!");
@@ -349,13 +351,20 @@ export function KanbanBoard({
         }
 
         markLocalWrite();
-        bulkUpdateTasksAction(
-          changedTasks.map((t) => ({
-            id: t.id,
-            column_id: t.column_id,
-            position: t.position,
-          })),
-        )
+        fetch("/api/kanban/tasks", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            changedTasks.map((t) => ({
+              id: t.id,
+              column_id: t.column_id,
+              position: t.position,
+            })),
+          ),
+        })
+          .then(async (res) => {
+            if (!res.ok) throw new Error();
+          })
           .catch(() => {
             setLocalTasks(previousTasks);
             toast.error("Lưu vị trí tác vụ thất bại, đang hoàn tác!");
@@ -380,11 +389,19 @@ export function KanbanBoard({
         : 0;
     try {
       markLocalWrite();
-      const newColumn = await createColumnAction(
-        projectId,
-        newColumnTitle.trim(),
-        nextPos,
-      );
+      const res = await fetch("/api/kanban/columns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          title: newColumnTitle.trim(),
+          position: nextPos,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create column");
+
+      const newColumn = await res.json();
       toast.success("Column added");
       setNewColumnTitle("");
       setIsAddingColumn(false);

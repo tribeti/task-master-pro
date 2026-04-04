@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { validateString } from "@/utils/validate-string";
 
 // ────────────────────────────────────────────────
 // GET /api/boards
@@ -74,6 +75,75 @@ export async function GET() {
     });
   } catch (err: any) {
     console.error("GET /api/boards unexpected error:", err);
+    return NextResponse.json(
+      { error: "Internal server error: " + (err.message || String(err)) },
+      { status: 500 },
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// POST /api/boards
+// Creates a new board for the authenticated user.
+// Body: { title, description?, is_private, color, tag }
+// ────────────────────────────────────────────────
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    // Validate input
+    const cleanTitle = validateString(body.title, "Project title", 100);
+    const cleanTag = validateString(body.tag, "Tag", 50);
+    const cleanColor = validateString(body.color, "Color", 20);
+    const cleanDescription = body.description
+      ? String(body.description).trim().slice(0, 1000)
+      : null;
+
+    const { data, error } = await supabase
+      .from("boards")
+      .insert([
+        {
+          title: cleanTitle,
+          description: cleanDescription,
+          is_private: !!body.is_private,
+          color: cleanColor,
+          tag: cleanTag,
+          owner_id: user.id,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("POST /api/boards error:", error.message);
+      return NextResponse.json(
+        { error: "Failed to create project." },
+        { status: 500 },
+      );
+    }
+
+    if (!data || data.length === 0) {
+      return NextResponse.json(
+        { error: "Failed to create project: No data returned." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(data[0], { status: 201 });
+  } catch (err: any) {
+    // Validation errors from validateString
+    if (err instanceof Error && !err.message.startsWith("Internal")) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    console.error("POST /api/boards unexpected error:", err);
     return NextResponse.json(
       { error: "Internal server error: " + (err.message || String(err)) },
       { status: 500 },

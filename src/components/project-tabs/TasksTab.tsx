@@ -10,22 +10,7 @@ import React, {
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
-import {
-  createTaskAction,
-  updateTaskAction,
-  deleteTaskAction,
-  addTaskAssigneeAction,
-  removeTaskAssigneeAction,
-  removeAllTaskAssigneesAction,
-  addLabelToTaskAction,
-  removeLabelFromTaskAction,
-  createLabelAction,
-  deleteLabelAction,
-  createCommentAction,
-  deleteCommentAction,
-  updateColumnAction,
-  deleteColumnAction,
-} from "@/app/actions/kanban.actions";
+
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
@@ -240,7 +225,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     if (editingTask) {
       try {
-        await updateTaskAction(editingTask.id, taskPayload);
+        const res = await fetch(`/api/kanban/tasks/${editingTask.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(taskPayload),
+        });
+        if (!res.ok) throw new Error();
       } catch (updateError) {
         console.error(updateError);
         error = true;
@@ -253,11 +243,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
           : 0;
 
       try {
-        await createTaskAction({
-          ...taskPayload,
-          assignee_id: null,
-          position: nextPosition,
+        const res = await fetch("/api/kanban/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...taskPayload,
+            assignee_id: null,
+            position: nextPosition,
+          }),
         });
+        if (!res.ok) throw new Error();
       } catch (insertError) {
         console.error(insertError);
         error = true;
@@ -288,7 +283,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     setIsSubmitting(true);
     try {
-      await deleteTaskAction(editingTask.id);
+      const res = await fetch(`/api/kanban/tasks/${editingTask.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
       toast.success("xóa nhiệm vụ thành công");
     } catch (error) {
       console.error(error);
@@ -303,7 +301,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleAddLabel = async (taskId: number, labelId: number) => {
     try {
-      await addLabelToTaskAction(taskId, labelId);
+      const res = await fetch(`/api/kanban/tasks/${taskId}/labels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ labelId }),
+      });
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("Thêm nhãn thành công");
@@ -315,7 +318,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleRemoveLabel = async (taskId: number, labelId: number) => {
     try {
-      await removeLabelFromTaskAction(taskId, labelId);
+      const res = await fetch(
+        `/api/kanban/tasks/${taskId}/labels?labelId=${labelId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("xóa nhãn thành công");
@@ -327,7 +334,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleCreateLabel = async (name: string, color: string) => {
     try {
-      await createLabelAction(projectId, name, color);
+      const res = await fetch("/api/kanban/labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boardId: projectId, name, color_hex: color }),
+      });
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("Tạo nhãn thành công");
@@ -342,23 +354,62 @@ export function TasksTab({ projectId }: { projectId: number }) {
     name: string,
     color: string,
   ) => {
-    try {
-      const createdLabel = await createLabelAction(projectId, name, color);
-      await addLabelToTaskAction(taskId, createdLabel.id);
-      markLocalWrite();
-      await fetchData();
-      toast.success("Tạo và gán nhãn thành công");
-      return createdLabel;
-    } catch (error) {
-      console.error("Failed to create and assign label:", error);
-      toast.error("Tạo và gán nhãn thất bại");
-      throw error;
+    // Step 1: Create the label
+    const createRes = await fetch("/api/kanban/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ boardId: projectId, name, color_hex: color }),
+    });
+    if (!createRes.ok) {
+      toast.error("Tạo nhãn thất bại");
+      throw new Error("Failed to create label");
     }
+    const createdLabel = await createRes.json();
+
+    // Step 2: Assign the label to the task
+    try {
+      const assignRes = await fetch(`/api/kanban/tasks/${taskId}/labels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ labelId: createdLabel.id }),
+      });
+      if (!assignRes.ok) throw new Error("Failed to assign label");
+    } catch (assignError) {
+      // Rollback: delete the orphaned label
+      console.error("Assign failed, rolling back created label:", assignError);
+      try {
+        const rollbackRes = await fetch(
+          `/api/kanban/labels/${createdLabel.id}`,
+          { method: "DELETE" },
+        );
+        if (!rollbackRes.ok) {
+          console.error(
+            "Rollback DELETE failed with status",
+            rollbackRes.status,
+          );
+          toast.error("Gán nhãn thất bại và không thể xóa nhãn thừa");
+        }
+      } catch (cleanupError) {
+        console.error("Rollback request failed:", cleanupError);
+        toast.error("Gán nhãn thất bại và không thể xóa nhãn thừa");
+      }
+      toast.error("Gán nhãn thất bại");
+      throw assignError;
+    }
+
+    // Both steps succeeded
+    markLocalWrite();
+    await fetchData();
+    toast.success("Tạo và gán nhãn thành công");
+    return createdLabel;
   };
 
   const handleDeleteLabel = async (labelId: number) => {
     try {
-      await deleteLabelAction(labelId);
+      const res = await fetch(`/api/kanban/labels/${labelId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("Đã xóa nhãn");
@@ -370,7 +421,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleAddComment = async (taskId: number, content: string) => {
     try {
-      await createCommentAction(taskId, content);
+      const res = await fetch(`/api/kanban/tasks/${taskId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error();
       await fetchComments(taskId);
       toast.success("Thêm bình luận thành công");
     } catch (error) {
@@ -383,7 +439,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
     if (!editingTask?.id) return;
 
     try {
-      await deleteCommentAction(commentId);
+      const res = await fetch(`/api/kanban/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
       await fetchComments(editingTask.id);
       toast.success("Xóa bình luận thành công");
     } catch (error) {
@@ -394,7 +453,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleAddAssignee = async (taskId: number, assigneeId: string) => {
     try {
-      await addTaskAssigneeAction(taskId, assigneeId);
+      const res = await fetch(`/api/kanban/tasks/${taskId}/assignees`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: assigneeId }),
+      });
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("Thêm người thực hiện thành công");
@@ -407,7 +471,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleRemoveAssignee = async (taskId: number, assigneeId: string) => {
     try {
-      await removeTaskAssigneeAction(taskId, assigneeId);
+      const res = await fetch(
+        `/api/kanban/tasks/${taskId}/assignees?userId=${assigneeId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("xóa người thực hiện thành công");
@@ -420,7 +488,11 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleRemoveAllAssignees = async (taskId: number) => {
     try {
-      await removeAllTaskAssigneesAction(taskId);
+      const res = await fetch(
+        `/api/kanban/tasks/${taskId}/assignees?removeAll=true`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
       markLocalWrite();
       await fetchData();
       toast.success("xóa tất cả người thực hiện thành công");
@@ -433,7 +505,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
     try {
-      await updateColumnAction(columnId, { title: newTitle });
+      const res = await fetch(`/api/kanban/columns/${columnId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (!res.ok) throw new Error();
       toast.success("Cập nhật cột thành công");
       markLocalWrite();
       await fetchData();
@@ -445,7 +522,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleDeleteColumn = async (columnId: number) => {
     try {
-      await deleteColumnAction(columnId);
+      const res = await fetch(`/api/kanban/columns/${columnId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
       toast.success("Đã xóa cột");
       markLocalWrite();
       await fetchData();
