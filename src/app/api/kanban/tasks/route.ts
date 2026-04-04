@@ -27,7 +27,10 @@ export async function POST(request: Request) {
 
     const columnId = Number(payload.column_id);
     if (!Number.isInteger(columnId) || columnId <= 0) {
-      return NextResponse.json({ error: "Invalid column_id." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid column_id." },
+        { status: 400 },
+      );
     }
 
     const position = Number(payload.position);
@@ -104,8 +107,30 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const updates = await request.json();
-    if (!updates || !updates.length) return NextResponse.json([]);
+    const rawUpdates = await request.json();
+    if (!Array.isArray(rawUpdates) || rawUpdates.length === 0)
+      return NextResponse.json([]);
+
+    const updates = [];
+    for (const update of rawUpdates) {
+      if (!update || typeof update !== "object") {
+        return NextResponse.json({ error: "Bad Request" }, { status: 400 });
+      }
+
+      const id = Number(update.id);
+      const column_id = Number(update.column_id);
+      const position = Number(update.position);
+
+      if (
+        !Number.isInteger(id) ||
+        !Number.isInteger(column_id) ||
+        !Number.isInteger(position)
+      ) {
+        return NextResponse.json({ error: "Bad Request" }, { status: 400 });
+      }
+
+      updates.push({ id, column_id, position });
+    }
 
     const supabase = await createClient();
     const {
@@ -185,7 +210,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
