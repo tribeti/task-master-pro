@@ -19,24 +19,54 @@ export async function POST(request: Request) {
 
     const payload = await request.json();
 
-    validateString(payload.title, "Task title", 200);
-    if (payload.description) {
-      validateString(payload.description, "Description", 2000);
+    // Build a sanitized whitelist — never pass raw payload to insert
+    const title = validateString(payload.title, "Task title", 200);
+    const description = payload.description
+      ? validateString(payload.description, "Description", 2000)
+      : null;
+
+    const columnId = Number(payload.column_id);
+    if (!Number.isInteger(columnId) || columnId <= 0) {
+      return NextResponse.json({ error: "Invalid column_id." }, { status: 400 });
+    }
+
+    const position = Number(payload.position);
+    if (!Number.isInteger(position) || position < 0) {
+      return NextResponse.json({ error: "Invalid position." }, { status: 400 });
+    }
+
+    const allowedPriorities = ["Low", "Medium", "High"];
+    const priority = allowedPriorities.includes(payload.priority)
+      ? payload.priority
+      : null;
+
+    const deadline = payload.deadline ? new Date(payload.deadline) : null;
+    if (deadline !== null && isNaN(deadline.getTime())) {
+      return NextResponse.json({ error: "Invalid deadline." }, { status: 400 });
     }
 
     const { data: column, error: colErr } = await supabase
       .from("columns")
       .select("board_id")
-      .eq("id", payload.column_id)
+      .eq("id", columnId)
       .single();
 
     if (colErr || !column)
       return NextResponse.json({ error: "Access denied." }, { status: 403 });
     await verifyBoardAccess(supabase, user.id, column.board_id);
 
+    const sanitizedTask = {
+      title,
+      description,
+      column_id: columnId,
+      position,
+      priority,
+      deadline: deadline ? deadline.toISOString() : null,
+    };
+
     const { data: insertedTask, error } = await supabase
       .from("tasks")
-      .insert([payload])
+      .insert([sanitizedTask])
       .select("id")
       .single();
 
@@ -55,7 +85,7 @@ export async function POST(request: Request) {
           user_id: user.id,
           project_id: column.board_id,
           task_id: insertedTask.id,
-          content: `Tạo công việc thành công: ${payload.title}`,
+          content: `Tạo công việc thành công: ${title}`,
           is_read: false,
         },
       ]);
