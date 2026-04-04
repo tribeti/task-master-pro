@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { validateString } from "@/utils/validate-string";
 import { verifyBoardOwnership } from "@/utils/verify-board-ownership";
 import { Board } from "@/types/project";
+import { use } from "react";
 
 // ────────────────────────────────────────────────
 // PUT /api/boards/[boardId]
@@ -53,7 +54,8 @@ export async function PUT(
     const { error } = await supabase
       .from("boards")
       .update(updates)
-      .eq("id", boardId);
+      .eq("id", boardId)
+      .eq("owner_id", user.id);
 
     if (error) {
       console.error("PUT /api/boards/[boardId] error:", error.message);
@@ -116,10 +118,7 @@ export async function DELETE(
         );
       }
       if (error.code === "P0003") {
-        return NextResponse.json(
-          { error: "Access denied." },
-          { status: 403 },
-        );
+        return NextResponse.json({ error: "Access denied." }, { status: 403 });
       }
       if (error.code === "P0004") {
         return NextResponse.json(
