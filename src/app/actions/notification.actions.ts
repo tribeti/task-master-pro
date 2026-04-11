@@ -83,7 +83,7 @@ export async function triggerDeadlineNotifications() {
             {
               user_id: task.assignee_id,
               type: "deadline",
-              content: `Sắp đến hạn: Nhiệm vụ "${task.title}" (Cập nhật: ${urgencyStr})`,
+              content: `Sắp đến hạn: Nhiệm vụ "${task.title}" (Deadline: ${urgencyStr})`,
               is_read: false,
               task_id: task.id,
               project_id: projectId,
