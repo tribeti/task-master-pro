@@ -24,6 +24,7 @@ interface KanbanTaskProps {
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   onClick: () => void;
+  isDragDisabled?: boolean;
 }
 
 const PRIORITY_STYLES: Record<string, { text: string; bg: string }> = {
@@ -46,6 +47,7 @@ export function KanbanTask({
   onAddLabel,
   onRemoveLabel,
   onClick,
+  isDragDisabled = false,
 }: KanbanTaskProps) {
   const pColor = PRIORITY_STYLES[priority] || {
     text: "text-slate-500",
@@ -106,7 +108,7 @@ export function KanbanTask({
   };
 
   return (
-    <Draggable draggableId={`task-${id}`} index={index}>
+    <Draggable draggableId={`task-${id}`} index={index} isDragDisabled={isDragDisabled}>
       {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
         <div
           ref={provided.innerRef}

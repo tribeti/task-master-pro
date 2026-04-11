@@ -534,7 +534,7 @@ export function KanbanBoard({
       )}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="board" type="COLUMN" direction="horizontal">
+        <Droppable droppableId="board" type="COLUMN" direction="horizontal" isDropDisabled={!!filterUserId}>
           {(provided: DroppableProvided) => (
             <div
               ref={provided.innerRef}
@@ -564,6 +564,7 @@ export function KanbanBoard({
                     boardLabels={boardLabels}
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
+                    isDragDisabled={!!filterUserId}
                   />
                 );
               })}

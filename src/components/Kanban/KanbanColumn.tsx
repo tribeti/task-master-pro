@@ -27,6 +27,7 @@ interface KanbanColumnProps {
   boardLabels?: Label[];
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
+  isDragDisabled?: boolean;
 }
 
 // All styles are visually distinct (no "plain/colorless" entry).
@@ -81,6 +82,7 @@ export function KanbanColumn({
   boardLabels = [],
   onAddLabel,
   onRemoveLabel,
+  isDragDisabled = false,
 }: KanbanColumnProps) {
   // Prime multiplier spreads consecutive IDs across different colors.
   // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
@@ -218,7 +220,7 @@ export function KanbanColumn({
             </div>
           </div>{" "}
           {/* Tasks Droppable Zone */}
-          <Droppable droppableId={`column-${column.id}`} type="TASK">
+          <Droppable droppableId={`column-${column.id}`} type="TASK" isDropDisabled={isDragDisabled}>
             {(
               droppableProvided: DroppableProvided,
               droppableSnapshot: DroppableStateSnapshot,
@@ -253,6 +255,7 @@ export function KanbanColumn({
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
                     onClick={() => onTaskClick(task)}
+                    isDragDisabled={isDragDisabled}
                   />
                 ))}
                 {droppableProvided.placeholder}
