@@ -121,7 +121,9 @@ export default function DashboardSidebar({ user }: { user: User }) {
                     <div className="relative">
                         <BellIcon />
                         {unreadCount > 0 && (
-                            <div className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-[#FF5722] rounded-full"></div>
+                            <div className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-[#FF5722] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </div>
                         )}
                     </div>
                     Thông báo

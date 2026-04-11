@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PlusIcon, UserIcon, ChatIcon } from "@/components/icons";
 import {
   TasksTab,
@@ -18,8 +18,48 @@ import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ProjectUrlHandler({ 
+  ownedBoards, 
+  joinedBoards, 
+  boardsLoading, 
+  selectedProjectId, 
+  currentTab, 
+  onProjectFound 
+}: {
+  ownedBoards: Board[];
+  joinedBoards: Board[];
+  boardsLoading: boolean;
+  selectedProjectId?: number;
+  currentTab: string;
+  onProjectFound: (project: Board, tab: string | null) => void;
+}) {
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get("projectId");
+  const urlTab = searchParams.get("tab");
+
+  useEffect(() => {
+    if (!boardsLoading && urlProjectId) {
+      const id = parseInt(urlProjectId, 10);
+      const isNewProject = selectedProjectId !== id;
+      const isNewTab = urlTab && currentTab !== urlTab;
+
+      if (isNewProject || isNewTab) {
+        const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
+        if (found) {
+          onProjectFound(found, urlTab);
+        }
+      }
+    }
+  }, [boardsLoading, urlProjectId, urlTab, ownedBoards, joinedBoards, selectedProjectId, currentTab, onProjectFound]);
+
+  return null;
+}
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { user } = useDashboardUser();
   const userId = user?.id;
 
@@ -45,6 +85,18 @@ export default function ProjectsPage() {
   useEffect(() => {
     selectedProjectRef.current = selectedProject;
   }, [selectedProject]);
+
+  const handleCloseProject = useCallback(() => {
+    setSelectedProject(null);
+    router.replace("/projects", { scroll: false });
+  }, [router]);
+
+  const handleProjectFoundFromUrl = useCallback((foundProject: Board, tab: string | null) => {
+    setSelectedProject(foundProject);
+    if (tab === "Tasks" || tab === "Timeline" || tab === "Files" || tab === "Team") {
+      setProjectTab(tab as any);
+    }
+  }, []);
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
@@ -97,7 +149,7 @@ export default function ProjectsPage() {
             const current = selectedProjectRef.current;
             if (current && oldRow.board_id === current.id) {
               toast.error("Bạn đã bị xóa khỏi dự án này.");
-              setSelectedProject(null);
+              handleCloseProject();
             }
             fetchBoards();
           }
@@ -122,7 +174,7 @@ export default function ProjectsPage() {
     if (success) {
       setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
       if (selectedProject?.id === deleteConfirm.projectId) {
-        setSelectedProject(null);
+        handleCloseProject();
       }
     }
   };
@@ -283,6 +335,16 @@ export default function ProjectsPage() {
         selectedProject ? "flex flex-col h-screen overflow-hidden" : ""
       }
     >
+      <Suspense fallback={null}>
+        <ProjectUrlHandler 
+          ownedBoards={ownedBoards}
+          joinedBoards={joinedBoards}
+          boardsLoading={boardsLoading}
+          selectedProjectId={selectedProject?.id}
+          currentTab={projectTab}
+          onProjectFound={handleProjectFoundFromUrl}
+        />
+      </Suspense>
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
@@ -293,7 +355,7 @@ export default function ProjectsPage() {
               </p>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
-                  onClick={() => setSelectedProject(null)}
+                  onClick={handleCloseProject}
                   className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
                 >
                   <svg

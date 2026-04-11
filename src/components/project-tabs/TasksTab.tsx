@@ -6,7 +6,9 @@ import React, {
   useCallback,
   useRef,
   useMemo,
+  Suspense,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -20,6 +22,25 @@ import {
   KanbanColumn as Column,
   KanbanTask as Task,
 } from "@/types/project";
+
+function TaskUrlHandler({ tasks, selectedTaskId, onTaskFound }: { tasks: Task[], selectedTaskId?: number, onTaskFound: (task: Task) => void }) {
+  const searchParams = useSearchParams();
+  const urlTaskId = searchParams.get("taskId");
+
+  useEffect(() => {
+    if (urlTaskId && tasks.length > 0) {
+      const tid = parseInt(urlTaskId, 10);
+      if (selectedTaskId !== tid) {
+        const taskToOpen = tasks.find((t) => t.id === tid);
+        if (taskToOpen) {
+          onTaskFound(taskToOpen);
+        }
+      }
+    }
+  }, [urlTaskId, tasks, selectedTaskId, onTaskFound]);
+
+  return null;
+}
 
 export function TasksTab({ projectId }: { projectId: number }) {
   const { user } = useDashboardUser();
@@ -196,6 +217,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
     await fetchComments(task.id);
   };
+
+  const handleTaskFoundFromUrl = useCallback((taskToOpen: Task) => {
+    // Avoid re-triggering if the modal is already open for this task
+    if (editingTask?.id !== taskToOpen.id) {
+       openEditModal(taskToOpen);
+    }
+  }, [editingTask?.id, openEditModal]);
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
@@ -549,6 +577,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex-1 mt-4">
+      <Suspense fallback={null}>
+        <TaskUrlHandler 
+          tasks={tasks}
+          selectedTaskId={editingTask?.id}
+          onTaskFound={handleTaskFoundFromUrl}
+        />
+      </Suspense>
       <KanbanBoard
         projectId={projectId}
         columns={columns}

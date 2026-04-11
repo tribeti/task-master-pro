@@ -7,9 +7,11 @@ import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
 import { Notification } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { formatRelativeTime } from "@/utils/time";
+import { useRouter } from "next/navigation";
 
 export default function NotificationsPage() {
   const { user } = useDashboardUser();
+  const router = useRouter();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } =
     useNotifications(user?.id);
 
@@ -108,7 +110,7 @@ export default function NotificationsPage() {
             let projectSubject = projObj?.title
               ? `DỰ ÁN: ${projObj.title}`
               : "CẬP NHẬT DỰ ÁN";
-            let taskTitle = taskObj?.title || notification.content;
+            let taskTitle = notification.content || taskObj?.title;
             let acceptUrl = "";
 
             if (notification.type === "Invite") {
@@ -135,6 +137,11 @@ export default function NotificationsPage() {
                 key={notification.id}
                 onClick={() => {
                   if (!isRead) markAsRead(notification.id);
+                  const pid = notification.project_id || projObj?.id;
+                  const tid = notification.task_id || taskObj?.id;
+                  if (pid && tid) {
+                    router.push(`/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`);
+                  }
                 }}
                 className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
                   isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr

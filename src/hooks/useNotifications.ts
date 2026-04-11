@@ -27,7 +27,7 @@ export function useNotifications(userId: string | undefined) {
                 .order("created_at", { ascending: false });
 
             if (error) {
-                console.error("Error fetching notifications:", error);
+                console.error("Error fetching notifications:", error.message, error);
             } else if (data) {
                 setNotifications(data as Notification[]);
                 setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
