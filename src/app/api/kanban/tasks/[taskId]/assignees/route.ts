@@ -57,11 +57,13 @@ export async function POST(request: Request, context: any) {
     try {
       const adminSupabase = createAdminClient();
 
-      const { data: taskData } = await adminSupabase.from("tasks").select("title").eq("id", taskId).single();
-      const { data: assigner } = await adminSupabase.from("users").select("display_name").eq("id", user.id).single();
+      const [taskResponse, assignerResponse] = await Promise.all([
+        adminSupabase.from("tasks").select("title").eq("id", taskId).single(),
+        adminSupabase.from("users").select("display_name").eq("id", user.id).single()
+      ]);
 
-      const taskTitle = taskData?.title || "một nhiệm vụ";
-      const assignerName = assigner?.display_name || "Ai đó";
+      const taskTitle = taskResponse.data?.title || "một nhiệm vụ";
+      const assignerName = assignerResponse.data?.display_name || "Ai đó";
 
       const { error: insertErr } = await adminSupabase.from("notifications").insert([{
         user_id: assigneeId,
@@ -74,20 +76,10 @@ export async function POST(request: Request, context: any) {
 
       if (insertErr) {
         console.error("Supabase insert error (Notification):", insertErr);
-        // Only log in backend; send a generic error to the client to avoid info leakage
-        return NextResponse.json(
-          { error: "Không thể tạo thông báo do lỗi hệ thống." },
-          { status: 500 }
-        );
       }
     } catch (e: any) {
       console.error("Failed to insert notification exception:", e);
-      return NextResponse.json(
-        { error: "Đã xảy ra lỗi khi tạo thông báo." },
-        { status: 500 }
-      );
     }
-
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json(

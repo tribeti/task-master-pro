@@ -18,6 +18,45 @@ import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ProjectUrlHandler({ 
+  ownedBoards, 
+  joinedBoards, 
+  boardsLoading, 
+  selectedProjectId, 
+  currentTab, 
+  onProjectFound 
+}: {
+  ownedBoards: Board[];
+  joinedBoards: Board[];
+  boardsLoading: boolean;
+  selectedProjectId?: number;
+  currentTab: string;
+  onProjectFound: (project: Board, tab: string | null) => void;
+}) {
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get("projectId");
+  const urlTab = searchParams.get("tab");
+
+  useEffect(() => {
+    if (!boardsLoading && urlProjectId) {
+      const id = parseInt(urlProjectId, 10);
+      const isNewProject = selectedProjectId !== id;
+      const isNewTab = urlTab && currentTab !== urlTab;
+
+      if (isNewProject || isNewTab) {
+        const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
+        if (found) {
+          onProjectFound(found, urlTab);
+        }
+      }
+    }
+  }, [boardsLoading, urlProjectId, urlTab, ownedBoards, joinedBoards, selectedProjectId, currentTab, onProjectFound]);
+
+  return null;
+}
 
 export default function ProjectsPage() {
   const { user } = useDashboardUser();
@@ -46,29 +85,12 @@ export default function ProjectsPage() {
     selectedProjectRef.current = selectedProject;
   }, [selectedProject]);
 
-  // Read URL manually (bypassing next/navigation useSearchParams to avoid Suspense errors)
-  useEffect(() => {
-    if (typeof window !== "undefined" && !boardsLoading) {
-      const urlParams = new URL(window.location.href).searchParams;
-      const urlProjectId = urlParams.get("projectId");
-      if (urlProjectId && !selectedProject) {
-        const id = parseInt(urlProjectId, 10);
-        const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
-        if (found) {
-          setSelectedProject(found);
-          const tabParam = urlParams.get("tab");
-          if (
-            tabParam === "Tasks" ||
-            tabParam === "Timeline" ||
-            tabParam === "Files" ||
-            tabParam === "Team"
-          ) {
-            setProjectTab(tabParam as any);
-          }
-        }
-      }
+  const handleProjectFoundFromUrl = useCallback((foundProject: Board, tab: string | null) => {
+    setSelectedProject(foundProject);
+    if (tab === "Tasks" || tab === "Timeline" || tab === "Files" || tab === "Team") {
+      setProjectTab(tab as any);
     }
-  }, [boardsLoading, ownedBoards, joinedBoards, selectedProject]);
+  }, []);
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
@@ -307,6 +329,16 @@ export default function ProjectsPage() {
         selectedProject ? "flex flex-col h-screen overflow-hidden" : ""
       }
     >
+      <Suspense fallback={null}>
+        <ProjectUrlHandler 
+          ownedBoards={ownedBoards}
+          joinedBoards={joinedBoards}
+          boardsLoading={boardsLoading}
+          selectedProjectId={selectedProject?.id}
+          currentTab={projectTab}
+          onProjectFound={handleProjectFoundFromUrl}
+        />
+      </Suspense>
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (

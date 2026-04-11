@@ -6,7 +6,9 @@ import React, {
   useCallback,
   useRef,
   useMemo,
+  Suspense,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -20,6 +22,25 @@ import {
   KanbanColumn as Column,
   KanbanTask as Task,
 } from "@/types/project";
+
+function TaskUrlHandler({ tasks, selectedTaskId, onTaskFound }: { tasks: Task[], selectedTaskId?: number, onTaskFound: (task: Task) => void }) {
+  const searchParams = useSearchParams();
+  const urlTaskId = searchParams.get("taskId");
+
+  useEffect(() => {
+    if (urlTaskId && tasks.length > 0) {
+      const tid = parseInt(urlTaskId, 10);
+      if (selectedTaskId !== tid) {
+        const taskToOpen = tasks.find((t) => t.id === tid);
+        if (taskToOpen) {
+          onTaskFound(taskToOpen);
+        }
+      }
+    }
+  }, [urlTaskId, tasks, selectedTaskId, onTaskFound]);
+
+  return null;
+}
 
 export function TasksTab({ projectId }: { projectId: number }) {
   const { user } = useDashboardUser();
@@ -42,7 +63,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
   //  Realtime subscription reads it to skip fetch during drags
   // ══════════════════════════════════════════════════════════════
   const isDraggingRef = useRef(false);
-  const hasHandledUrlTaskRef = useRef(false);
 
   // Tracks the timestamp of our most recent local write operation.
   // Realtime events arriving within 2s of a local write are suppressed
@@ -198,22 +218,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
     await fetchComments(task.id);
   };
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && !isLoading && tasks.length > 0 && !hasHandledUrlTaskRef.current) {
-      const urlParams = new URL(window.location.href).searchParams;
-      const urlTaskId = urlParams.get("taskId");
-      if (urlTaskId) {
-        const tid = parseInt(urlTaskId, 10);
-        const taskToOpen = tasks.find((t) => t.id === tid);
-        if (taskToOpen) {
-          // Add a small delay to avoid state batching conflict if needed, 
-          // but immediately executing openEditModal is usually fine.
-          openEditModal(taskToOpen);
-        }
-      }
-      hasHandledUrlTaskRef.current = true;
+  const handleTaskFoundFromUrl = useCallback((taskToOpen: Task) => {
+    // Avoid re-triggering if the modal is already open for this task
+    if (editingTask?.id !== taskToOpen.id) {
+       openEditModal(taskToOpen);
     }
-  }, [isLoading, tasks]);
+  }, [editingTask?.id, openEditModal]);
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
@@ -567,6 +577,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex-1 mt-4">
+      <Suspense fallback={null}>
+        <TaskUrlHandler 
+          tasks={tasks}
+          selectedTaskId={editingTask?.id}
+          onTaskFound={handleTaskFoundFromUrl}
+        />
+      </Suspense>
       <KanbanBoard
         projectId={projectId}
         columns={columns}
