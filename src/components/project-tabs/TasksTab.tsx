@@ -19,6 +19,7 @@ import {
   Comment,
   KanbanColumn as Column,
   KanbanTask as Task,
+  BoardMember,
 } from "@/types/project";
 
 export function TasksTab({ projectId }: { projectId: number }) {
@@ -29,6 +30,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [boardLabels, setBoardLabels] = useState<Label[]>([]);
   const [taskComments, setTaskComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -76,6 +79,22 @@ export function TasksTab({ projectId }: { projectId: number }) {
       setIsLoading(false);
       isInitialLoad.current = false;
     }
+  }, [projectId]);
+
+  // Fetch board members for filter bar
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const res = await fetch(`/api/boards/${projectId}/members`);
+        if (res.ok) {
+          const data = await res.json();
+          setBoardMembers(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch board members:", err);
+      }
+    };
+    fetchMembers();
   }, [projectId]);
 
   // Initial data fetch (ONLY on mount / projectId change)
@@ -554,6 +573,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
         columns={columns}
         tasks={tasks}
         boardLabels={boardLabels}
+        boardMembers={boardMembers}
+        filterUserId={filterUserId}
+        onFilterChange={setFilterUserId}
+        currentUserId={user?.id || ""}
         isDraggingRef={isDraggingRef}
         markLocalWrite={markLocalWrite}
         onColumnAdded={(col) =>
