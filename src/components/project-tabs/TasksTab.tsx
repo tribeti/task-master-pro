@@ -42,6 +42,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   //  Realtime subscription reads it to skip fetch during drags
   // ══════════════════════════════════════════════════════════════
   const isDraggingRef = useRef(false);
+  const hasHandledUrlTaskRef = useRef(false);
 
   // Tracks the timestamp of our most recent local write operation.
   // Realtime events arriving within 2s of a local write are suppressed
@@ -196,6 +197,23 @@ export function TasksTab({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
     await fetchComments(task.id);
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isLoading && tasks.length > 0 && !hasHandledUrlTaskRef.current) {
+      const urlParams = new URL(window.location.href).searchParams;
+      const urlTaskId = urlParams.get("taskId");
+      if (urlTaskId) {
+        const tid = parseInt(urlTaskId, 10);
+        const taskToOpen = tasks.find((t) => t.id === tid);
+        if (taskToOpen) {
+          // Add a small delay to avoid state batching conflict if needed, 
+          // but immediately executing openEditModal is usually fine.
+          openEditModal(taskToOpen);
+        }
+      }
+      hasHandledUrlTaskRef.current = true;
+    }
+  }, [isLoading, tasks]);
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers

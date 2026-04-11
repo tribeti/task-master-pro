@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import {
   verifyTaskAccess,
   getTaskBoardId,
@@ -51,6 +52,42 @@ export async function POST(request: Request, context: any) {
       );
 
     await syncPrimaryAssignee(supabase, taskId);
+
+    // Thêm logic gửi Notification
+    try {
+      const adminSupabase = createAdminClient();
+
+      const { data: taskData } = await adminSupabase.from("tasks").select("title").eq("id", taskId).single();
+      const { data: assigner } = await adminSupabase.from("users").select("display_name").eq("id", user.id).single();
+
+      const taskTitle = taskData?.title || "một nhiệm vụ";
+      const assignerName = assigner?.display_name || "Ai đó";
+
+      const { error: insertErr } = await adminSupabase.from("notifications").insert([{
+        user_id: assigneeId,
+        project_id: boardId,
+        task_id: taskId,
+        type: "System", // Added to satisfy NOT NULL constraint
+        content: `${assignerName} đã giao cho bạn nhiệm vụ: ${taskTitle}`,
+        is_read: false
+      }]);
+
+      if (insertErr) {
+        console.error("Supabase insert error (Notification):", insertErr);
+        // Only log in backend; send a generic error to the client to avoid info leakage
+        return NextResponse.json(
+          { error: "Không thể tạo thông báo do lỗi hệ thống." },
+          { status: 500 }
+        );
+      }
+    } catch (e: any) {
+      console.error("Failed to insert notification exception:", e);
+      return NextResponse.json(
+        { error: "Đã xảy ra lỗi khi tạo thông báo." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json(

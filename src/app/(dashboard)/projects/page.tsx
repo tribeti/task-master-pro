@@ -46,6 +46,30 @@ export default function ProjectsPage() {
     selectedProjectRef.current = selectedProject;
   }, [selectedProject]);
 
+  // Read URL manually (bypassing next/navigation useSearchParams to avoid Suspense errors)
+  useEffect(() => {
+    if (typeof window !== "undefined" && !boardsLoading) {
+      const urlParams = new URL(window.location.href).searchParams;
+      const urlProjectId = urlParams.get("projectId");
+      if (urlProjectId && !selectedProject) {
+        const id = parseInt(urlProjectId, 10);
+        const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
+        if (found) {
+          setSelectedProject(found);
+          const tabParam = urlParams.get("tab");
+          if (
+            tabParam === "Tasks" ||
+            tabParam === "Timeline" ||
+            tabParam === "Files" ||
+            tabParam === "Team"
+          ) {
+            setProjectTab(tabParam as any);
+          }
+        }
+      }
+    }
+  }, [boardsLoading, ownedBoards, joinedBoards, selectedProject]);
+
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
