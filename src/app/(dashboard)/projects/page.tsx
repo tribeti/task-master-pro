@@ -18,7 +18,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 function ProjectUrlHandler({ 
@@ -59,6 +59,7 @@ function ProjectUrlHandler({
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { user } = useDashboardUser();
   const userId = user?.id;
 
@@ -84,6 +85,11 @@ export default function ProjectsPage() {
   useEffect(() => {
     selectedProjectRef.current = selectedProject;
   }, [selectedProject]);
+
+  const handleCloseProject = useCallback(() => {
+    setSelectedProject(null);
+    router.replace("/projects", { scroll: false });
+  }, [router]);
 
   const handleProjectFoundFromUrl = useCallback((foundProject: Board, tab: string | null) => {
     setSelectedProject(foundProject);
@@ -143,7 +149,7 @@ export default function ProjectsPage() {
             const current = selectedProjectRef.current;
             if (current && oldRow.board_id === current.id) {
               toast.error("Bạn đã bị xóa khỏi dự án này.");
-              setSelectedProject(null);
+              handleCloseProject();
             }
             fetchBoards();
           }
@@ -168,7 +174,7 @@ export default function ProjectsPage() {
     if (success) {
       setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
       if (selectedProject?.id === deleteConfirm.projectId) {
-        setSelectedProject(null);
+        handleCloseProject();
       }
     }
   };
@@ -349,7 +355,7 @@ export default function ProjectsPage() {
               </p>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
-                  onClick={() => setSelectedProject(null)}
+                  onClick={handleCloseProject}
                   className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
                 >
                   <svg
