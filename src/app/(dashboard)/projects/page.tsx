@@ -51,8 +51,8 @@ export default function ProjectsPage() {
     if (typeof window !== "undefined" && !boardsLoading) {
       const urlParams = new URL(window.location.href).searchParams;
       const urlProjectId = urlParams.get("projectId");
-      if (urlProjectId && !selectedProject) {
-        const id = parseInt(urlProjectId, 10);
+      const id = urlProjectId ? parseInt(urlProjectId, 10) : null;
+      if (id && (!selectedProject || selectedProject.id !== id)) {
         const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
         if (found) {
           setSelectedProject(found);
