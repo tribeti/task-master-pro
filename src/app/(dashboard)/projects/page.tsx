@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PlusIcon, UserIcon, ChatIcon } from "@/components/icons";
 import {
   TasksTab,
