@@ -27,10 +27,10 @@ interface KanbanTaskProps {
   isDragDisabled?: boolean;
 }
 
-const PRIORITY_STYLES: Record<string, { text: string; bg: string }> = {
-  High: { text: "text-[#FF8B5E]", bg: "bg-[#FFF2DE]" },
-  Medium: { text: "text-[#28B8FA]", bg: "bg-[#EAF7FF]" },
-  Low: { text: "text-[#34D399]", bg: "bg-[#D1FAE5]" },
+const PRIORITY_BADGE: Record<string, { label: string; text: string; bg: string }> = {
+  High: { label: "High", text: "text-red-600", bg: "bg-red-50" },
+  Medium: { label: "Medium", text: "text-sky-600", bg: "bg-sky-50" },
+  Low: { label: "Low", text: "text-emerald-600", bg: "bg-emerald-50" },
 };
 
 export function KanbanTask({
@@ -38,7 +38,6 @@ export function KanbanTask({
   index,
   title,
   priority,
-  description,
   labels,
   deadline,
   assignee,
@@ -49,25 +48,23 @@ export function KanbanTask({
   onClick,
   isDragDisabled = false,
 }: KanbanTaskProps) {
-  const pColor = PRIORITY_STYLES[priority] || {
-    text: "text-slate-500",
-    bg: "bg-slate-100",
-  };
-
-  let cardClass = "bg-white border-slate-100";
-  let deadlineBadge = null;
+  /* ── Deadline logic ── */
+  let deadlineBadge: { label: string; color: string } | null = null;
+  let leftStripeColor = "";
 
   if (deadline) {
     const status = getDeadlineStatus(deadline);
     if (status.color === "red") {
-      cardClass = "bg-red-50 border-red-200 border-l-[4px] border-l-red-500";
-      deadlineBadge = { label: status.urgencyStr, color: "text-red-600 bg-red-100" };
+      leftStripeColor = "border-l-red-500";
+      deadlineBadge = { label: status.urgencyStr, color: "text-red-600 bg-red-50" };
     } else if (status.color === "orange") {
-      cardClass = "bg-orange-50 border-orange-200 border-l-[4px] border-l-orange-500";
-      deadlineBadge = { label: status.urgencyStr, color: "text-orange-600 bg-orange-100" };
+      leftStripeColor = "border-l-orange-400";
+      deadlineBadge = { label: status.urgencyStr, color: "text-orange-600 bg-orange-50" };
     } else if (status.color === "yellow") {
-      cardClass = "bg-yellow-50 border-yellow-200 border-l-[4px] border-l-yellow-400";
-      deadlineBadge = { label: status.urgencyStr, color: "text-yellow-700 bg-yellow-100" };
+      leftStripeColor = "border-l-yellow-400";
+      deadlineBadge = { label: status.urgencyStr, color: "text-yellow-700 bg-yellow-50" };
+    } else {
+      deadlineBadge = { label: status.urgencyStr, color: "text-slate-500 bg-slate-50" };
     }
   }
 
@@ -90,11 +87,19 @@ export function KanbanTask({
 
   const taskLabels = labels || [];
   const assignedIds = new Set(taskLabels.map((l) => l.id));
-  const availableLabels = boardLabels.filter((l) => !assignedIds.has(l.id));
+
+  // Fallback từ assignee sang assignees nếu assignees rỗng
+  const effectiveAssignees = assignees.length > 0 ? assignees : (assignee ? [assignee] : []);
+
+  // Kiểm tra xem có thể toggle label hay không dựa vào callback có sẵn
+  const canToggleLabel = (isAssigned: boolean): boolean => {
+    if (isAssigned) return !!onRemoveLabel;
+    return !!onAddLabel;
+  };
 
   const handleToggleLabel = async (e: React.MouseEvent, label: Label, isAssigned: boolean) => {
     e.stopPropagation();
-    if (labelLoading) return;
+    if (labelLoading || !canToggleLabel(isAssigned)) return;
     try {
       setLabelLoading(true);
       if (isAssigned && onRemoveLabel) {
@@ -115,158 +120,163 @@ export function KanbanTask({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
-          className={`rounded-2xl shadow-sm border flex flex-col cursor-grab hover:shadow-md transition-all overflow-hidden group/card ${snapshot.isDragging
-              ? "opacity-80 ring-2 ring-[#28B8FA]/50 scale-[1.02] rotate-1 z-50"
-              : ""
-            } ${cardClass}`}
+          className={`
+            rounded-xl bg-white border border-slate-100 
+            cursor-grab hover:shadow-md transition-all
+            group/card
+            ${leftStripeColor ? `border-l-[3px] ${leftStripeColor}` : ""}
+            ${snapshot.isDragging ? "opacity-80 ring-2 ring-sky-300/50 scale-[1.02] rotate-1 z-50 shadow-lg" : "shadow-sm"}
+          `}
         >
-          {/* AC1: Label Color Stripes - Vạch màu nhãn ở đầu thẻ */}
-          {taskLabels.length > 0 && (
-            <div className="flex gap-1 px-3 pt-3">
-              {taskLabels.map((label) => (
-                <div
-                  key={label.id}
-                  className="h-[7px] flex-1 rounded-full"
-                  style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                  title={label.name}
-                />
-              ))}
-            </div>
-          )}
-
-          <div className="p-5 flex flex-col gap-3">
-            {/* Priority + Deadline row */}
-            <div className="flex justify-between items-start">
+          <div className="px-4 py-3 flex flex-col gap-2">
+            {/* Row 1: Priority badge + Title */}
+            <div className="flex items-start gap-2">
               <span
-                className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${pColor.text} ${pColor.bg}`}
+                className={`text-[10px] font-black leading-none px-1.5 py-0.5 rounded mt-[2px] shrink-0 uppercase ${PRIORITY_BADGE[priority]?.text || "text-slate-500"} ${PRIORITY_BADGE[priority]?.bg || "bg-slate-50"}`}
+                title={priority}
               >
-                {priority}
+                {PRIORITY_BADGE[priority]?.label || "?"}
               </span>
-              {deadlineBadge && (
-                <span
-                  className={`text-[8px] font-black w-max px-2 py-1 rounded shadow-sm tracking-widest uppercase ${deadlineBadge.color}`}
-                >
-                  {deadlineBadge.label}
-                </span>
-              )}
+              <h4 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">
+                {title}
+              </h4>
             </div>
 
-            {/* Title */}
-            <h4 className="font-bold text-slate-800">{title}</h4>
-
-            {/* Label badges + Add Label button */}
-            <div className="flex flex-wrap gap-1 items-center">
-              {/* AC2: Assigned label badges — biến mất khi bỏ chọn */}
-              {taskLabels.map((label) => (
-                <span
-                  key={label.id}
-                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-900"
-                  style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                >
-                  {label.name}
-                </span>
-              ))}
-
-              {/* Add Label button — chỉ hiện khi có boardLabels */}
-              {boardLabels.length > 0 && (onAddLabel || onRemoveLabel) && (
-                <div className="relative" ref={popoverRef}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLabelPopover((v) => !v);
-                    }}
-                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-all
-                      ${showLabelPopover
-                        ? "bg-[#28B8FA] text-white border-[#28B8FA]"
-                        : "bg-white text-slate-400 border-slate-200 opacity-0 group-hover/card:opacity-100 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-                      }`}
-                    title="Add / Remove Label"
-                    disabled={labelLoading}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Nhãn
-                  </button>
-
-                  {/* Popover dropdown */}
-                  {showLabelPopover && (
-                    <div
-                      className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 min-w-[160px]"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
-                        Nhãn
-                      </p>
-                      {/* All board labels — checked if assigned */}
-                      {boardLabels.map((label) => {
-                        const isAssigned = assignedIds.has(label.id);
-                        return (
-                          <button
-                            key={label.id}
-                            type="button"
-                            onClick={(e) => handleToggleLabel(e, label, isAssigned)}
-                            disabled={labelLoading}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
-                          >
-                            {/* Color dot */}
-                            <span
-                              className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
-                              style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                            />
-                            <span className="text-xs font-semibold text-slate-700 flex-1 text-left truncate">
-                              {label.name}
-                            </span>
-                            {/* Checkmark if assigned */}
-                            {isAssigned && (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#28B8FA" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
-                      {boardLabels.length === 0 && (
-                        <p className="text-xs text-slate-400 px-2 py-1">No labels in board</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {description && (
-              <p className="text-xs text-slate-500 line-clamp-2">{description}</p>
-            )}
-
-            {assignees.length > 0 && (
-              <div className="flex items-center justify-end gap-1 pt-1">
-                <div className="flex -space-x-2">
-                  {assignees.slice(0, 3).map((taskAssignee) => (
-                    <div
-                      key={taskAssignee.user_id}
-                      className="ring-2 ring-white rounded-full"
-                      title={taskAssignee.display_name}
-                    >
-                      <UserAvatar
-                        avatarUrl={taskAssignee.avatar_url}
-                        displayName={taskAssignee.display_name}
-                        className="w-7 h-7"
-                        fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+            {/* Row 2: Label dots + Deadline badge + Add label button */}
+            {/* Render this row if there are labels, a deadline, OR we can add labels */}
+            {(taskLabels.length > 0 || deadlineBadge ||
+              (boardLabels.length > 0 && (onAddLabel || onRemoveLabel))) && (
+                <div className="flex items-center justify-between gap-2 pl-4">
+                  {/* Label color dots + Add label button */}
+                  <div className="flex items-center gap-1 relative" ref={popoverRef}>
+                    {taskLabels.map((label) => (
+                      <span
+                        key={label.id}
+                        className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm"
+                        style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                        title={label.name}
                       />
-                    </div>
-                  ))}
+                    ))}
+
+                    {/* Add label button — always visible when allowed, tiny on hover for clean look */}
+                    {boardLabels.length > 0 && (onAddLabel || onRemoveLabel) && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowLabelPopover((v) => !v);
+                          }}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center transition-all
+                          ${showLabelPopover
+                              ? "bg-sky-500 text-white"
+                              : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500"
+                            }`}
+                          title="Nhãn"
+                          disabled={labelLoading}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+
+                        {/* Popover dropdown */}
+                        {showLabelPopover && (
+                          <div
+                            className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-[140px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
+                              Nhãn
+                            </p>
+                            {boardLabels.map((label) => {
+                              const isAssigned = assignedIds.has(label.id);
+                              const isDisabled = !canToggleLabel(isAssigned);
+                              return (
+                                <button
+                                  key={label.id}
+                                  type="button"
+                                  onClick={(e) => handleToggleLabel(e, label, isAssigned)}
+                                  disabled={labelLoading || isDisabled}
+                                  className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
+                                    isDisabled
+                                      ? "opacity-40 cursor-not-allowed"
+                                      : "hover:bg-slate-50"
+                                  } disabled:opacity-50`}
+                                  title={isDisabled ? (isAssigned ? "Không có quyền remove label" : "Không có quyền add label") : ""}
+                                >
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                                  />
+                                  <span className="text-[11px] font-medium text-slate-700 flex-1 text-left truncate">
+                                    {label.name}
+                                  </span>
+                                  {isAssigned && (
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Deadline badge + Avatars (right side) */}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {deadlineBadge && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase whitespace-nowrap ${deadlineBadge.color}`}>
+                        {deadlineBadge.label}
+                      </span>
+                    )}
+                    {effectiveAssignees.length > 0 && (
+                      <div className="flex -space-x-1.5">
+                        {effectiveAssignees.slice(0, 3).map((a) => (
+                          <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
+                            <UserAvatar
+                              avatarUrl={a.avatar_url}
+                              displayName={a.display_name}
+                              className="w-6 h-6"
+                              fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
+                            />
+                          </div>
+                        ))}
+                        {effectiveAssignees.length > 3 && (
+                          <span className="text-[8px] font-bold text-slate-400 pl-1">+{effectiveAssignees.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {assignees.length > 3 && (
-                  <span className="text-[10px] font-bold text-slate-400">
-                    +{assignees.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
+              )}
+
+            {/* Avatars row — only if no labels/deadline row rendered above AND there are assignees */}
+            {taskLabels.length === 0 && !deadlineBadge &&
+              !(boardLabels.length > 0 && (onAddLabel || onRemoveLabel)) &&
+              effectiveAssignees.length > 0 && (
+                <div className="flex items-center justify-end pl-4">
+                  <div className="flex -space-x-1.5">
+                    {effectiveAssignees.slice(0, 3).map((a) => (
+                      <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
+                        <UserAvatar
+                          avatarUrl={a.avatar_url}
+                          displayName={a.display_name}
+                          className="w-6 h-6"
+                          fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
+                        />
+                      </div>
+                    ))}
+                    {effectiveAssignees.length > 3 && (
+                      <span className="text-[9px] font-bold text-slate-400 pl-1">+{effectiveAssignees.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       )}

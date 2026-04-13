@@ -127,11 +127,10 @@ export function KanbanColumn({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 ${
-            snapshot.isDragging
-              ? "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20"
-              : "bg-slate-50/80"
-          } ${st.border}`}
+          className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 max-h-[calc(100vh-16rem)] ${snapshot.isDragging
+            ? "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20"
+            : "bg-slate-50/80"
+            } ${st.border}`}
         >
           {/* Column Header */}
           <div
@@ -228,11 +227,10 @@ export function KanbanColumn({
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
-                className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 ${
-                  droppableSnapshot.isDraggingOver
-                    ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
-                    : ""
-                }`}
+                className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 overflow-y-auto scroll-smooth kanban-scroll flex-1 ${droppableSnapshot.isDraggingOver
+                  ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
+                  : ""
+                  }`}
               >
                 {tasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">

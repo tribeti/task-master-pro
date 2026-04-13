@@ -455,7 +455,7 @@ export function KanbanBoard({
     : localTasks;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* ── Assignee Filter Bar ── */}
       {boardMembers.length > 0 && (
         <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
@@ -539,7 +539,7 @@ export function KanbanBoard({
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="h-full w-full overflow-x-auto flex gap-6 pb-2"
+              className="flex-1 min-h-0 w-full overflow-x-auto flex gap-6 pb-4 kanban-board-scroll"
               style={{
                 backgroundImage:
                   "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
@@ -621,6 +621,6 @@ export function KanbanBoard({
           )}
         </Droppable>
       </DragDropContext>
-    </>
+    </div>
   );
 }

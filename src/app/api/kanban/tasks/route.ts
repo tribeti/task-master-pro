@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const { data: insertedTask, error } = await supabase
       .from("tasks")
       .insert([sanitizedTask])
-      .select("id")
+      .select("*")
       .single();
 
     if (error) {
