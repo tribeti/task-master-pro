@@ -442,6 +442,55 @@ export function KanbanBoard({
     }
   };
 
+  // Pre-calculate color to label IDs map for faster lookup
+  const colorToLabelIdsMap = React.useMemo(() => {
+    const map = new Map<string, number[]>();
+    boardLabels.forEach((l) => {
+      if (l.color_hex) {
+        if (!map.has(l.color_hex)) {
+          map.set(l.color_hex, []);
+        }
+        map.get(l.color_hex)!.push(l.id);
+      }
+    });
+    return map;
+  }, [boardLabels]);
+
+  // Filter tasks by assignee and labels (client-side) using useMemo for performance
+  const { effectiveLabelIds, filteredTasks } = React.useMemo(() => {
+    let tasks = localTasks;
+
+    if (filterUserId) {
+      tasks = tasks.filter((t) =>
+        t.assignees?.some((a) => a.user_id === filterUserId)
+      );
+    }
+
+    let effectiveIds = filterLabelIds || [];
+    if (filterLabelIds && filterLabelIds.length > 0) {
+      const selectedColors = new Set(
+        boardLabels
+          .filter((l) => filterLabelIds.includes(l.id))
+          .map((l) => l.color_hex)
+          .filter(Boolean)
+      );
+
+      const activeIdsByColor = boardLabels
+        .filter((l) => l.color_hex && selectedColors.has(l.color_hex))
+        .map((l) => l.id);
+
+      effectiveIds = Array.from(
+        new Set([...filterLabelIds, ...activeIdsByColor])
+      );
+
+      tasks = tasks.filter((t) =>
+        t.labels?.some((l) => effectiveIds.includes(l.id))
+      );
+    }
+
+    return { effectiveLabelIds: effectiveIds, filteredTasks: tasks };
+  }, [localTasks, filterUserId, filterLabelIds, boardLabels]);
+
   // Don't render on server to avoid hydration mismatch
   if (!isMounted) {
     return (
@@ -464,34 +513,6 @@ export function KanbanBoard({
           </div>
         ))}
       </div>
-    );
-  }
-
-  // Filter tasks by assignee and labels (client-side)
-  let filteredTasks = localTasks;
-
-  if (filterUserId) {
-    filteredTasks = filteredTasks.filter((t) =>
-      t.assignees?.some((a) => a.user_id === filterUserId)
-    );
-  }
-
-  // Expand filterLabelIds to include all labels with matching colors (US-027)
-  let effectiveLabelIds = filterLabelIds || [];
-  if (filterLabelIds && filterLabelIds.length > 0) {
-    const selectedColors = boardLabels
-      .filter((l) => filterLabelIds.includes(l.id))
-      .map((l) => l.color_hex)
-      .filter(Boolean);
-
-    const activeIdsByColor = boardLabels
-      .filter((l) => l.color_hex && selectedColors.includes(l.color_hex))
-      .map((l) => l.id);
-
-    effectiveLabelIds = Array.from(new Set([...filterLabelIds, ...activeIdsByColor]));
-
-    filteredTasks = filteredTasks.filter((t) =>
-      t.labels?.some((l) => effectiveLabelIds.includes(l.id))
     );
   }
 
@@ -599,9 +620,9 @@ export function KanbanBoard({
                           onClick={() => {
                             if (!onFilterLabelsChange) return;
                             // Find all IDs with this same color
-                            const relatedIds = boardLabels
-                              .filter(l => (label.color_hex && l.color_hex === label.color_hex) || l.id === label.id)
-                              .map(l => l.id);
+                            const relatedIds = label.color_hex
+                              ? colorToLabelIdsMap.get(label.color_hex) || [label.id]
+                              : [label.id];
 
                             if (isActive) {
                               onFilterLabelsChange(filterLabelIds.filter(id => !relatedIds.includes(id)));
