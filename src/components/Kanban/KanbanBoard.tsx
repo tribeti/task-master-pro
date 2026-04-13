@@ -476,18 +476,31 @@ export function KanbanBoard({
     );
   }
 
+  // Expand filterLabelIds to include all labels with matching colors (US-027)
+  let effectiveLabelIds = filterLabelIds || [];
   if (filterLabelIds && filterLabelIds.length > 0) {
+    const selectedColors = boardLabels
+      .filter((l) => filterLabelIds.includes(l.id))
+      .map((l) => l.color_hex)
+      .filter(Boolean);
+
+    const activeIdsByColor = boardLabels
+      .filter((l) => l.color_hex && selectedColors.includes(l.color_hex))
+      .map((l) => l.id);
+
+    effectiveLabelIds = Array.from(new Set([...filterLabelIds, ...activeIdsByColor]));
+
     filteredTasks = filteredTasks.filter((t) =>
-      t.labels?.some((l) => filterLabelIds.includes(l.id))
+      t.labels?.some((l) => effectiveLabelIds.includes(l.id))
     );
   }
 
-  const isFiltering = !!filterUserId || filterLabelIds.length > 0;
+  const isFiltering = !!filterUserId || effectiveLabelIds.length > 0;
 
   return (
     <>
       {/* ── Assignee & Label Filters Bar ── */}
-      {(boardMembers.length > 0 || boardLabels.length > 0) && (
+      {(boardMembers.length > 0 || boardLabels.length > 0 || !!filterUserId || filterLabelIds.length > 0) && (
         <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
           {boardMembers.length > 0 && (
             <>
@@ -578,17 +591,22 @@ export function KanbanBoard({
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-2 border-b border-slate-100 mb-2">Lọc theo nhãn màu</p>
                   <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
                     {boardLabels.map((label) => {
-                      const isActive = filterLabelIds.includes(label.id);
+                      const isActive = effectiveLabelIds.includes(label.id);
                       return (
                         <button
                           key={label.id}
                           type="button"
                           onClick={() => {
                             if (!onFilterLabelsChange) return;
+                            // Find all IDs with this same color
+                            const relatedIds = boardLabels
+                              .filter(l => (label.color_hex && l.color_hex === label.color_hex) || l.id === label.id)
+                              .map(l => l.id);
+
                             if (isActive) {
-                              onFilterLabelsChange(filterLabelIds.filter(id => id !== label.id));
+                              onFilterLabelsChange(filterLabelIds.filter(id => !relatedIds.includes(id)));
                             } else {
-                              onFilterLabelsChange([...filterLabelIds, label.id]);
+                              onFilterLabelsChange(Array.from(new Set([...filterLabelIds, ...relatedIds])));
                             }
                           }}
                           className={`w-full flex items-center gap-2 px-2 py-2 rounded-xl transition-colors ${isActive ? "bg-[#F0F9FF] hover:bg-[#E0F2FE]" : "hover:bg-slate-50"}`}
