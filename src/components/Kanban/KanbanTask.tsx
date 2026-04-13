@@ -40,6 +40,7 @@ export function KanbanTask({
   priority,
   labels,
   deadline,
+  assignee,
   assignees = [],
   boardLabels = [],
   onAddLabel,
@@ -87,9 +88,18 @@ export function KanbanTask({
   const taskLabels = labels || [];
   const assignedIds = new Set(taskLabels.map((l) => l.id));
 
+  // Fallback từ assignee sang assignees nếu assignees rỗng
+  const effectiveAssignees = assignees.length > 0 ? assignees : (assignee ? [assignee] : []);
+
+  // Kiểm tra xem có thể toggle label hay không dựa vào callback có sẵn
+  const canToggleLabel = (isAssigned: boolean): boolean => {
+    if (isAssigned) return !!onRemoveLabel;
+    return !!onAddLabel;
+  };
+
   const handleToggleLabel = async (e: React.MouseEvent, label: Label, isAssigned: boolean) => {
     e.stopPropagation();
-    if (labelLoading) return;
+    if (labelLoading || !canToggleLabel(isAssigned)) return;
     try {
       setLabelLoading(true);
       if (isAssigned && onRemoveLabel) {
@@ -182,13 +192,19 @@ export function KanbanTask({
                             </p>
                             {boardLabels.map((label) => {
                               const isAssigned = assignedIds.has(label.id);
+                              const isDisabled = !canToggleLabel(isAssigned);
                               return (
                                 <button
                                   key={label.id}
                                   type="button"
                                   onClick={(e) => handleToggleLabel(e, label, isAssigned)}
-                                  disabled={labelLoading}
-                                  className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                  disabled={labelLoading || isDisabled}
+                                  className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
+                                    isDisabled
+                                      ? "opacity-40 cursor-not-allowed"
+                                      : "hover:bg-slate-50"
+                                  } disabled:opacity-50`}
+                                  title={isDisabled ? (isAssigned ? "Không có quyền remove label" : "Không có quyền add label") : ""}
                                 >
                                   <span
                                     className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -218,9 +234,9 @@ export function KanbanTask({
                         {deadlineBadge.label}
                       </span>
                     )}
-                    {assignees.length > 0 && (
+                    {effectiveAssignees.length > 0 && (
                       <div className="flex -space-x-1.5">
-                        {assignees.slice(0, 3).map((a) => (
+                        {effectiveAssignees.slice(0, 3).map((a) => (
                           <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
                             <UserAvatar
                               avatarUrl={a.avatar_url}
@@ -230,8 +246,8 @@ export function KanbanTask({
                             />
                           </div>
                         ))}
-                        {assignees.length > 3 && (
-                          <span className="text-[8px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
+                        {effectiveAssignees.length > 3 && (
+                          <span className="text-[8px] font-bold text-slate-400 pl-1">+{effectiveAssignees.length - 3}</span>
                         )}
                       </div>
                     )}
@@ -242,10 +258,10 @@ export function KanbanTask({
             {/* Avatars row — only if no labels/deadline row rendered above AND there are assignees */}
             {taskLabels.length === 0 && !deadlineBadge &&
               !(boardLabels.length > 0 && (onAddLabel || onRemoveLabel)) &&
-              assignees.length > 0 && (
+              effectiveAssignees.length > 0 && (
                 <div className="flex items-center justify-end pl-4">
                   <div className="flex -space-x-1.5">
-                    {assignees.slice(0, 3).map((a) => (
+                    {effectiveAssignees.slice(0, 3).map((a) => (
                       <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
                         <UserAvatar
                           avatarUrl={a.avatar_url}
@@ -255,8 +271,8 @@ export function KanbanTask({
                         />
                       </div>
                     ))}
-                    {assignees.length > 3 && (
-                      <span className="text-[9px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
+                    {effectiveAssignees.length > 3 && (
+                      <span className="text-[9px] font-bold text-slate-400 pl-1">+{effectiveAssignees.length - 3}</span>
                     )}
                   </div>
                 </div>
