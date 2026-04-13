@@ -33,14 +33,18 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
       setLoading(false);
       return;
     }
+    const controller = new AbortController();
     const fetchTasks = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/boards/${projectId}/kanban`);
+        const res = await fetch("/api/boards/" + projectId + "/kanban", {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error("Failed to fetch kanban data");
         const data = await res.json();
         setTasks(data.tasks || []);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === "AbortError") return;
         console.error("Failed to fetch tasks for timeline:", error);
         toast.error("Tải dữ liệu lịch trình thất bại");
       } finally {
@@ -48,6 +52,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
       }
     };
     fetchTasks();
+    return () => controller.abort();
   }, [projectId]);
 
   const days = useMemo(
@@ -100,26 +105,30 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
       <div className="flex items-center justify-between p-6 border-b border-slate-100">
         <div className="flex items-center gap-6">
           <div className="flex -space-x-2">
-            {Array.from(
-              new Set(tasks.map((t) => t.assignee?.user_id).filter(Boolean)),
-            )
-              .slice(0, 3)
-              .map((userId, idx) => {
-                const assignee = tasks.find(
-                  (t) => t.assignee?.user_id === userId,
-                )?.assignee;
-                if (!assignee) return null;
-                return (
-                  <div key={userId} className="ring-2 ring-white rounded-full">
-                    <UserAvatar
-                      avatarUrl={assignee.avatar_url}
-                      displayName={assignee.display_name}
-                      className="w-8 h-8"
-                      fallbackClassName="bg-slate-200 text-slate-600"
-                    />
-                  </div>
-                );
-              })}
+            {(() => {
+              const unique = [];
+              const seen = new Set();
+              for (const t of tasks) {
+                if (t.assignee && !seen.has(t.assignee.user_id)) {
+                  seen.add(t.assignee.user_id);
+                  unique.push(t.assignee);
+                  if (unique.length === 3) break;
+                }
+              }
+              return unique.map((assignee) => (
+                <div
+                  key={assignee.user_id}
+                  className="ring-2 ring-white rounded-full"
+                >
+                  <UserAvatar
+                    avatarUrl={assignee.avatar_url}
+                    displayName={assignee.display_name}
+                    className="w-8 h-8"
+                    fallbackClassName="bg-slate-200 text-slate-600"
+                  />
+                </div>
+              ));
+            })()}
           </div>
           <div className="w-px h-6 bg-slate-200"></div>
           <button className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800">
