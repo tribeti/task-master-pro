@@ -250,7 +250,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleTaskFoundFromUrl = useCallback((taskToOpen: Task) => {
     // Avoid re-triggering if the modal is already open for this task
     if (editingTask?.id !== taskToOpen.id) {
-       openEditModal(taskToOpen);
+      openEditModal(taskToOpen);
     }
   }, [editingTask?.id, openEditModal]);
 
@@ -315,7 +315,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
         });
         if (!res.ok) throw new Error();
         const newTask = await res.json();
-        setTasks((prev) => [...prev, newTask]);
+        setTasks((prev) => {
+          if (prev.some((t) => t.id === newTask.id)) return prev;
+          return [...prev, newTask];
+        });
       } catch (insertError) {
         console.error(insertError);
         error = true;
@@ -612,7 +615,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   return (
     <div className="flex-1 mt-4 overflow-hidden">
       <Suspense fallback={null}>
-        <TaskUrlHandler 
+        <TaskUrlHandler
           tasks={tasks}
           selectedTaskId={editingTask?.id}
           onTaskFound={handleTaskFoundFromUrl}

@@ -62,6 +62,8 @@ export function KanbanTask({
     } else if (status.color === "yellow") {
       leftStripeColor = "border-l-yellow-400";
       deadlineBadge = { label: status.urgencyStr, color: "text-yellow-700 bg-yellow-50" };
+    } else {
+      deadlineBadge = { label: status.urgencyStr, color: "text-slate-500 bg-slate-50" };
     }
   }
 
@@ -130,131 +132,135 @@ export function KanbanTask({
               </h4>
             </div>
 
-            {/* Row 2: Label dots + Deadline badge */}
-            {(taskLabels.length > 0 || deadlineBadge) && (
-              <div className="flex items-center justify-between gap-2 pl-4">
-                {/* Label color dots */}
-                <div className="flex items-center gap-1 relative" ref={popoverRef}>
-                  {taskLabels.map((label) => (
-                    <span
-                      key={label.id}
-                      className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm"
-                      style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                      title={label.name}
-                    />
-                  ))}
-
-                  {/* Add label button — tiny, only on hover */}
-                  {boardLabels.length > 0 && (onAddLabel || onRemoveLabel) && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowLabelPopover((v) => !v);
-                        }}
-                        className={`w-4 h-4 rounded-full flex items-center justify-center transition-all
-                          ${showLabelPopover
-                            ? "bg-sky-500 text-white"
-                            : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500"
-                          }`}
-                        title="Nhãn"
-                        disabled={labelLoading}
-                      >
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="5" x2="12" y2="19" />
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                      </button>
-
-                      {/* Popover dropdown */}
-                      {showLabelPopover && (
-                        <div
-                          className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-[140px]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
-                            Nhãn
-                          </p>
-                          {boardLabels.map((label) => {
-                            const isAssigned = assignedIds.has(label.id);
-                            return (
-                              <button
-                                key={label.id}
-                                type="button"
-                                onClick={(e) => handleToggleLabel(e, label, isAssigned)}
-                                disabled={labelLoading}
-                                className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-                              >
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                                />
-                                <span className="text-[11px] font-medium text-slate-700 flex-1 text-left truncate">
-                                  {label.name}
-                                </span>
-                                {isAssigned && (
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Deadline badge + Avatars */}
-                <div className="flex items-center gap-1.5 ml-auto">
-                  {deadlineBadge && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase whitespace-nowrap ${deadlineBadge.color}`}>
-                      {deadlineBadge.label}
-                    </span>
-                  )}
-                  {assignees.length > 0 && (
-                    <div className="flex -space-x-1.5">
-                      {assignees.slice(0, 3).map((a) => (
-                        <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
-                          <UserAvatar
-                            avatarUrl={a.avatar_url}
-                            displayName={a.display_name}
-                            className="w-6 h-6"
-                            fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
-                          />
-                        </div>
-                      ))}
-                      {assignees.length > 3 && (
-                        <span className="text-[8px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Avatars row — only if no labels/deadline row rendered above */}
-            {taskLabels.length === 0 && !deadlineBadge && assignees.length > 0 && (
-              <div className="flex items-center justify-end pl-4">
-                <div className="flex -space-x-1.5">
-                  {assignees.slice(0, 3).map((a) => (
-                    <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
-                      <UserAvatar
-                        avatarUrl={a.avatar_url}
-                        displayName={a.display_name}
-                        className="w-6 h-6"
-                        fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
+            {/* Row 2: Label dots + Deadline badge + Add label button */}
+            {/* Render this row if there are labels, a deadline, OR we can add labels */}
+            {(taskLabels.length > 0 || deadlineBadge ||
+              (boardLabels.length > 0 && (onAddLabel || onRemoveLabel))) && (
+                <div className="flex items-center justify-between gap-2 pl-4">
+                  {/* Label color dots + Add label button */}
+                  <div className="flex items-center gap-1 relative" ref={popoverRef}>
+                    {taskLabels.map((label) => (
+                      <span
+                        key={label.id}
+                        className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm"
+                        style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                        title={label.name}
                       />
-                    </div>
-                  ))}
-                  {assignees.length > 3 && (
-                    <span className="text-[9px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
-                  )}
+                    ))}
+
+                    {/* Add label button — always visible when allowed, tiny on hover for clean look */}
+                    {boardLabels.length > 0 && (onAddLabel || onRemoveLabel) && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowLabelPopover((v) => !v);
+                          }}
+                          className={`w-4 h-4 rounded-full flex items-center justify-center transition-all
+                          ${showLabelPopover
+                              ? "bg-sky-500 text-white"
+                              : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500"
+                            }`}
+                          title="Nhãn"
+                          disabled={labelLoading}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+
+                        {/* Popover dropdown */}
+                        {showLabelPopover && (
+                          <div
+                            className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-[140px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
+                              Nhãn
+                            </p>
+                            {boardLabels.map((label) => {
+                              const isAssigned = assignedIds.has(label.id);
+                              return (
+                                <button
+                                  key={label.id}
+                                  type="button"
+                                  onClick={(e) => handleToggleLabel(e, label, isAssigned)}
+                                  disabled={labelLoading}
+                                  className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                >
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                                  />
+                                  <span className="text-[11px] font-medium text-slate-700 flex-1 text-left truncate">
+                                    {label.name}
+                                  </span>
+                                  {isAssigned && (
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Deadline badge + Avatars (right side) */}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {deadlineBadge && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase whitespace-nowrap ${deadlineBadge.color}`}>
+                        {deadlineBadge.label}
+                      </span>
+                    )}
+                    {assignees.length > 0 && (
+                      <div className="flex -space-x-1.5">
+                        {assignees.slice(0, 3).map((a) => (
+                          <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
+                            <UserAvatar
+                              avatarUrl={a.avatar_url}
+                              displayName={a.display_name}
+                              className="w-6 h-6"
+                              fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
+                            />
+                          </div>
+                        ))}
+                        {assignees.length > 3 && (
+                          <span className="text-[8px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+            {/* Avatars row — only if no labels/deadline row rendered above AND there are assignees */}
+            {taskLabels.length === 0 && !deadlineBadge &&
+              !(boardLabels.length > 0 && (onAddLabel || onRemoveLabel)) &&
+              assignees.length > 0 && (
+                <div className="flex items-center justify-end pl-4">
+                  <div className="flex -space-x-1.5">
+                    {assignees.slice(0, 3).map((a) => (
+                      <div key={a.user_id} className="ring-1 ring-white rounded-full" title={a.display_name}>
+                        <UserAvatar
+                          avatarUrl={a.avatar_url}
+                          displayName={a.display_name}
+                          className="w-6 h-6"
+                          fallbackClassName="bg-sky-50 text-sky-600 text-[9px]"
+                        />
+                      </div>
+                    ))}
+                    {assignees.length > 3 && (
+                      <span className="text-[9px] font-bold text-slate-400 pl-1">+{assignees.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       )}
