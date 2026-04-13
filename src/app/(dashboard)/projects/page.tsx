@@ -469,7 +469,7 @@ export default function ProjectsPage() {
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
               )}
-              {projectTab === "Timeline" && <TimelineTab />}
+              {projectTab === "Timeline" && <TimelineTab projectId={selectedProject.id} />}
               {projectTab === "Files" && <FilesTab />}
               {projectTab === "Team" && (
                 <TeamTab boardId={selectedProject.id} />
