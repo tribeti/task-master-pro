@@ -1,263 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { FilterIcon, CalendarIcon, XIcon } from "@/components/icons";
+import { FilterIcon, CalendarIcon } from "@/components/icons";
 import { UserAvatar } from "@/components/UserAvatar";
-import { KanbanTask as Task } from "@/types/project";
 import { toast } from "sonner";
-
-// Pool of vibrant bar colors – each task picks one at random (seeded by id)
-const BAR_COLORS = [
-  { bg: "bg-gradient-to-r from-violet-500 to-purple-500", shadow: "shadow-violet-200" },
-  { bg: "bg-gradient-to-r from-pink-500 to-rose-500", shadow: "shadow-pink-200" },
-  { bg: "bg-gradient-to-r from-cyan-500 to-teal-500", shadow: "shadow-cyan-200" },
-  { bg: "bg-gradient-to-r from-amber-500 to-orange-500", shadow: "shadow-amber-200" },
-  { bg: "bg-gradient-to-r from-blue-500 to-indigo-500", shadow: "shadow-blue-200" },
-  { bg: "bg-gradient-to-r from-emerald-500 to-green-500", shadow: "shadow-emerald-200" },
-  { bg: "bg-gradient-to-r from-fuchsia-500 to-pink-500", shadow: "shadow-fuchsia-200" },
-  { bg: "bg-gradient-to-r from-sky-500 to-blue-500", shadow: "shadow-sky-200" },
-  { bg: "bg-gradient-to-r from-lime-500 to-emerald-500", shadow: "shadow-lime-200" },
-  { bg: "bg-gradient-to-r from-red-400 to-orange-400", shadow: "shadow-red-200" },
-];
-
-function getBarColor(taskId: number) {
-  return BAR_COLORS[taskId % BAR_COLORS.length];
-}
-
-// Priority → left-sidebar text color
-function getPriorityColor(priority: string) {
-  switch (priority) {
-    case "High":
-      return "text-red-500";
-    case "Medium":
-      return "text-amber-500";
-    case "Low":
-      return "text-emerald-500";
-    default:
-      return "text-slate-500";
-  }
-}
-
-function getPriorityLabel(priority: string) {
-  switch (priority) {
-    case "High":
-      return "Cao";
-    case "Medium":
-      return "Trung bình";
-    case "Low":
-      return "Thấp";
-    default:
-      return priority;
-  }
-}
-
-function getPriorityBadgeStyle(priority: string) {
-  switch (priority) {
-    case "High":
-      return "bg-red-100 text-red-600";
-    case "Medium":
-      return "bg-amber-100 text-amber-600";
-    case "Low":
-      return "bg-emerald-100 text-emerald-600";
-    default:
-      return "bg-slate-100 text-slate-600";
-  }
-}
-
-// Sidebar accent bar color still follows priority for a subtle indicator
-function getPriorityBarColor(priority: string) {
-  switch (priority) {
-    case "High":
-      return "bg-red-500";
-    case "Medium":
-      return "bg-amber-400";
-    case "Low":
-      return "bg-emerald-400";
-    default:
-      return "bg-slate-300";
-  }
-}
-
-// ─── Read-Only Task Preview Modal ───
-type TimelineTask = Task & { created_at?: string };
-
-function TaskPreviewModal({
-  task,
-  onClose,
-}: {
-  task: TimelineTask;
-  onClose: () => void;
-}) {
-  const hasDeadline = !!task.deadline;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  let daysLeft: number | null = null;
-  if (hasDeadline) {
-    const deadlineDate = new Date(task.deadline!);
-    deadlineDate.setHours(0, 0, 0, 0);
-    daysLeft = Math.ceil(
-      (deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-  }
-
-  const assignees = task.assignees || [];
-
-  return (
-    <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
-        >
-          <XIcon />
-        </button>
-
-        {/* Color accent header */}
-        <div className={`h-2 w-full ${getBarColor(task.id).bg}`} />
-
-        <div className="p-8 flex flex-col gap-5">
-          {/* Title & Priority */}
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${getPriorityBadgeStyle(task.priority)}`}
-              >
-                {getPriorityLabel(task.priority)}
-              </span>
-              {hasDeadline && daysLeft !== null && daysLeft < 0 && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-red-500 text-white">
-                  Quá hạn
-                </span>
-              )}
-              {hasDeadline && daysLeft !== null && daysLeft >= 0 && daysLeft <= 3 && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-400 text-white animate-pulse">
-                  ⚠ Còn {daysLeft} ngày
-                </span>
-              )}
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mt-3">
-              {task.title}
-            </h2>
-          </div>
-
-          {/* Description */}
-          {task.description && (
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
-                Mô tả
-              </label>
-              <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                {task.description}
-              </p>
-            </div>
-          )}
-
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                Ngày tạo
-              </label>
-              <p className="text-sm font-semibold text-slate-700">
-                {task.created_at
-                  ? new Date(task.created_at).toLocaleDateString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })
-                  : "—"}
-              </p>
-            </div>
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                Hạn chót
-              </label>
-              <p
-                className={`text-sm font-semibold ${
-                  daysLeft !== null && daysLeft < 0
-                    ? "text-red-500"
-                    : daysLeft !== null && daysLeft <= 3
-                      ? "text-amber-500"
-                      : "text-slate-700"
-                }`}
-              >
-                {hasDeadline
-                  ? new Date(task.deadline!).toLocaleDateString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })
-                  : "Không có hạn"}
-              </p>
-              {hasDeadline && daysLeft !== null && daysLeft >= 0 && (
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Còn {daysLeft} ngày
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Labels */}
-          {task.labels && task.labels.length > 0 && (
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
-                Nhãn
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {task.labels.map((label) => (
-                  <span
-                    key={label.id}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold text-slate-800 shadow-sm"
-                    style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
-                  >
-                    {label.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Assignees */}
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
-              Người thực hiện
-            </label>
-            {assignees.length > 0 ? (
-              <div className="flex flex-wrap gap-3">
-                {assignees.map((a) => (
-                  <div
-                    key={a.user_id}
-                    className="flex items-center gap-2 bg-slate-50 rounded-full pr-4 pl-1 py-1 border border-slate-100"
-                  >
-                    <UserAvatar
-                      avatarUrl={a.avatar_url}
-                      displayName={a.display_name}
-                      className="w-8 h-8"
-                      fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
-                    />
-                    <span className="text-sm font-semibold text-slate-700">
-                      {a.display_name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">Chưa có người thực hiện</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { TaskPreviewModal } from "../timeline/TaskPreviewModal";
+import {
+  getBarColor,
+  TimelineTask,
+  getPriorityLabel,
+  getPriorityBarColor,
+  getPriorityColor,
+} from "../timeline/helper";
 
 // ─── Main component ───
 export function TimelineTab({ projectId }: { projectId?: number }) {
@@ -303,7 +57,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
         d.setDate(d.getDate() + i);
         return d;
       }),
-    [startDate]
+    [startDate],
   );
 
   const getDayName = (date: Date) =>
@@ -347,12 +101,12 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
         <div className="flex items-center gap-6">
           <div className="flex -space-x-2">
             {Array.from(
-              new Set(tasks.map((t) => t.assignee?.user_id).filter(Boolean))
+              new Set(tasks.map((t) => t.assignee?.user_id).filter(Boolean)),
             )
               .slice(0, 3)
               .map((userId, idx) => {
                 const assignee = tasks.find(
-                  (t) => t.assignee?.user_id === userId
+                  (t) => t.assignee?.user_id === userId,
                 )?.assignee;
                 if (!assignee) return null;
                 return (
@@ -385,7 +139,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
           >
             &lt;
           </button>
-          <span className="font-bold text-sm text-slate-800 capitalize min-w-[120px] text-center">
+          <span className="font-bold text-sm text-slate-800 capitalize min-w-30 text-center">
             {monthLabel}
           </span>
           <button
@@ -442,7 +196,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
         </div>
 
         {/* ─── Right: Gantt area ─── */}
-        <div className="flex-1 min-w-[800px] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] relative">
+        <div className="flex-1 min-w-200 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] relative">
           {/* Day headers */}
           <div className="h-14 flex border-b border-slate-100 bg-white/90 backdrop-blur-sm sticky top-0 z-30">
             {days.map((day, i) => {
@@ -475,12 +229,12 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
             {/* Today marker */}
             {today >= startDate && today <= timelineWindowEnd && (
               <div
-                className="absolute top-0 bottom-0 w-[2px] bg-[#28B8FA]/50 z-10 pointer-events-none"
+                className="absolute top-0 bottom-0 w-0.5 bg-[#28B8FA]/50 z-10 pointer-events-none"
                 style={{
                   left: `calc(${((today.getTime() - startDate.getTime()) / totalMs) * 100}% + (100% / 28))`,
                 }}
               >
-                <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full absolute -top-1 -left-[4px]"></div>
+                <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full absolute -top-1 -left-1"></div>
               </div>
             )}
 
@@ -514,7 +268,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
                 ((renderStart.getTime() - startDate.getTime()) / totalMs) * 100;
               const widthPerc = Math.max(
                 ((renderEnd.getTime() - renderStart.getTime()) / totalMs) * 100,
-                1.5
+                1.5,
               );
 
               const topOffset = idx * 80 + 20;
@@ -529,7 +283,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
                 deadlineDate.setHours(0, 0, 0, 0);
                 daysLeft = Math.ceil(
                   (deadlineDate.getTime() - today.getTime()) /
-                    (1000 * 60 * 60 * 24)
+                    (1000 * 60 * 60 * 24),
                 );
               }
               const isNearDeadline =
