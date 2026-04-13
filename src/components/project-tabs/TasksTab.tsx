@@ -194,7 +194,17 @@ export function TasksTab({ projectId }: { projectId: number }) {
           table: "tasks",
           filter: `column_id=in.(${columnIdsString})`,
         },
-        () => handleRealtimeEvent(),
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setTasks((prev) => {
+              // Anti-Duplication: check if we already appended it locally
+              if (prev.some((t) => t.id === payload.new.id)) return prev;
+              return [...prev, payload.new as Task];
+            });
+          } else {
+            handleRealtimeEvent();
+          }
+        },
       );
     }
 
@@ -278,6 +288,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
           body: JSON.stringify(taskPayload),
         });
         if (!res.ok) throw new Error();
+        const updatedTask = await res.json();
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+        );
       } catch (updateError) {
         console.error(updateError);
         error = true;
@@ -300,6 +314,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
           }),
         });
         if (!res.ok) throw new Error();
+        const newTask = await res.json();
+        setTasks((prev) => [...prev, newTask]);
       } catch (insertError) {
         console.error(insertError);
         error = true;
@@ -320,7 +336,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
     // Realtime will auto-refresh, but for CRUD we want immediate feedback
     markLocalWrite();
-    await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
@@ -334,6 +349,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
+      setTasks((prev) => prev.filter((t) => t.id !== editingTask.id));
       toast.success("xóa nhiệm vụ thành công");
     } catch (error) {
       console.error(error);
@@ -341,7 +357,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     markLocalWrite();
-    await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
@@ -595,7 +610,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }
 
   return (
-    <div className="flex-1 mt-4">
+    <div className="flex-1 mt-4 overflow-hidden">
       <Suspense fallback={null}>
         <TaskUrlHandler 
           tasks={tasks}

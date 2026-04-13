@@ -44,17 +44,20 @@ export async function PUT(request: Request, context: any) {
       await verifyBoardAccess(supabase, user.id, targetCol.board_id);
     }
 
-    const { error } = await supabase
+    const { data: updatedTask, error } = await supabase
       .from("tasks")
       .update(payload)
-      .eq("id", taskId);
+      .eq("id", taskId)
+      .select("*")
+      .single();
+
     if (error)
       return NextResponse.json(
         { error: "Failed to update task." },
         { status: 500 },
       );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(updatedTask);
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Internal server error" },
