@@ -22,6 +22,8 @@ interface KanbanBoardProps {
   boardMembers?: BoardMember[];
   filterUserId?: string | null;
   onFilterChange?: (userId: string | null) => void;
+  filterLabelIds?: number[];
+  onFilterLabelsChange?: (labelIds: number[]) => void;
   currentUserId?: string;
   isDraggingRef: React.MutableRefObject<boolean>;
   markLocalWrite: () => void;
@@ -43,6 +45,8 @@ export function KanbanBoard({
   boardMembers = [],
   filterUserId = null,
   onFilterChange,
+  filterLabelIds = [],
+  onFilterLabelsChange,
   currentUserId = "",
   isDraggingRef,
   markLocalWrite,
@@ -100,6 +104,22 @@ export function KanbanBoard({
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const newColInputRef = useRef<HTMLInputElement>(null);
+
+  // Label filter popover state
+  const [showLabelFilterPopover, setShowLabelFilterPopover] = useState(false);
+  const labelFilterPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!showLabelFilterPopover) return;
+    const handler = (e: MouseEvent) => {
+      if (labelFilterPopoverRef.current && !labelFilterPopoverRef.current.contains(e.target as Node)) {
+        setShowLabelFilterPopover(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLabelFilterPopover]);
 
   useEffect(() => {
     if (isAddingColumn && newColInputRef.current) {
@@ -447,79 +467,163 @@ export function KanbanBoard({
     );
   }
 
-  // Filter tasks by assignee (client-side)
-  const filteredTasks = filterUserId
-    ? localTasks.filter((t) =>
+  // Filter tasks by assignee and labels (client-side)
+  let filteredTasks = localTasks;
+
+  if (filterUserId) {
+    filteredTasks = filteredTasks.filter((t) =>
       t.assignees?.some((a) => a.user_id === filterUserId)
-    )
-    : localTasks;
+    );
+  }
+
+  if (filterLabelIds && filterLabelIds.length > 0) {
+    filteredTasks = filteredTasks.filter((t) =>
+      t.labels?.some((l) => filterLabelIds.includes(l.id))
+    );
+  }
+
+  const isFiltering = !!filterUserId || filterLabelIds.length > 0;
 
   return (
     <>
-      {/* ── Assignee Filter Bar ── */}
-      {boardMembers.length > 0 && (
+      {/* ── Assignee & Label Filters Bar ── */}
+      {(boardMembers.length > 0 || boardLabels.length > 0) && (
         <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
-          {/* My Tasks button */}
-          <button
-            onClick={() =>
-              onFilterChange?.(
-                filterUserId === currentUserId ? null : currentUserId
-              )
-            }
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
-                ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
-                : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-              }`}
-            title="Chỉ hiện nhiệm vụ của tôi"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Nhiệm vụ của tôi
-          </button>
-
-          {/* Separator */}
-          <div className="w-px h-6 bg-slate-200" />
-
-          {/* Member avatars */}
-          {boardMembers.map((member) => {
-            const isActive = filterUserId === member.user_id;
-            return (
+          {boardMembers.length > 0 && (
+            <>
+              {/* My Tasks button */}
               <button
-                key={member.user_id}
                 onClick={() =>
                   onFilterChange?.(
-                    isActive ? null : member.user_id
+                    filterUserId === currentUserId ? null : currentUserId
                   )
                 }
-                title={`Lọc theo: ${member.display_name}`}
-                className={`relative rounded-full transition-all focus:outline-none ${isActive
-                    ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
-                    : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
+                    ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
+                    : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                   }`}
+                title="Chỉ hiện nhiệm vụ của tôi"
               >
-                <UserAvatar
-                  avatarUrl={member.avatar_url}
-                  displayName={member.display_name}
-                  className="w-8 h-8"
-                  fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
-                />
-                {isActive && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#28B8FA] rounded-full flex items-center justify-center">
-                    <svg width="7" height="7" viewBox="0 0 24 24" fill="white" stroke="none">
-                      <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                )}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Nhiệm vụ của tôi
               </button>
-            );
-          })}
+
+              {/* Separator */}
+              <div className="w-px h-6 bg-slate-200" />
+
+              {/* Member avatars */}
+              {boardMembers.map((member) => {
+                const isActive = filterUserId === member.user_id;
+                return (
+                  <button
+                    key={member.user_id}
+                    onClick={() =>
+                      onFilterChange?.(
+                        isActive ? null : member.user_id
+                      )
+                    }
+                    title={`Lọc theo: ${member.display_name}`}
+                    className={`relative rounded-full transition-all focus:outline-none ${isActive
+                        ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
+                        : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
+                      }`}
+                  >
+                    <UserAvatar
+                      avatarUrl={member.avatar_url}
+                      displayName={member.display_name}
+                      className="w-8 h-8"
+                      fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                    />
+                    {isActive && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#28B8FA] rounded-full flex items-center justify-center">
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="white" stroke="none">
+                          <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {/* Separator if both exist */}
+          {boardMembers.length > 0 && boardLabels.length > 0 && (
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+          )}
+
+          {/* Label Filters Popover Button */}
+          {boardLabels.length > 0 && (
+            <div className="relative" ref={labelFilterPopoverRef}>
+              <button
+                onClick={() => setShowLabelFilterPopover((v) => !v)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterLabelIds.length > 0 || showLabelFilterPopover
+                    ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
+                    : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                  }`}
+                title="Lọc theo nhãn"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                </svg>
+                Nhãn {filterLabelIds.length > 0 && `(${filterLabelIds.length})`}
+              </button>
+
+              {/* Popover dropdown */}
+              {showLabelFilterPopover && (
+                <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-2 border-b border-slate-100 mb-2">Lọc theo nhãn màu</p>
+                  <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto">
+                    {boardLabels.map((label) => {
+                      const isActive = filterLabelIds.includes(label.id);
+                      return (
+                        <button
+                          key={label.id}
+                          type="button"
+                          onClick={() => {
+                            if (!onFilterLabelsChange) return;
+                            if (isActive) {
+                              onFilterLabelsChange(filterLabelIds.filter(id => id !== label.id));
+                            } else {
+                              onFilterLabelsChange([...filterLabelIds, label.id]);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 px-2 py-2 rounded-xl transition-colors ${isActive ? "bg-[#F0F9FF] hover:bg-[#E0F2FE]" : "hover:bg-slate-50"}`}
+                        >
+                          <span
+                            className="w-4 h-4 rounded-full shrink-0 ring-2 ring-white shadow-sm"
+                            style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+                          />
+                          <span className={`text-xs flex-1 text-left truncate ${isActive ? "font-bold text-[#0284C7]" : "font-semibold text-slate-700"}`}>
+                            {label.name}
+                          </span>
+                          {/* Checkmark style */}
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isActive ? "bg-[#28B8FA] border-[#28B8FA]" : "bg-white border-slate-200"}`}>
+                            {isActive && (
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Clear filter button */}
-          {filterUserId && (
+          {(filterUserId || filterLabelIds.length > 0) && (
             <button
-              onClick={() => onFilterChange?.(null)}
+              onClick={() => {
+                onFilterChange?.(null);
+                onFilterLabelsChange?.([]);
+              }}
               className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border border-slate-200 hover:border-red-200 transition-all"
               title="Xóa bộ lọc"
             >
@@ -534,7 +638,7 @@ export function KanbanBoard({
       )}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="board" type="COLUMN" direction="horizontal" isDropDisabled={!!filterUserId}>
+        <Droppable droppableId="board" type="COLUMN" direction="horizontal" isDropDisabled={isFiltering}>
           {(provided: DroppableProvided) => (
             <div
               ref={provided.innerRef}
@@ -564,7 +668,7 @@ export function KanbanBoard({
                     boardLabels={boardLabels}
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
-                    isDragDisabled={!!filterUserId}
+                    isDragDisabled={isFiltering}
                   />
                 );
               })}

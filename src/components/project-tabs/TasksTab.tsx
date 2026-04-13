@@ -32,6 +32,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [filterUserId, setFilterUserId] = useState<string | null>(null);
+  const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -576,6 +577,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardMembers={boardMembers}
         filterUserId={filterUserId}
         onFilterChange={setFilterUserId}
+        filterLabelIds={filterLabelIds}
+        onFilterLabelsChange={setFilterLabelIds}
         currentUserId={user?.id || ""}
         isDraggingRef={isDraggingRef}
         markLocalWrite={markLocalWrite}
