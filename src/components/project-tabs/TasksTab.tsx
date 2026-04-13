@@ -290,7 +290,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         if (!res.ok) throw new Error();
         const updatedTask = await res.json();
         setTasks((prev) =>
-          prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+          prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)),
         );
       } catch (updateError) {
         console.error(updateError);
