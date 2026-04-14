@@ -226,9 +226,7 @@ export function KanbanColumn({
               droppableProvided: DroppableProvided,
               droppableSnapshot: DroppableStateSnapshot,
             ) => {
-              const visibleTasks = searchMatchedTaskIds 
-                ? tasks.filter(task => searchMatchedTaskIds.has(task.id)) 
-                : tasks;
+              const visibleTasks = tasks;
 
               return (
               <div
@@ -241,7 +239,7 @@ export function KanbanColumn({
               >
                 {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
-                    {searchMatchedTaskIds ? "Không có kết quả" : "Chưa có nhiệm vụ"}
+                    Chưa có nhiệm vụ
                   </div>
                 )}
                 {visibleTasks.map((task, taskIndex) => (

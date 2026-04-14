@@ -80,65 +80,17 @@ export function KanbanBoard({
   /* ── Search state ── */
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [searchMatchedTaskIds, setSearchMatchedTaskIds] = useState<Set<number> | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
+  // We keep isSearching for UI feedback if needed, 
+  // though client-side search is nearly instantaneous.
   useEffect(() => {
-    let active = true;
-
-    if (!debouncedSearchTerm.trim()) {
-      setSearchMatchedTaskIds(null);
-      setIsSearching(false);
-      return;
-    }
-
-    const fetchSearchResults = async () => {
+    if (searchTerm !== debouncedSearchTerm) {
       setIsSearching(true);
-      try {
-        const supabase = createClient();
-        const colIds = columns.map(c => c.id);
-        if (colIds.length === 0) {
-          if (active) {
-            setSearchMatchedTaskIds(new Set());
-            setIsSearching(false);
-          }
-          return;
-        }
-
-        // 1. Escape characters used as wildcards in ilike: \ , % , _
-        // 2. Escape double quotes for PostgREST: " -> ""
-        const safeTerm = debouncedSearchTerm
-          .replace(/\\/g, "\\\\") // Escape backslash first
-          .replace(/%/g, "\\%")
-          .replace(/_/g, "\\_")
-          .replace(/"/g, '""');
-
-        // 3. Wrap in double quotes to handle reserved characters in .or() like , ( )
-        const filterVal = `"%${safeTerm}%"`;
-
-        const { data, error } = await supabase
-          .from("tasks")
-          .select("id")
-          .in("column_id", colIds)
-          .or(`title.ilike.${filterVal},description.ilike.${filterVal}`);
-
-        if (!active) return;
-
-        if (!error && data) {
-          setSearchMatchedTaskIds(new Set(data.map(t => t.id)));
-        }
-      } catch (e) {
-        if (active) console.error(e);
-      } finally {
-        if (active) setIsSearching(false);
-      }
-    };
-
-    fetchSearchResults();
-    return () => {
-      active = false;
-    };
-  }, [debouncedSearchTerm, columns]);
+    } else {
+      setIsSearching(false);
+    }
+  }, [searchTerm, debouncedSearchTerm]);
 
   const lastSyncedColumnsRef = useRef(columns);
   const lastSyncedTasksRef = useRef(tasks);
@@ -530,16 +482,27 @@ export function KanbanBoard({
     return map;
   }, [boardLabels]);
 
-  // Filter tasks by assignee and labels (client-side) using useMemo for performance
+  // Filter tasks by assignee, labels, and search term (client-side) using useMemo for performance
   const { effectiveLabelIds, filteredTasks } = React.useMemo(() => {
     let tasks = localTasks;
 
+    // 1. Filter by Search Term
+    if (debouncedSearchTerm.trim()) {
+      const term = debouncedSearchTerm.toLowerCase();
+      tasks = tasks.filter((t) =>
+        t.title.toLowerCase().includes(term) ||
+        (t.description && t.description.toLowerCase().includes(term))
+      );
+    }
+
+    // 2. Filter by Assignee
     if (filterUserId) {
       tasks = tasks.filter((t) =>
         t.assignees?.some((a) => a.user_id === filterUserId),
       );
     }
 
+    // 3. Filter by Labels
     let effectiveIds = filterLabelIds || [];
     if (filterLabelIds && filterLabelIds.length > 0) {
       const selectedColors = new Set(
@@ -563,7 +526,7 @@ export function KanbanBoard({
     }
 
     return { effectiveLabelIds: effectiveIds, filteredTasks: tasks };
-  }, [localTasks, filterUserId, filterLabelIds, boardLabels]);
+  }, [localTasks, filterUserId, filterLabelIds, boardLabels, debouncedSearchTerm]);
 
   // Don't render on server to avoid hydration mismatch
   if (!isMounted) {
@@ -591,7 +554,7 @@ export function KanbanBoard({
   }
 
   const isFiltering =
-    !!filterUserId || effectiveLabelIds.length > 0 || searchMatchedTaskIds !== null;
+    !!filterUserId || effectiveLabelIds.length > 0 || !!debouncedSearchTerm.trim();
 
   return (
     <div className="flex flex-col h-full">
@@ -608,11 +571,10 @@ export function KanbanBoard({
                     filterUserId === currentUserId ? null : currentUserId,
                   )
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                  filterUserId === currentUserId
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
                     ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
                     : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-                }`}
+                  }`}
                 title="Chỉ hiện nhiệm vụ của tôi"
               >
                 <svg
@@ -644,11 +606,10 @@ export function KanbanBoard({
                       onFilterChange?.(isActive ? null : member.user_id)
                     }
                     title={`Lọc theo: ${member.display_name}`}
-                    className={`relative rounded-full transition-all focus:outline-none ${
-                      isActive
+                    className={`relative rounded-full transition-all focus:outline-none ${isActive
                         ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
                         : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
-                    }`}
+                      }`}
                   >
                     <UserAvatar
                       avatarUrl={member.avatar_url}
@@ -692,11 +653,10 @@ export function KanbanBoard({
             <div className="relative" ref={labelFilterPopoverRef}>
               <button
                 onClick={() => setShowLabelFilterPopover((v) => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                  filterLabelIds.length > 0 || showLabelFilterPopover
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterLabelIds.length > 0 || showLabelFilterPopover
                     ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
                     : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-                }`}
+                  }`}
                 title="Lọc theo nhãn"
               >
                 <svg
@@ -735,8 +695,8 @@ export function KanbanBoard({
                             // Find all IDs with this same color
                             const relatedIds = label.color_hex
                               ? colorToLabelIdsMap.get(label.color_hex) || [
-                                  label.id,
-                                ]
+                                label.id,
+                              ]
                               : [label.id];
 
                             if (isActive) {
@@ -898,7 +858,6 @@ export function KanbanBoard({
                     column={col}
                     colIndex={index}
                     tasks={columnTasks}
-                    searchMatchedTaskIds={searchMatchedTaskIds}
                     onTaskClick={onTaskClick}
                     onAddTask={onAddTask}
                     onUpdateColumn={onUpdateColumn}
