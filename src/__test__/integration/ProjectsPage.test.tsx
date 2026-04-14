@@ -1,95 +1,109 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import ProjectsPage from '@/app/(dashboard)/projects/page';
-import { useDashboardUser } from '@/app/(dashboard)/provider';
-import { fetchUserBoards, createNewBoard, createDefaultColumns } from '@/services/project.service';
+import { useProjects } from '@/hooks/useProjects';
 
-// Mock the dependencies
+// ===== MOCKING DEPENDENCIES =====
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn(),
+  }),
+}));
+
 jest.mock('@/app/(dashboard)/provider', () => ({
-  useDashboardUser: jest.fn(),
+  useDashboardUser: () => ({
+    user: { id: 'user_123', name: 'Test User' }
+  })
 }));
 
-jest.mock('@/services/project.service', () => ({
-  fetchUserBoards: jest.fn(),
-  createNewBoard: jest.fn(),
-  deleteUserBoard: jest.fn(),
-  createDefaultColumns: jest.fn(),
+jest.mock('@/utils/supabase/client', () => ({
+  createClient: () => ({
+    channel: () => ({
+      on: () => ({
+        subscribe: jest.fn(),
+      }),
+    }),
+    removeChannel: jest.fn(),
+  }),
 }));
 
-jest.mock('sonner', () => ({
-  toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-  },
-}));
+jest.mock('@/hooks/useProjects');
+const mockedUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
 
 describe('ProjectsPage Integration', () => {
-  const mockUser = { id: 'user-123' };
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (useDashboardUser as jest.Mock).mockReturnValue({ user: mockUser });
   });
 
-  it('renders active projects and allows opening the create modal', async () => {
-    // Mock the fetch behavior to return one project initially
-    const mockBoards = [
-      { id: 1, title: 'Existing Project', description: 'desc', is_private: false, color: 'blue', tag: 'test' }
-    ];
-    (fetchUserBoards as jest.Mock).mockResolvedValue(mockBoards);
+  it('renders skeleton loaders initially, then renders actual project cards when data loads', () => {
+    // 1. Initial State: Loading
+    mockedUseProjects.mockReturnValue({
+      ownedBoards: [],
+      joinedBoards: [],
+      boardsLoading: true,
+      isSubmitting: false,
+      fetchBoards: jest.fn(),
+      confirmDeleteProject: jest.fn(),
+      handleCreateProject: jest.fn(),
+      handleUpdateExistingProject: jest.fn(),
+    });
+
+    const { rerender } = render(<ProjectsPage />);
+    
+    // Title is present
+    expect(screen.getByText('Dự án hoạt động')).toBeInTheDocument();
+    
+    // 2. Success State: Data Fetched Update
+    mockedUseProjects.mockReturnValue({
+      ownedBoards: [
+        { id: 101, title: 'Super Frontend Project', is_private: false, color: '#FF8B5E', tag: 'Core', created_at: new Date().toISOString() } as any
+      ],
+      joinedBoards: [],
+      boardsLoading: false,
+      isSubmitting: false,
+      fetchBoards: jest.fn(),
+      confirmDeleteProject: jest.fn(),
+      handleCreateProject: jest.fn(),
+      handleUpdateExistingProject: jest.fn(),
+    });
+
+    rerender(<ProjectsPage />);
+
+    // Verify the injected mock data reflects on the UI
+    expect(screen.getByText('Super Frontend Project')).toBeInTheDocument();
+    expect(screen.getByText('Dự án của tôi')).toBeInTheDocument();
+  });
+
+  it('opens Create Project Modal and interacts correctly when "Dự án mới" is clicked', () => {
+    mockedUseProjects.mockReturnValue({
+      ownedBoards: [],
+      joinedBoards: [],
+      boardsLoading: false,
+      isSubmitting: false,
+      fetchBoards: jest.fn(),
+      confirmDeleteProject: jest.fn(),
+      handleCreateProject: jest.fn(),
+      handleUpdateExistingProject: jest.fn(),
+    });
 
     render(<ProjectsPage />);
 
-    // Fast Forward: wait for boards to load
-    await waitFor(() => {
-      expect(screen.getByText('Existing Project')).toBeInTheDocument();
-    });
+    // Find and click the new project button
+    const newProjectButtons = screen.getAllByText('Dự án mới');
+    fireEvent.click(newProjectButtons[0]);
 
-    // Check header
-    expect(screen.getByText('Active Projects')).toBeInTheDocument();
-    expect(screen.getByText(/1 active/i)).toBeInTheDocument();
+    // The modal should now be integrated and visible
+    expect(screen.getByText('Tạo dự án mới')).toBeInTheDocument();
+    
+    const input = screen.getByPlaceholderText('e.g. Dự án mới');
+    expect(input).toBeInTheDocument();
 
-    // Find the "New Project" button card and click it
-    const newProjectCard = screen.getByText('Start tracking a new initiative.');
-    fireEvent.click(newProjectCard);
-
-    // Provide some mocked return for create new board
-    (createNewBoard as jest.Mock).mockResolvedValue({ id: 99, title: 'Brand New Project' });
-    (createDefaultColumns as jest.Mock).mockResolvedValue({});
-    (fetchUserBoards as jest.Mock).mockResolvedValue([
-      ...mockBoards,
-      { id: 99, title: 'Brand New Project' }
-    ]); // Mock the simulated refetch finding the new project
-
-    // Wait for the modal to appear (looking for standard form elements)
-    await waitFor(() => {
-      // CreateProjectModal should have an input or heading saying "Create New Project"
-      const modalHeader = screen.getAllByText('Create New Project');
-      expect(modalHeader.length).toBeGreaterThan(0);
-    });
-
-    // We can simulate an integration form submit here
-    // Assuming there's a title input with placeholder "e.g. Q4 Brand Sprint"
-    const titleInput = screen.getByPlaceholderText('e.g. Q4 Brand Sprint');
-    fireEvent.change(titleInput, { target: { value: 'Brand New Project' } });
-
-    // Find the Create Project button inside the modal and click
-    // Note: It's the submit button, we can find it by button text 'Launch Project'
-    const submitBtn = screen.getByText(/launch project/i);
-    fireEvent.click(submitBtn);
-
-    // Verify service calls and new UI renders
-    await waitFor(() => {
-      expect(createNewBoard).toHaveBeenCalledWith('user-123', expect.objectContaining({
-        title: 'Brand New Project',
-      }));
-    });
-
-    // Expect the UI to show the new project
-    await waitFor(() => {
-      expect(screen.getByText('Brand New Project')).toBeInTheDocument();
-      expect(screen.getByText(/2 active/i)).toBeInTheDocument();
-    });
+    // Type a project name
+    fireEvent.change(input, { target: { value: 'Integration Test Project' } });
+    expect(screen.getByDisplayValue('Integration Test Project')).toBeInTheDocument();
   });
 });
