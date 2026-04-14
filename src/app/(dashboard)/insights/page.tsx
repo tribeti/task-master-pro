@@ -65,7 +65,6 @@ export default function InsightsPage() {
           <div className="h-100 bg-slate-100 rounded-xl" />
           <div className="h-100 bg-slate-100 rounded-xl" />
         </div>
-        400px]
       </div>
     );
   }
@@ -120,8 +119,11 @@ export default function InsightsPage() {
       !columnTitleLower.includes("hoàn thành") &&
       task.deadline
     ) {
-      const dueDate = new Date(task.deadline);
-      dueDate.setHours(0, 0, 0, 0);
+      const [year, month, day] = String(task.deadline)
+        .slice(0, 10)
+        .split("-")
+        .map(Number);
+      const dueDate = new Date(year, month - 1, day);
       if (dueDate < today) {
         overdueTasks++;
       }
