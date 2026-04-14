@@ -84,8 +84,11 @@ export function KanbanBoard({
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     if (!debouncedSearchTerm.trim()) {
       setSearchMatchedTaskIds(null);
+      setIsSearching(false);
       return;
     }
 
@@ -95,28 +98,46 @@ export function KanbanBoard({
         const supabase = createClient();
         const colIds = columns.map(c => c.id);
         if (colIds.length === 0) {
-          setSearchMatchedTaskIds(new Set());
-          setIsSearching(false);
+          if (active) {
+            setSearchMatchedTaskIds(new Set());
+            setIsSearching(false);
+          }
           return;
         }
+
+        // 1. Escape characters used as wildcards in ilike: \ , % , _
+        // 2. Escape double quotes for PostgREST: " -> ""
+        const safeTerm = debouncedSearchTerm
+          .replace(/\\/g, "\\\\") // Escape backslash first
+          .replace(/%/g, "\\%")
+          .replace(/_/g, "\\_")
+          .replace(/"/g, '""');
+
+        // 3. Wrap in double quotes to handle reserved characters in .or() like , ( )
+        const filterVal = `"%${safeTerm}%"`;
 
         const { data, error } = await supabase
           .from("tasks")
           .select("id")
           .in("column_id", colIds)
-          .or(`title.ilike.%${debouncedSearchTerm}%,description.ilike.%${debouncedSearchTerm}%`);
+          .or(`title.ilike.${filterVal},description.ilike.${filterVal}`);
+
+        if (!active) return;
 
         if (!error && data) {
           setSearchMatchedTaskIds(new Set(data.map(t => t.id)));
         }
       } catch (e) {
-        console.error(e);
+        if (active) console.error(e);
       } finally {
-        setIsSearching(false);
+        if (active) setIsSearching(false);
       }
     };
 
     fetchSearchResults();
+    return () => {
+      active = false;
+    };
   }, [debouncedSearchTerm, columns]);
 
   const lastSyncedColumnsRef = useRef(columns);
