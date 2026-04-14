@@ -68,7 +68,7 @@ describe('Login & Register UI Flow', () => {
     });
   });
 
-  it('redirects to /command dashbaord on successful login', async () => {
+  it('redirects to /command dashboard on successful login', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({ session: 'token' }),
