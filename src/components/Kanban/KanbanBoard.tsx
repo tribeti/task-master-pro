@@ -19,6 +19,9 @@ import {
 } from "@/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
 
+import { createClient } from "@/utils/supabase/client";
+import { useDebounce } from "@/hooks/useDebounce";
+
 interface KanbanBoardProps {
   projectId: number;
   columns: Column[];
@@ -73,6 +76,21 @@ export function KanbanBoard({
   /* ── Local optimistic state ── */
   const [localColumns, setLocalColumns] = useState<Column[]>(columns);
   const [localTasks, setLocalTasks] = useState<KanbanTask[]>(tasks);
+
+  /* ── Search state ── */
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // We keep isSearching for UI feedback if needed, 
+  // though client-side search is nearly instantaneous.
+  useEffect(() => {
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+    }
+  }, [searchTerm, debouncedSearchTerm]);
 
   const lastSyncedColumnsRef = useRef(columns);
   const lastSyncedTasksRef = useRef(tasks);
@@ -464,16 +482,27 @@ export function KanbanBoard({
     return map;
   }, [boardLabels]);
 
-  // Filter tasks by assignee and labels (client-side) using useMemo for performance
+  // Filter tasks by assignee, labels, and search term (client-side) using useMemo for performance
   const { effectiveLabelIds, filteredTasks } = React.useMemo(() => {
     let tasks = localTasks;
 
+    // 1. Filter by Search Term
+    if (debouncedSearchTerm.trim()) {
+      const term = debouncedSearchTerm.toLowerCase();
+      tasks = tasks.filter((t) =>
+        t.title.toLowerCase().includes(term) ||
+        (t.description && t.description.toLowerCase().includes(term))
+      );
+    }
+
+    // 2. Filter by Assignee
     if (filterUserId) {
       tasks = tasks.filter((t) =>
         t.assignees?.some((a) => a.user_id === filterUserId),
       );
     }
 
+    // 3. Filter by Labels
     let effectiveIds = filterLabelIds || [];
     if (filterLabelIds && filterLabelIds.length > 0) {
       const selectedColors = new Set(
@@ -497,7 +526,7 @@ export function KanbanBoard({
     }
 
     return { effectiveLabelIds: effectiveIds, filteredTasks: tasks };
-  }, [localTasks, filterUserId, filterLabelIds, boardLabels]);
+  }, [localTasks, filterUserId, filterLabelIds, boardLabels, debouncedSearchTerm]);
 
   // Don't render on server to avoid hydration mismatch
   if (!isMounted) {
@@ -524,16 +553,15 @@ export function KanbanBoard({
     );
   }
 
-  const isFiltering = !!filterUserId || effectiveLabelIds.length > 0;
+  const isFiltering =
+    !!filterUserId || effectiveLabelIds.length > 0 || !!debouncedSearchTerm.trim();
 
   return (
     <div className="flex flex-col h-full">
-      {/* ── Assignee & Label Filters Bar ── */}
-      {(boardMembers.length > 0 ||
-        boardLabels.length > 0 ||
-        !!filterUserId ||
-        filterLabelIds.length > 0) && (
-        <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
+      {/* ── Filter & Search Bar ── */}
+      <div className="flex items-center justify-between gap-4 px-1 pb-3 flex-wrap">
+        {/* Left: Assignee & Label Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
           {boardMembers.length > 0 && (
             <>
               {/* My Tasks button */}
@@ -543,11 +571,10 @@ export function KanbanBoard({
                     filterUserId === currentUserId ? null : currentUserId,
                   )
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                  filterUserId === currentUserId
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
                     ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
                     : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-                }`}
+                  }`}
                 title="Chỉ hiện nhiệm vụ của tôi"
               >
                 <svg
@@ -579,11 +606,10 @@ export function KanbanBoard({
                       onFilterChange?.(isActive ? null : member.user_id)
                     }
                     title={`Lọc theo: ${member.display_name}`}
-                    className={`relative rounded-full transition-all focus:outline-none ${
-                      isActive
+                    className={`relative rounded-full transition-all focus:outline-none ${isActive
                         ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
                         : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
-                    }`}
+                      }`}
                   >
                     <UserAvatar
                       avatarUrl={member.avatar_url}
@@ -627,11 +653,10 @@ export function KanbanBoard({
             <div className="relative" ref={labelFilterPopoverRef}>
               <button
                 onClick={() => setShowLabelFilterPopover((v) => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                  filterLabelIds.length > 0 || showLabelFilterPopover
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterLabelIds.length > 0 || showLabelFilterPopover
                     ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
                     : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-                }`}
+                  }`}
                 title="Lọc theo nhãn"
               >
                 <svg
@@ -670,8 +695,8 @@ export function KanbanBoard({
                             // Find all IDs with this same color
                             const relatedIds = label.color_hex
                               ? colorToLabelIdsMap.get(label.color_hex) || [
-                                  label.id,
-                                ]
+                                label.id,
+                              ]
                               : [label.id];
 
                             if (isActive) {
@@ -755,7 +780,54 @@ export function KanbanBoard({
             </button>
           )}
         </div>
-      )}
+
+        {/* Right: Search Input */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tìm kiếm thẻ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-8 py-1.5 rounded-full border border-slate-200 text-sm focus:outline-none focus:border-[#28B8FA] focus:ring-1 focus:ring-[#28B8FA] w-64 shadow-sm transition-all bg-white text-slate-700"
+          />
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+          )}
+          {searchTerm && !isSearching && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 p-0.5 transition-colors"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable
