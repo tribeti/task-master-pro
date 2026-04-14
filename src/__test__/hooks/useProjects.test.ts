@@ -27,8 +27,7 @@ describe('useProjects Hook', () => {
 
   it('fetches boards if userId is provided', async () => {
     const mockData = { ownedBoards: [{ id: 1, title: 'Test' } as any], joinedBoards: [] };
-    // @ts-ignore
-    projectService.fetchUserBoards.mockResolvedValue(mockData);
+    jest.mocked(projectService.fetchUserBoards).mockResolvedValue(mockData);
 
     const { result } = renderHook(() => useProjects('user123'));
 
