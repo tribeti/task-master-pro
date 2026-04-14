@@ -312,7 +312,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         // Optimistically add to state with empty relations
         setTasks((prev) => {
           if (prev.some((t) => t.id === newTask.id)) return prev;
-          return [...prev, { ...newTask, labels: [], assignees: [] }];
+          return [...prev, { ...newTask, labels: [], assignees: [], assignee: null }];
         });
       } catch (insertError) {
         console.error(insertError);
