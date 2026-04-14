@@ -19,9 +19,6 @@ import {
 } from "@/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
 
-import { createClient } from "@/utils/supabase/client";
-import { useDebounce } from "@/hooks/useDebounce";
-
 interface KanbanBoardProps {
   projectId: number;
   columns: Column[];
@@ -76,48 +73,6 @@ export function KanbanBoard({
   /* ── Local optimistic state ── */
   const [localColumns, setLocalColumns] = useState<Column[]>(columns);
   const [localTasks, setLocalTasks] = useState<KanbanTask[]>(tasks);
-
-  /* ── Search state ── */
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [searchMatchedTaskIds, setSearchMatchedTaskIds] = useState<Set<number> | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    if (!debouncedSearchTerm.trim()) {
-      setSearchMatchedTaskIds(null);
-      return;
-    }
-
-    const fetchSearchResults = async () => {
-      setIsSearching(true);
-      try {
-        const supabase = createClient();
-        const colIds = columns.map(c => c.id);
-        if (colIds.length === 0) {
-          setSearchMatchedTaskIds(new Set());
-          setIsSearching(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("tasks")
-          .select("id")
-          .in("column_id", colIds)
-          .or(`title.ilike.%${debouncedSearchTerm}%,description.ilike.%${debouncedSearchTerm}%`);
-
-        if (!error && data) {
-          setSearchMatchedTaskIds(new Set(data.map(t => t.id)));
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    fetchSearchResults();
-  }, [debouncedSearchTerm, columns]);
 
   const lastSyncedColumnsRef = useRef(columns);
   const lastSyncedTasksRef = useRef(tasks);
@@ -800,7 +755,7 @@ export function KanbanBoard({
             </button>
           )}
         </div>
-      </div>
+      )}
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable
@@ -831,7 +786,6 @@ export function KanbanBoard({
                     column={col}
                     colIndex={index}
                     tasks={columnTasks}
-                    searchMatchedTaskIds={searchMatchedTaskIds}
                     onTaskClick={onTaskClick}
                     onAddTask={onAddTask}
                     onUpdateColumn={onUpdateColumn}
