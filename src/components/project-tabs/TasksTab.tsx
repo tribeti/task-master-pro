@@ -53,6 +53,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [filterUserId, setFilterUserId] = useState<string | null>(null);
+  const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -308,8 +309,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
           lastLocalWriteRef.current = 0; // Reset on failure
           throw new Error();
         }
-        // Don't append newTask to state - wait for Realtime or refetch
-        // to ensure it has full KanbanTask shape (labels, assignees, etc)
+        const newTask = await res.json();
+        // Optimistically add to state with empty relations
+        setTasks((prev) => {
+          if (prev.some((t) => t.id === newTask.id)) return prev;
+          return [...prev, { ...newTask, labels: [], assignees: [], assignee: null }];
+        });
       } catch (insertError) {
         console.error(insertError);
         error = true;
@@ -650,6 +655,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
         boardMembers={boardMembers}
         filterUserId={filterUserId}
         onFilterChange={setFilterUserId}
+        filterLabelIds={filterLabelIds}
+        onFilterLabelsChange={setFilterLabelIds}
         currentUserId={user?.id || ""}
         isDraggingRef={isDraggingRef}
         markLocalWrite={markLocalWrite}
