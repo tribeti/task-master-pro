@@ -97,7 +97,7 @@ export async function GET(request: Request) {
         const { error: insertError } = await supabase.from("notifications").insert([{
           user_id: task.assignee_id,
           type: "deadline",
-          content: `DEADLINE WARNING\n${task.title} is ${urgencyStr}`,
+          content: `Sắp đến hạn: Nhiệm vụ "${task.title}" (Deadline: ${urgencyStr})`,
           is_read: false,
           task_id: task.id,
           project_id: projectId

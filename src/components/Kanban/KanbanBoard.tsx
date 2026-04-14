@@ -492,7 +492,7 @@ export function KanbanBoard({
   }, [localTasks, filterUserId, filterLabelIds, boardLabels]);
 
   // Don't render on server to avoid hydration mismatch
-  if (!isMounted) {
+  if (!isMountd) {
     return (
       <div
         className="h-full w-full overflow-x-auto flex gap-6 pb-2"
@@ -519,7 +519,7 @@ export function KanbanBoard({
   const isFiltering = !!filterUserId || effectiveLabelIds.length > 0;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* ── Assignee & Label Filters Bar ── */}
       {(boardMembers.length > 0 || boardLabels.length > 0 || !!filterUserId || filterLabelIds.length > 0) && (
         <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
@@ -682,7 +682,7 @@ export function KanbanBoard({
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="h-full w-full overflow-x-auto flex gap-6 pb-2"
+              className="flex-1 min-h-0 w-full overflow-x-auto flex gap-6 pb-4 kanban-board-scroll"
               style={{
                 backgroundImage:
                   "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
@@ -764,6 +764,6 @@ export function KanbanBoard({
           )}
         </Droppable>
       </DragDropContext>
-    </>
+    </div>
   );
 }

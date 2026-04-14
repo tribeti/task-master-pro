@@ -41,7 +41,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
   const { data: insertedTask, error } = await supabase
     .from("tasks")
     .insert([payload])
-    .select("id")
+    .select("*")
     .single();
   if (error) {
     console.error("createTaskAction error:", error.message);
@@ -65,6 +65,7 @@ export const createTaskAction = async (payload: Omit<Task, "id">) => {
   }
 
   revalidatePath("/projects");
+  return insertedTask as Task;
 };
 
 export const updateTaskAction = async (

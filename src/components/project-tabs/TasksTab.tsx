@@ -6,7 +6,9 @@ import React, {
   useCallback,
   useRef,
   useMemo,
+  Suspense,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -21,6 +23,25 @@ import {
   KanbanTask as Task,
   BoardMember,
 } from "@/types/project";
+
+function TaskUrlHandler({ tasks, selectedTaskId, onTaskFound }: { tasks: Task[], selectedTaskId?: number, onTaskFound: (task: Task) => void }) {
+  const searchParams = useSearchParams();
+  const urlTaskId = searchParams.get("taskId");
+
+  useEffect(() => {
+    if (urlTaskId && tasks.length > 0) {
+      const tid = parseInt(urlTaskId, 10);
+      if (selectedTaskId !== tid) {
+        const taskToOpen = tasks.find((t) => t.id === tid);
+        if (taskToOpen) {
+          onTaskFound(taskToOpen);
+        }
+      }
+    }
+  }, [urlTaskId, tasks, selectedTaskId, onTaskFound]);
+
+  return null;
+}
 
 export function TasksTab({ projectId }: { projectId: number }) {
   const { user } = useDashboardUser();
@@ -151,17 +172,8 @@ export function TasksTab({ projectId }: { projectId: number }) {
           filter: `board_id=eq.${projectId}`,
         },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            setColumns((prev) => {
-              // Anti-Duplication: check if we already appended it locally
-              if (prev.some((c) => c.id === payload.new.id)) return prev;
-              return [...prev, payload.new as Column].sort(
-                (a, b) => a.position - b.position,
-              );
-            });
-          } else {
-            handleRealtimeEvent();
-          }
+          // Don't append raw DB row - let fetchData() hydrate new columns properly
+          handleRealtimeEvent();
         },
       );
 
@@ -174,7 +186,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
           table: "tasks",
           filter: `column_id=in.(${columnIdsString})`,
         },
-        () => handleRealtimeEvent(),
+        (payload) => {
+          // Don't append raw DB row - let fetchData() hydrate new tasks with labels/assignees
+          handleRealtimeEvent();
+        },
       );
     }
 
@@ -217,6 +232,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
     await fetchComments(task.id);
   };
 
+  const handleTaskFoundFromUrl = useCallback((taskToOpen: Task) => {
+    // Avoid re-triggering if the modal is already open for this task
+    if (editingTask?.id !== taskToOpen.id) {
+      openEditModal(taskToOpen);
+    }
+  }, [editingTask?.id, openEditModal]);
+
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
   //  Each handler calls markLocalWrite() before fetchData() to
@@ -244,24 +266,35 @@ export function TasksTab({ projectId }: { projectId: number }) {
     let error = false;
 
     if (editingTask) {
+      // ── UPDATE: Can directly update state since we have full shape ──
+      markLocalWrite();
       try {
         const res = await fetch(`/api/kanban/tasks/${editingTask.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(taskPayload),
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          lastLocalWriteRef.current = 0; // Reset on failure
+          throw new Error();
+        }
+        const updatedTask = await res.json();
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)),
+        );
       } catch (updateError) {
         console.error(updateError);
         error = true;
       }
     } else {
+      // ── CREATE: DON'T append raw DB row, let Realtime/refetch hydrate ──
       const columnTasks = tasks.filter((t) => t.column_id === selectedColumnId);
       const nextPosition =
         columnTasks.length > 0
           ? Math.max(...columnTasks.map((t) => t.position)) + 1
           : 0;
 
+      markLocalWrite();
       try {
         const res = await fetch("/api/kanban/tasks", {
           method: "POST",
@@ -272,7 +305,12 @@ export function TasksTab({ projectId }: { projectId: number }) {
             position: nextPosition,
           }),
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          lastLocalWriteRef.current = 0; // Reset on failure
+          throw new Error();
+        }
+        // Don't append newTask to state - wait for Realtime or refetch
+        // to ensure it has full KanbanTask shape (labels, assignees, etc)
       } catch (insertError) {
         console.error(insertError);
         error = true;
@@ -291,9 +329,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
       );
     }
 
-    // Realtime will auto-refresh, but for CRUD we want immediate feedback
-    markLocalWrite();
-    await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
@@ -302,32 +337,38 @@ export function TasksTab({ projectId }: { projectId: number }) {
     if (!editingTask) return;
 
     setIsSubmitting(true);
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${editingTask.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
+      setTasks((prev) => prev.filter((t) => t.id !== editingTask.id));
       toast.success("xóa nhiệm vụ thành công");
     } catch (error) {
       console.error(error);
       toast.error("xóa nhiệm vụ thất bại");
     }
 
-    markLocalWrite();
-    await fetchData();
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
 
   const handleAddLabel = async (taskId: number, labelId: number) => {
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}/labels`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ labelId }),
       });
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("Thêm nhãn thành công");
     } catch (error) {
@@ -337,13 +378,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleRemoveLabel = async (taskId: number, labelId: number) => {
+    markLocalWrite();
     try {
       const res = await fetch(
         `/api/kanban/tasks/${taskId}/labels?labelId=${labelId}`,
         { method: "DELETE" },
       );
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("xóa nhãn thành công");
     } catch (error) {
@@ -353,14 +397,17 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleCreateLabel = async (name: string, color: string) => {
+    markLocalWrite();
     try {
       const res = await fetch("/api/kanban/labels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ boardId: projectId, name, color_hex: color }),
       });
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("Tạo nhãn thành công");
     } catch (error) {
@@ -374,6 +421,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     name: string,
     color: string,
   ) => {
+    markLocalWrite();
     // Step 1: Create the label
     const createRes = await fetch("/api/kanban/labels", {
       method: "POST",
@@ -381,6 +429,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       body: JSON.stringify({ boardId: projectId, name, color_hex: color }),
     });
     if (!createRes.ok) {
+      lastLocalWriteRef.current = 0; // Reset on failure
       toast.error("Tạo nhãn thất bại");
       throw new Error("Failed to create label");
     }
@@ -395,6 +444,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       });
       if (!assignRes.ok) throw new Error("Failed to assign label");
     } catch (assignError) {
+      lastLocalWriteRef.current = 0; // Reset on failure
       // Rollback: delete the orphaned label
       console.error("Assign failed, rolling back created label:", assignError);
       try {
@@ -418,19 +468,21 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     // Both steps succeeded
-    markLocalWrite();
     await fetchData();
     toast.success("Tạo và gán nhãn thành công");
     return createdLabel;
   };
 
   const handleDeleteLabel = async (labelId: number) => {
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/labels/${labelId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("Đã xóa nhãn");
     } catch (error) {
@@ -472,14 +524,17 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleAddAssignee = async (taskId: number, assigneeId: string) => {
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}/assignees`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: assigneeId }),
       });
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("Thêm người thực hiện thành công");
     } catch (error) {
@@ -490,13 +545,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleRemoveAssignee = async (taskId: number, assigneeId: string) => {
+    markLocalWrite();
     try {
       const res = await fetch(
         `/api/kanban/tasks/${taskId}/assignees?userId=${assigneeId}`,
         { method: "DELETE" },
       );
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("xóa người thực hiện thành công");
     } catch (error) {
@@ -507,13 +565,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleRemoveAllAssignees = async (taskId: number) => {
+    markLocalWrite();
     try {
       const res = await fetch(
         `/api/kanban/tasks/${taskId}/assignees?removeAll=true`,
         { method: "DELETE" },
       );
-      if (!res.ok) throw new Error();
-      markLocalWrite();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       await fetchData();
       toast.success("xóa tất cả người thực hiện thành công");
     } catch (error) {
@@ -524,15 +585,18 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleUpdateColumn = async (columnId: number, newTitle: string) => {
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/columns/${columnId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTitle }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       toast.success("Cập nhật cột thành công");
-      markLocalWrite();
       await fetchData();
     } catch (error) {
       console.error("Failed to update column:", error);
@@ -541,13 +605,16 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const handleDeleteColumn = async (columnId: number) => {
+    markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/columns/${columnId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
       toast.success("Đã xóa cột");
-      markLocalWrite();
       await fetchData();
     } catch (error) {
       console.error("Failed to delete column:", error);
@@ -568,7 +635,14 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }
 
   return (
-    <div className="flex-1 mt-4">
+    <div className="flex-1 mt-4 overflow-hidden">
+      <Suspense fallback={null}>
+        <TaskUrlHandler
+          tasks={tasks}
+          selectedTaskId={editingTask?.id}
+          onTaskFound={handleTaskFoundFromUrl}
+        />
+      </Suspense>
       <KanbanBoard
         projectId={projectId}
         columns={columns}
