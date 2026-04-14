@@ -28,6 +28,7 @@ interface KanbanColumnProps {
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   isDragDisabled?: boolean;
+  searchMatchedTaskIds?: Set<number> | null;
 }
 
 // All styles are visually distinct (no "plain/colorless" entry).
@@ -83,6 +84,7 @@ export function KanbanColumn({
   onAddLabel,
   onRemoveLabel,
   isDragDisabled = false,
+  searchMatchedTaskIds,
 }: KanbanColumnProps) {
   // Prime multiplier spreads consecutive IDs across different colors.
   // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
@@ -223,7 +225,12 @@ export function KanbanColumn({
             {(
               droppableProvided: DroppableProvided,
               droppableSnapshot: DroppableStateSnapshot,
-            ) => (
+            ) => {
+              const visibleTasks = searchMatchedTaskIds 
+                ? tasks.filter(task => searchMatchedTaskIds.has(task.id)) 
+                : tasks;
+
+              return (
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
@@ -232,12 +239,12 @@ export function KanbanColumn({
                   : ""
                   }`}
               >
-                {tasks.length === 0 && !droppableSnapshot.isDraggingOver && (
+                {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
-                    Chưa có nhiệm vụ
+                    {searchMatchedTaskIds ? "Không có kết quả" : "Chưa có nhiệm vụ"}
                   </div>
                 )}
-                {tasks.map((task, taskIndex) => (
+                {visibleTasks.map((task, taskIndex) => (
                   <KanbanTask
                     key={task.id}
                     id={task.id}
@@ -259,6 +266,7 @@ export function KanbanColumn({
                 {droppableProvided.placeholder}
               </div>
             )}
+            }
           </Droppable>
           <button
             onClick={() => onAddTask(column.id)}

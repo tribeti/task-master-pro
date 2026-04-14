@@ -21,13 +21,13 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-function ProjectUrlHandler({ 
-  ownedBoards, 
-  joinedBoards, 
-  boardsLoading, 
-  selectedProjectId, 
-  currentTab, 
-  onProjectFound 
+function ProjectUrlHandler({
+  ownedBoards,
+  joinedBoards,
+  boardsLoading,
+  selectedProjectId,
+  currentTab,
+  onProjectFound
 }: {
   ownedBoards: Board[];
   joinedBoards: Board[];
@@ -265,20 +265,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-              <ProjectCard
-                key={proj.id}
-                proj={proj}
-                index={index}
-                openMenuProjectId={openMenuProjectId}
-                setOpenMenuProjectId={setOpenMenuProjectId}
-                menuRef={menuRef}
-                handleUpdateProject={handleUpdateProject}
-                handleDeleteProject={handleDeleteProject}
-                setSelectedProject={setSelectedProject}
-                currentUserId={userId}
-                memberRole="Owner"
-              />
-            ))}
+            <ProjectCard
+              key={proj.id}
+              proj={proj}
+              index={index}
+              openMenuProjectId={openMenuProjectId}
+              setOpenMenuProjectId={setOpenMenuProjectId}
+              menuRef={menuRef}
+              handleUpdateProject={handleUpdateProject}
+              handleDeleteProject={handleDeleteProject}
+              setSelectedProject={setSelectedProject}
+              currentUserId={userId}
+              memberRole="Owner"
+            />
+          ))}
 
         {/* Create New Project Card */}
         <div
@@ -336,7 +336,7 @@ export default function ProjectsPage() {
       }
     >
       <Suspense fallback={null}>
-        <ProjectUrlHandler 
+        <ProjectUrlHandler
           ownedBoards={ownedBoards}
           joinedBoards={joinedBoards}
           boardsLoading={boardsLoading}
@@ -480,13 +480,12 @@ export default function ProjectsPage() {
       </div>
 
       {/* FLOATING ACTION BUTTON */}
-      {selectedProject ? (
+      {selectedProject && (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
-            projectTab === "Timeline"
-              ? "bg-[#1E293B] shadow-slate-400"
-              : "bg-[#34D399] shadow-emerald-200"
-          }`}
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
+            ? "bg-[#1E293B] shadow-slate-400"
+            : "bg-[#34D399] shadow-emerald-200"
+            }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
@@ -508,10 +507,6 @@ export default function ProjectsPage() {
           ) : (
             <PlusIcon />
           )}
-        </button>
-      ) : (
-        <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
-          <PlusIcon />
         </button>
       )}
 

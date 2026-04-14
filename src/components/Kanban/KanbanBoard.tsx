@@ -14,6 +14,9 @@ import { toast } from "sonner";
 import { KanbanColumn as Column, KanbanTask, Label, BoardMember } from "@/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
 
+import { createClient } from "@/utils/supabase/client";
+import { useDebounce } from "@/hooks/useDebounce";
+
 interface KanbanBoardProps {
   projectId: number;
   columns: Column[];
@@ -64,6 +67,48 @@ export function KanbanBoard({
   /* ── Local optimistic state ── */
   const [localColumns, setLocalColumns] = useState<Column[]>(columns);
   const [localTasks, setLocalTasks] = useState<KanbanTask[]>(tasks);
+
+  /* ── Search state ── */
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [searchMatchedTaskIds, setSearchMatchedTaskIds] = useState<Set<number> | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (!debouncedSearchTerm.trim()) {
+      setSearchMatchedTaskIds(null);
+      return;
+    }
+
+    const fetchSearchResults = async () => {
+      setIsSearching(true);
+      try {
+        const supabase = createClient();
+        const colIds = columns.map(c => c.id);
+        if (colIds.length === 0) {
+          setSearchMatchedTaskIds(new Set());
+          setIsSearching(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("id")
+          .in("column_id", colIds)
+          .or(`title.ilike.%${debouncedSearchTerm}%,description.ilike.%${debouncedSearchTerm}%`);
+
+        if (!error && data) {
+          setSearchMatchedTaskIds(new Set(data.map(t => t.id)));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    fetchSearchResults();
+  }, [debouncedSearchTerm, columns]);
 
   const lastSyncedColumnsRef = useRef(columns);
   const lastSyncedTasksRef = useRef(tasks);
@@ -456,85 +501,114 @@ export function KanbanBoard({
 
   return (
     <div className="flex flex-col h-full">
-      {/* ── Assignee Filter Bar ── */}
-      {boardMembers.length > 0 && (
-        <div className="flex items-center gap-2 px-1 pb-3 flex-wrap">
-          {/* My Tasks button */}
-          <button
-            onClick={() =>
-              onFilterChange?.(
-                filterUserId === currentUserId ? null : currentUserId
-              )
-            }
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
-                ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
-                : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
-              }`}
-            title="Chỉ hiện nhiệm vụ của tôi"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Nhiệm vụ của tôi
-          </button>
-
-          {/* Separator */}
-          <div className="w-px h-6 bg-slate-200" />
-
-          {/* Member avatars */}
-          {boardMembers.map((member) => {
-            const isActive = filterUserId === member.user_id;
-            return (
+      {/* ── Filter & Search Bar ── */}
+      <div className="flex items-center justify-between gap-4 px-1 pb-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {boardMembers.length > 0 && (
+            <>
+              {/* My Tasks button */}
               <button
-                key={member.user_id}
                 onClick={() =>
                   onFilterChange?.(
-                    isActive ? null : member.user_id
+                    filterUserId === currentUserId ? null : currentUserId
                   )
                 }
-                title={`Lọc theo: ${member.display_name}`}
-                className={`relative rounded-full transition-all focus:outline-none ${isActive
-                    ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
-                    : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
+                    ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
+                    : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                   }`}
+                title="Chỉ hiện nhiệm vụ của tôi"
               >
-                <UserAvatar
-                  avatarUrl={member.avatar_url}
-                  displayName={member.display_name}
-                  className="w-8 h-8"
-                  fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
-                />
-                {isActive && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#28B8FA] rounded-full flex items-center justify-center">
-                    <svg width="7" height="7" viewBox="0 0 24 24" fill="white" stroke="none">
-                      <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                )}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Nhiệm vụ của tôi
               </button>
-            );
-          })}
 
-          {/* Clear filter button */}
-          {filterUserId && (
-            <button
-              onClick={() => onFilterChange?.(null)}
-              className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border border-slate-200 hover:border-red-200 transition-all"
-              title="Xóa bộ lọc"
+              {/* Separator */}
+              <div className="w-px h-6 bg-slate-200" />
+
+              {/* Member avatars */}
+              {boardMembers.map((member) => {
+                const isActive = filterUserId === member.user_id;
+                return (
+                  <button
+                    key={member.user_id}
+                    onClick={() =>
+                      onFilterChange?.(
+                        isActive ? null : member.user_id
+                      )
+                    }
+                    title={`Lọc theo: ${member.display_name}`}
+                    className={`relative rounded-full transition-all focus:outline-none ${isActive
+                        ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
+                        : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
+                      }`}
+                  >
+                    <UserAvatar
+                      avatarUrl={member.avatar_url}
+                      displayName={member.display_name}
+                      className="w-8 h-8"
+                      fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                    />
+                    {isActive && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#28B8FA] rounded-full flex items-center justify-center">
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="white" stroke="none">
+                          <polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Clear filter button */}
+              {filterUserId && (
+                <button
+                  onClick={() => onFilterChange?.(null)}
+                  className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border border-slate-200 hover:border-red-200 transition-all"
+                  title="Xóa bộ lọc"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Tất cả
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        
+        {/* Search Input */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tìm kiếm thẻ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-8 py-1.5 rounded-full border border-slate-200 text-sm focus:outline-none focus:border-[#28B8FA] focus:ring-1 focus:ring-[#28B8FA] w-64 shadow-sm transition-all bg-white text-slate-700"
+          />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+          )}
+          {searchTerm && !isSearching && (
+            <button 
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 p-0.5 transition-colors"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              Tất cả
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           )}
         </div>
-      )}
+      </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="board" type="COLUMN" direction="horizontal" isDropDisabled={!!filterUserId}>
+        <Droppable droppableId="board" type="COLUMN" direction="horizontal" isDropDisabled={!!filterUserId || searchMatchedTaskIds !== null}>
           {(provided: DroppableProvided) => (
             <div
               ref={provided.innerRef}
@@ -557,6 +631,7 @@ export function KanbanBoard({
                     column={col}
                     colIndex={index}
                     tasks={columnTasks}
+                    searchMatchedTaskIds={searchMatchedTaskIds}
                     onTaskClick={onTaskClick}
                     onAddTask={onAddTask}
                     onUpdateColumn={onUpdateColumn}
@@ -564,7 +639,7 @@ export function KanbanBoard({
                     boardLabels={boardLabels}
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
-                    isDragDisabled={!!filterUserId}
+                    isDragDisabled={!!filterUserId || searchMatchedTaskIds !== null}
                   />
                 );
               })}
