@@ -8,10 +8,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder          # build xong là chạy ngay, không cần stage runner
+      target: development      # build xong là chạy ngay (npm install), không cần build sản phẩm
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.1.0}
     command: npm run dev
     ports:
       - "3000:3000"
@@ -23,6 +24,7 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      - NEXT_PUBLIC_APP_VERSION=${APP_VERSION:-0.1.0}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     env_file:
       - src/.env.local
@@ -43,9 +45,11 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.1.0}
     ports:
       - "3000:3000"
     environment:
+      - NEXT_PUBLIC_APP_VERSION=${APP_VERSION:-0.1.0}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     env_file:
       - src/.env.local

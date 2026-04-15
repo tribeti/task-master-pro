@@ -10,7 +10,7 @@ export async function GET() {
       status: "ok",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.npm_package_version ?? "unknown",
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? "unknown",
       environment: process.env.NODE_ENV,
     },
     { status: 200 }
