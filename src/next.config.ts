@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const ALLOWED_ORIGINS = ["https://taskmasterpro.com", "http://localhost:3000"];
 
 const nextConfig: NextConfig = {
+  // Bắt buộc để Dockerfile multi-stage hoạt động (copy .next/standalone)
+  output: "standalone",
   images: {
     remotePatterns: [
       {

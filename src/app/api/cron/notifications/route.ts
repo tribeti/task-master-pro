@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { getDeadlineStatus } from "@/utils/deadline";
 
-// Use service role key to bypass RLS and act as an admin job
-const supabaseAdminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseAdminUrl, supabaseServiceRoleKey);
 
 export async function GET(request: Request) {
   try {
+    const supabase = createAdminClient();
     // Only enforce auth check when CRON_SECRET is configured
     const cronSecret = process.env.CRON_SECRET;
     if (cronSecret) {

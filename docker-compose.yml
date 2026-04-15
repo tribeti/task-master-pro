@@ -1,0 +1,56 @@
+# docker-compose.yml — dùng cho LOCAL DEVELOPMENT
+# Không dùng file này ở production
+
+name: task-master-pro
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development      # build xong là chạy ngay (npm install), không cần build sản phẩm
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.1.0}
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app              # hot-reload: mount source vào container
+      - /app/node_modules       # giữ nguyên node_modules của container
+      - /app/.next              # giữ nguyên .next cache
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      - NEXT_PUBLIC_APP_VERSION=${APP_VERSION:-0.1.0}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    env_file:
+      - src/.env.local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Production preview (dùng `docker compose --profile prod up`) ──
+  app-prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-0.1.0}
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_APP_VERSION=${APP_VERSION:-0.1.0}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    env_file:
+      - src/.env.local
+    restart: unless-stopped
