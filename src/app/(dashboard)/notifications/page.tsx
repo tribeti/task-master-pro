@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useDashboardUser } from "../provider";
 import { useNotifications } from "@/hooks/useNotifications";
 import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
@@ -127,7 +127,7 @@ export default function NotificationsPage() {
                 if (payload.token && notification.project_id) {
                   acceptUrl = `/api/boards/${notification.project_id}/invitations/accept?token=${payload.token}`;
                 }
-              } catch (e) {
+              } catch {
                 taskTitle = "Bạn có một lời mời tham gia dự án mới";
               }
             }
@@ -140,7 +140,9 @@ export default function NotificationsPage() {
                   const pid = notification.project_id || projObj?.id;
                   const tid = notification.task_id || taskObj?.id;
                   if (pid && tid) {
-                    router.push(`/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`);
+                    router.push(
+                      `/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`,
+                    );
                   }
                 }}
                 className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${

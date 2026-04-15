@@ -24,7 +24,15 @@ import {
   BoardMember,
 } from "@/types/project";
 
-function TaskUrlHandler({ tasks, selectedTaskId, onTaskFound }: { tasks: Task[], selectedTaskId?: number, onTaskFound: (task: Task) => void }) {
+function TaskUrlHandler({
+  tasks,
+  selectedTaskId,
+  onTaskFound,
+}: {
+  tasks: Task[];
+  selectedTaskId?: number;
+  onTaskFound: (task: Task) => void;
+}) {
   const searchParams = useSearchParams();
   const urlTaskId = searchParams.get("taskId");
 
@@ -171,7 +179,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
           table: "columns",
           filter: `board_id=eq.${projectId}`,
         },
-        (payload) => {
+        () => {
           // Don't append raw DB row - let fetchData() hydrate new columns properly
           handleRealtimeEvent();
         },
@@ -186,7 +194,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
           table: "tasks",
           filter: `column_id=in.(${columnIdsString})`,
         },
-        (payload) => {
+        () => {
           // Don't append raw DB row - let fetchData() hydrate new tasks with labels/assignees
           handleRealtimeEvent();
         },
@@ -232,12 +240,15 @@ export function TasksTab({ projectId }: { projectId: number }) {
     await fetchComments(task.id);
   };
 
-  const handleTaskFoundFromUrl = useCallback((taskToOpen: Task) => {
-    // Avoid re-triggering if the modal is already open for this task
-    if (editingTask?.id !== taskToOpen.id) {
-      openEditModal(taskToOpen);
-    }
-  }, [editingTask?.id, openEditModal]);
+  const handleTaskFoundFromUrl = useCallback(
+    (taskToOpen: Task) => {
+      // Avoid re-triggering if the modal is already open for this task
+      if (editingTask?.id !== taskToOpen.id) {
+        openEditModal(taskToOpen);
+      }
+    },
+    [editingTask?.id, openEditModal],
+  );
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
@@ -280,7 +291,9 @@ export function TasksTab({ projectId }: { projectId: number }) {
         }
         const updatedTask = await res.json();
         setTasks((prev) =>
-          prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)),
+          prev.map((t) =>
+            t.id === updatedTask.id ? { ...t, ...updatedTask } : t,
+          ),
         );
       } catch (updateError) {
         console.error(updateError);
@@ -313,7 +326,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
         // Optimistically add to state with empty relations
         setTasks((prev) => {
           if (prev.some((t) => t.id === newTask.id)) return prev;
-          return [...prev, { ...newTask, labels: [], assignees: [], assignee: null }];
+          return [
+            ...prev,
+            { ...newTask, labels: [], assignees: [], assignee: null },
+          ];
         });
       } catch (insertError) {
         console.error(insertError);
