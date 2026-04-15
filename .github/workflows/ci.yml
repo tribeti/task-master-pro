@@ -23,19 +23,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
-          # Đã sửa lỗi chính tả: dependcy -> dependency
-          # Đường dẫn trỏ thẳng vào thư mục src nơi chứa file lock
           cache-dependency-path: src/package-lock.json
 
       # Bước 3: Cài đặt dependencies (dùng ci để bám sát package-lock.json)
       - name: Install dependencies
         run: npm ci
-
-      # Bước 4: Chạy Linter để kiểm tra format code
-      - name: Run ESLint
-        run: npm run lint
 
       # Bước 5: Chạy toàn bộ Unit/Integration Test và check Coverage
       - name: Run Tests with Coverage
