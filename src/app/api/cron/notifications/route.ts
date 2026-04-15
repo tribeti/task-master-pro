@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getDeadlineStatus } from "@/utils/deadline";
 
-// Use service role key to bypass RLS and act as an admin job
-const supabaseAdminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseAdminUrl, supabaseServiceRoleKey);
+// Lazy-init: tạo client bên trong handler để tránh crash khi Next.js
+// static-analyse route lúc build (lúc đó env vars chưa được inject).
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin credentials are not configured.");
+  return createClient(url, key);
+}
 
 export async function GET(request: Request) {
   try {
+    const supabase = getSupabaseAdmin();
     // Only enforce auth check when CRON_SECRET is configured
     const cronSecret = process.env.CRON_SECRET;
     if (cronSecret) {
