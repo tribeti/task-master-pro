@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependcy-path: src/package-lock.json
+          cache-dependcy-path: ./src/package-lock.json
 
       # Bước 3: Cài đặt dependencies (dùng ci thay vì install để chuẩn hóa theo package-lock.json)
       - name: Install dependencies
