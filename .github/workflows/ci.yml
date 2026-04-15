@@ -12,29 +12,31 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src
+        working-directory: src # Khai báo này giúp các lệnh npm bên dưới tự động chạy trong thư mục src/
 
     steps:
       # Bước 1: Clone source code về môi trường CI
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Bước 2: Cài đặt Node.js (khuyên dùng bản LTS mới nhất như 20)
+      # Bước 2: Cài đặt Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependcy-path: ./src/package-lock.json
+          # Đã sửa lỗi chính tả: dependcy -> dependency
+          # Đường dẫn trỏ thẳng vào thư mục src nơi chứa file lock
+          cache-dependency-path: src/package-lock.json
 
-      # Bước 3: Cài đặt dependencies (dùng ci thay vì install để chuẩn hóa theo package-lock.json)
+      # Bước 3: Cài đặt dependencies (dùng ci để bám sát package-lock.json)
       - name: Install dependencies
         run: npm ci
 
-      # Bước 4: Chạy Linter để kiểm tra format code (dựa vào file eslint.config.mjs của bạn)
+      # Bước 4: Chạy Linter để kiểm tra format code
       - name: Run ESLint
         run: npm run lint
 
-      # Bước 5: Chạy toàn bộ Unit/Integration Test và check Coverage 75%
+      # Bước 5: Chạy toàn bộ Unit/Integration Test và check Coverage
       - name: Run Tests with Coverage
         run: npm run test -- --coverage
