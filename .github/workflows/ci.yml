@@ -10,6 +10,9 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
 
     steps:
       # Bước 1: Clone source code về môi trường CI
@@ -21,7 +24,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm" # Giúp tăng tốc độ cài đặt packages ở các lần chạy sau
+          cache: "npm"
+          cache-dependcy-path: src/package-lock.json
 
       # Bước 3: Cài đặt dependencies (dùng ci thay vì install để chuẩn hóa theo package-lock.json)
       - name: Install dependencies
