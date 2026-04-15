@@ -1,5 +1,5 @@
-var mockGetUser = jest.fn();
-var mockFrom = jest.fn();
+const mockGetUser = jest.fn();
+const mockFrom = jest.fn();
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({

@@ -2,14 +2,14 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { 
+import {
   verifyBoardAccess,
   verifyAllBoardsAccess,
   verifyTaskAccess,
   getTaskBoardId,
   ensureBoardMember,
   syncPrimaryAssignee,
-  validateString
+  validateString,
 } from "@/utils/board-access";
 import { revalidatePath } from "next/cache";
 import { Task, Label } from "@/types/project";
@@ -659,7 +659,7 @@ export const createCommentAction = async (taskId: number, content: string) => {
     user_id: user.id,
   };
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("comments")
     .insert([payload])
     .select()

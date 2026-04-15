@@ -1,4 +1,4 @@
-var mockFrom = jest.fn();
+const mockFrom = jest.fn();
 
 jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({

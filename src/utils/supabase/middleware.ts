@@ -15,7 +15,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
@@ -37,13 +37,17 @@ export async function updateSession(request: NextRequest) {
 
   // Protect all API routes except public ones (like auth or cron jobs)
   const isApiRoute = pathname.startsWith("/api");
-  const publicApiRoutes = ["/api/auth/register", "/api/auth/login", "/api/cron"];
-  const isPublicApiRoute = publicApiRoutes.some((route) =>
-    pathname.startsWith(route),
-  ) || pathname.includes("/invitations/accept");
+  const publicApiRoutes = [
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/cron",
+  ];
+  const isPublicApiRoute =
+    publicApiRoutes.some((route) => pathname.startsWith(route)) ||
+    pathname.includes("/invitations/accept");
 
   if (isApiRoute && !isPublicApiRoute && !user) {
-    let authError = NextResponse.json(
+    const authError = NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 },
     );

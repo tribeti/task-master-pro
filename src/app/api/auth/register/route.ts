@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { validatePassword } from "@/lib/auth/validators";
 import { createErrorResponse, createSuccessResponse } from "@/lib/auth/helpers";
@@ -24,7 +23,9 @@ export async function POST(request: Request) {
 
     // Build email confirmation callback URL
     const origin =
-      request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      request.headers.get("origin") ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
     const callbackUrl = new URL("/auth/callback", origin);
     if (redirectTo) {
       callbackUrl.searchParams.set("redirectTo", redirectTo);

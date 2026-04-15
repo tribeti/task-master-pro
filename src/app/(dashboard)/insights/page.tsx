@@ -86,7 +86,7 @@ export default function InsightsPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  let totalTasks = data.length;
+  const totalTasks = data.length;
   let completedTasks = 0;
   let overdueTasks = 0;
 

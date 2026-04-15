@@ -27,7 +27,7 @@ function ProjectUrlHandler({
   boardsLoading,
   selectedProjectId,
   currentTab,
-  onProjectFound
+  onProjectFound,
 }: {
   ownedBoards: Board[];
   joinedBoards: Board[];
@@ -47,13 +47,24 @@ function ProjectUrlHandler({
       const isNewTab = urlTab && currentTab !== urlTab;
 
       if (isNewProject || isNewTab) {
-        const found = ownedBoards.find((b) => b.id === id) || joinedBoards.find((b) => b.id === id);
+        const found =
+          ownedBoards.find((b) => b.id === id) ||
+          joinedBoards.find((b) => b.id === id);
         if (found) {
           onProjectFound(found, urlTab);
         }
       }
     }
-  }, [boardsLoading, urlProjectId, urlTab, ownedBoards, joinedBoards, selectedProjectId, currentTab, onProjectFound]);
+  }, [
+    boardsLoading,
+    urlProjectId,
+    urlTab,
+    ownedBoards,
+    joinedBoards,
+    selectedProjectId,
+    currentTab,
+    onProjectFound,
+  ]);
 
   return null;
 }
@@ -91,12 +102,20 @@ export default function ProjectsPage() {
     router.replace("/projects", { scroll: false });
   }, [router]);
 
-  const handleProjectFoundFromUrl = useCallback((foundProject: Board, tab: string | null) => {
-    setSelectedProject(foundProject);
-    if (tab === "Tasks" || tab === "Timeline" || tab === "Files" || tab === "Team") {
-      setProjectTab(tab as any);
-    }
-  }, []);
+  const handleProjectFoundFromUrl = useCallback(
+    (foundProject: Board, tab: string | null) => {
+      setSelectedProject(foundProject);
+      if (
+        tab === "Tasks" ||
+        tab === "Timeline" ||
+        tab === "Files" ||
+        tab === "Team"
+      ) {
+        setProjectTab(tab as any);
+      }
+    },
+    [],
+  );
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
@@ -210,12 +229,6 @@ export default function ProjectsPage() {
     }
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  };
-
   const totalProjects = ownedBoards.length + joinedBoards.length;
 
   // --- Skeleton cards for loading state ---
@@ -265,20 +278,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-            <ProjectCard
-              key={proj.id}
-              proj={proj}
-              index={index}
-              openMenuProjectId={openMenuProjectId}
-              setOpenMenuProjectId={setOpenMenuProjectId}
-              menuRef={menuRef}
-              handleUpdateProject={handleUpdateProject}
-              handleDeleteProject={handleDeleteProject}
-              setSelectedProject={setSelectedProject}
-              currentUserId={userId}
-              memberRole="Owner"
-            />
-          ))}
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole="Owner"
+              />
+            ))}
 
         {/* Create New Project Card */}
         <div
@@ -469,7 +482,9 @@ export default function ProjectsPage() {
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
               )}
-              {projectTab === "Timeline" && <TimelineTab projectId={selectedProject.id} />}
+              {projectTab === "Timeline" && (
+                <TimelineTab projectId={selectedProject.id} />
+              )}
               {projectTab === "Files" && <FilesTab />}
               {projectTab === "Team" && (
                 <TeamTab boardId={selectedProject.id} />
@@ -482,10 +497,11 @@ export default function ProjectsPage() {
       {/* FLOATING ACTION BUTTON */}
       {selectedProject && (
         <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
-            ? "bg-[#1E293B] shadow-slate-400"
-            : "bg-[#34D399] shadow-emerald-200"
-            }`}
+          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
+            projectTab === "Timeline"
+              ? "bg-[#1E293B] shadow-slate-400"
+              : "bg-[#34D399] shadow-emerald-200"
+          }`}
         >
           {projectTab === "Timeline" ? (
             <ChatIcon />
