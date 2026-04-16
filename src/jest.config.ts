@@ -20,7 +20,7 @@ const config: Config = {
     "<rootDir>/services/**/*.ts",
     "<rootDir>/hooks/**/*.ts",
     "<rootDir>/app/actions/**/*.ts",
-    // "<rootDir>/app/api/**/*.ts",
+    "<rootDir>/app/api/**/*.ts",
   ],
   coverageThreshold: {
     global: {
