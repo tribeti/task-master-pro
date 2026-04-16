@@ -6,6 +6,16 @@ import {
   validateString,
 } from "@/utils/board-access";
 
+// Mock Next.js Server Components
+jest.mock("next/server", () => ({
+  NextResponse: {
+    json: jest.fn((body, init) => ({
+      status: init?.status || 200,
+      json: () => Promise.resolve(body),
+    })),
+  },
+}));
+
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn(),
 }));

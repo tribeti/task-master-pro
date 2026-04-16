@@ -68,7 +68,8 @@ const mockFrom = jest.fn((table: string) => {
     return {
       select: jest.fn((cols) => {
         if (cols === "task_id") return mockAssigneeAffChain;
-        if (cols.includes("assigned_at")) return mockAssigneeSyncChain;
+        if (typeof cols === "string" && cols.includes("assigned_at"))
+          return mockAssigneeSyncChain;
         return {};
       }),
       delete: mockAssigneeDelete,
