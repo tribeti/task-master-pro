@@ -20,6 +20,12 @@ jest.mock("@/utils/supabase/server", () => ({
 jest.mock("@/utils/board-access", () => ({
   verifyBoardAccess: jest.fn(),
   validateString: jest.fn(),
+  AuthorizationError: class extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "AuthorizationError";
+    }
+  },
 }));
 
 // 3. SMART MOCK CHAINS
@@ -129,14 +135,15 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(res.status).toBe(404);
     });
 
-    it("5. Lỗi 500 nếu bị chặn quyền (verifyBoardAccess văng lỗi)", async () => {
+    it("5. Lỗi 403 nếu bị chặn quyền (verifyBoardAccess văng lỗi AuthorizationError)", async () => {
       mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
-      (verifyBoardAccess as jest.Mock).mockRejectedValue(
-        new Error("Access denied"),
-      );
+      const authError = new Error("Access denied");
+      authError.name = "AuthorizationError";
+      (verifyBoardAccess as jest.Mock).mockRejectedValue(authError);
+
       const req = createMockRequest("PUT", { title: "New" });
       const res = await PUT(req, createContext());
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(403);
     });
 
     it("6. Lỗi 500 nếu update database thất bại", async () => {
@@ -198,7 +205,26 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(res.status).toBe(404);
     });
 
-    it("3. Lỗi 500 nếu đếm task thất bại", async () => {
+    it("3. Lỗi 403 nếu bị chặn quyền (verifyBoardAccess từ chối)", async () => {
+      mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
+      mockTaskCountEq.mockResolvedValue({ count: 0, error: null });
+
+      const authError = new Error("Access denied");
+      authError.name = "AuthorizationError";
+      (verifyBoardAccess as jest.Mock).mockResolvedValueOnce(
+        Promise.reject(authError),
+      );
+
+      const req = createMockRequest("DELETE");
+      const res = await DELETE(req, createContext());
+
+      expect(res.status).toBe(403);
+      // Đảm bảo không gọi delete
+      expect(mockColDelete).not.toHaveBeenCalled();
+      expect(mockColDeleteEq).not.toHaveBeenCalled();
+    });
+
+    it("4. Lỗi 500 nếu đếm task thất bại", async () => {
       mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
       mockTaskCountEq.mockResolvedValue({
         count: null,
@@ -210,7 +236,7 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(res.status).toBe(500);
     });
 
-    it("4. Lỗi 400 nếu cột vẫn còn chứa task (count > 0)", async () => {
+    it("5. Lỗi 400 nếu cột vẫn còn chứa task (count > 0)", async () => {
       mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
       mockTaskCountEq.mockResolvedValue({ count: 5, error: null }); // Có 5 task
 
@@ -222,7 +248,7 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(body.error).toBe("Không thể xóa cột vẫn còn chứa task.");
     });
 
-    it("5. Lỗi 500 nếu lệnh xóa cột thất bại", async () => {
+    it("6. Lỗi 500 nếu lệnh xóa cột thất bại", async () => {
       mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
       mockTaskCountEq.mockResolvedValue({ count: 0, error: null }); // Rỗng task
       mockColDeleteEq.mockResolvedValue({ error: { message: "Delete fail" } });
@@ -232,7 +258,7 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(res.status).toBe(500);
     });
 
-    it("6. Thành công (200) xóa cột rỗng", async () => {
+    it("7. Thành công (200) xóa cột rỗng", async () => {
       mockColSingle.mockResolvedValue({ data: { board_id: 1 }, error: null });
       mockTaskCountEq.mockResolvedValue({ count: 0, error: null });
       mockColDeleteEq.mockResolvedValue({ error: null });
@@ -249,7 +275,7 @@ describe("/api/kanban/columns/[columnId]", () => {
       expect(mockColDeleteEq).toHaveBeenCalledWith("id", 99);
     });
 
-    it("7. Catch block: Xử lý exception bất ngờ (vd: params reject)", async () => {
+    it("8. Catch block: Xử lý exception bất ngờ (vd: params reject)", async () => {
       const res = await DELETE(createMockRequest("DELETE"), {
         params: Promise.reject(new Error("Crash")),
       });

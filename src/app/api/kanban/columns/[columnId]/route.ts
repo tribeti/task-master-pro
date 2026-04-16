@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { verifyBoardAccess, validateString } from "@/utils/board-access";
+import {
+  verifyBoardAccess,
+  validateString,
+  AuthorizationError,
+} from "@/utils/board-access";
 
 export async function PUT(request: Request, context: any) {
   const params = await context.params;
@@ -60,6 +64,12 @@ export async function PUT(request: Request, context: any) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    if (
+      error instanceof AuthorizationError ||
+      error.name === "AuthorizationError"
+    ) {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },
@@ -116,6 +126,12 @@ export async function DELETE(request: Request, context: any) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    if (
+      error instanceof AuthorizationError ||
+      error.name === "AuthorizationError"
+    ) {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 },
