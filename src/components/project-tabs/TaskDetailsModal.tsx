@@ -12,6 +12,7 @@ interface ChecklistItem {
   content: string;
   is_completed: boolean;
   created_at: string;
+  isPending?: boolean;
 }
 
 interface Checklist {
@@ -20,6 +21,7 @@ interface Checklist {
   title: string;
   created_at: string;
   items: ChecklistItem[];
+  isPending?: boolean;
 }
 
 const INLINE_LABEL_PRESET_COLORS = [
@@ -215,32 +217,15 @@ export function TaskDetailsModal({
     let ignore = false;
     const fetchChecklists = async () => {
       setChecklistsLoading(true);
-      const { data: lists, error: listsError } = await supabase
+      const { data, error } = await supabase
         .from("checklists")
-        .select("*")
+        .select("*, items:checklist_items(*)")
         .eq("task_id", initialData.id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .order("created_at", { foreignTable: "checklist_items", ascending: true });
 
-      if (!listsError && lists && !ignore) {
-        if (lists.length === 0) {
-          setChecklists([]);
-        } else {
-          const { data: items, error: itemsError } = await supabase
-            .from("checklist_items")
-            .select("*")
-            .in("checklist_id", lists.map((l: any) => l.id))
-            .order("created_at", { ascending: true });
-
-          if (!itemsError && items && !ignore) {
-            const enriched = lists.map((l: any) => ({
-              ...l,
-              items: items.filter((i: any) => i.checklist_id === l.id)
-            }));
-            setChecklists(enriched);
-          } else if (!ignore) {
-            setChecklists(lists.map((l: any) => ({ ...l, items: [] })));
-          }
-        }
+      if (!error && data && !ignore) {
+        setChecklists(data);
       } else if (!ignore) {
         setChecklists([]);
       }
@@ -255,41 +240,108 @@ export function TaskDetailsModal({
   }, [isOpen, initialData?.id, supabase]);
 
   const handleAddChecklist = async (title: string = "Việc cần làm") => {
-    if (!initialData?.id) return;
+    const trimmedTitle = title.trim();
+    if (!initialData?.id || !trimmedTitle) return;
+
     const tempId = crypto.randomUUID();
-    const newChecklist: Checklist = { id: tempId, task_id: initialData.id, title, created_at: new Date().toISOString(), items: [] };
+    const newChecklist: Checklist = {
+      id: tempId,
+      task_id: initialData.id,
+      title: trimmedTitle,
+      created_at: new Date().toISOString(),
+      items: [],
+      isPending: true
+    };
     setChecklists(prev => [...prev, newChecklist]);
 
-    const { data } = await supabase.from("checklists").insert({ task_id: initialData.id, title }).select().single();
-    if (data) {
-      setChecklists(prev => prev.map(c => c.id === tempId ? { ...data, items: [] } : c));
+    try {
+      const { data, error } = await supabase
+        .from("checklists")
+        .insert({ task_id: initialData.id, title: trimmedTitle })
+        .select()
+        .single();
+
+      if (data && !error) {
+        setChecklists(prev => prev.map(c => c.id === tempId ? { ...data, items: [], isPending: false } : c));
+      } else {
+        setChecklists(prev => prev.filter(c => c.id !== tempId));
+      }
+    } catch (err) {
+      setChecklists(prev => prev.filter(c => c.id !== tempId));
     }
   };
 
   const handleUpdateChecklistTitle = async (id: string, newTitle: string) => {
-    if (!newTitle.trim()) return;
-    setChecklists(prev => prev.map(c => c.id === id ? { ...c, title: newTitle } : c));
-    await supabase.from("checklists").update({ title: newTitle }).eq("id", id);
+    const trimmedTitle = newTitle.trim();
+    if (!trimmedTitle) return;
+
+    const checklist = checklists.find(c => c.id === id);
+    if (!checklist || checklist.isPending) return;
+
+    setChecklists(prev => prev.map(c => c.id === id ? { ...c, title: trimmedTitle } : c));
+    await supabase.from("checklists").update({ title: trimmedTitle }).eq("id", id);
   };
 
   const handleDeleteChecklist = async (id: string) => {
+    const checklist = checklists.find(c => c.id === id);
+    if (!checklist || checklist.isPending) return;
+
     setChecklists(prev => prev.filter(c => c.id !== id));
     await supabase.from("checklists").delete().eq("id", id);
   };
 
   const handleAddItem = async (checklistId: string, content: string) => {
-    if (!content.trim()) return;
+    const trimmedContent = content.trim();
+    if (!trimmedContent) return;
+
+    const checklist = checklists.find(c => c.id === checklistId);
+    if (!checklist || checklist.isPending) return;
+
     const tempId = crypto.randomUUID();
-    const newItem: ChecklistItem = { id: tempId, checklist_id: checklistId, content, is_completed: false, created_at: new Date().toISOString() };
+    const newItem: ChecklistItem = {
+      id: tempId,
+      checklist_id: checklistId,
+      content: trimmedContent,
+      is_completed: false,
+      created_at: new Date().toISOString(),
+      isPending: true
+    };
+
     setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c));
 
-    const { data } = await supabase.from("checklist_items").insert({ checklist_id: checklistId, content }).select().single();
-    if (data) {
-      setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: c.items.map(i => i.id === tempId ? data : i) } : c));
+    try {
+      const { data, error } = await supabase
+        .from("checklist_items")
+        .insert({ checklist_id: checklistId, content: trimmedContent })
+        .select()
+        .single();
+
+      if (data && !error) {
+        setChecklists(prev => prev.map(c => c.id === checklistId ? {
+          ...c,
+          items: c.items.map(i => i.id === tempId ? { ...data, isPending: false } : i)
+        } : c));
+      } else {
+        setChecklists(prev => prev.map(c => c.id === checklistId ? {
+          ...c,
+          items: c.items.filter(i => i.id !== tempId)
+        } : c));
+      }
+    } catch (err) {
+      setChecklists(prev => prev.map(c => c.id === checklistId ? {
+        ...c,
+        items: c.items.filter(i => i.id !== tempId)
+      } : c));
     }
   };
 
   const handleToggleItem = async (checklistId: string, itemId: string, isCompleted: boolean) => {
+    const checklist = checklists.find(c => c.id === checklistId);
+    if (!checklist || checklist.isPending) return;
+
+    const item = checklist.items.find(i => i.id === itemId);
+    if (!item || item.isPending) return;
+
     setChecklists(prev => prev.map(c => c.id === checklistId ? {
       ...c, items: c.items.map(i => i.id === itemId ? { ...i, is_completed: isCompleted } : i)
     } : c));
@@ -298,6 +350,12 @@ export function TaskDetailsModal({
   };
 
   const handleDeleteItem = async (checklistId: string, itemId: string) => {
+    const checklist = checklists.find(c => c.id === checklistId);
+    if (!checklist || checklist.isPending) return;
+
+    const item = checklist.items.find(i => i.id === itemId);
+    if (!item || item.isPending) return;
+
     setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c));
     await supabase.from("checklist_items").delete().eq("id", itemId);
   };
@@ -982,13 +1040,14 @@ export function TaskDetailsModal({
                               onChange={(e) => setEditingChecklistTitle(e.target.value)}
                               autoFocus
                               onBlur={() => {
-                                handleUpdateChecklistTitle(checklist.id, editingChecklistTitle);
+                                if (editingChecklistTitle.trim() && editingChecklistTitle !== checklist.title) {
+                                  handleUpdateChecklistTitle(checklist.id, editingChecklistTitle);
+                                }
                                 setEditingChecklistId(null);
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  handleUpdateChecklistTitle(checklist.id, editingChecklistTitle);
-                                  setEditingChecklistId(null);
+                                  e.currentTarget.blur();
                                 } else if (e.key === 'Escape') {
                                   setEditingChecklistId(null);
                                 }
@@ -997,19 +1056,24 @@ export function TaskDetailsModal({
                             />
                           ) : (
                             <h3
-                              className="text-sm font-bold text-slate-800 hover:bg-slate-200/50 rounded px-2 py-1 cursor-pointer transition-colors flex-1 mr-4"
+                              className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 ${checklist.isPending
+                                ? 'text-slate-400 cursor-not-allowed'
+                                : 'text-slate-800 hover:bg-slate-200/50 cursor-pointer'
+                                }`}
                               onClick={() => {
+                                if (checklist.isPending) return;
                                 setEditingChecklistId(checklist.id);
                                 setEditingChecklistTitle(checklist.title);
                               }}
                             >
-                              {checklist.title}
+                              {checklist.title} {checklist.isPending && <span className="text-[10px] font-normal italic ml-2">(Đang tạo...)</span>}
                             </h3>
                           )}
                           <button
                             type="button"
                             onClick={() => handleDeleteChecklist(checklist.id)}
-                            className="text-xs text-slate-400 hover:text-red-500 font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                            disabled={checklist.isPending}
+                            className="text-xs font-semibold px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-slate-400 hover:text-red-500 hover:bg-red-50"
                           >
                             Xóa nhóm
                           </button>
@@ -1029,12 +1093,13 @@ export function TaskDetailsModal({
 
                         <div className="space-y-3 mb-3 pl-1">
                           {checklist.items.map((item) => (
-                            <div key={item.id} className="flex items-start gap-3 group">
+                            <div key={item.id} className={`flex items-start gap-3 group ${item.isPending ? 'opacity-50' : ''}`}>
                               <input
                                 type="checkbox"
                                 checked={item.is_completed}
+                                disabled={item.isPending || checklist.isPending}
                                 onChange={(e) => handleToggleItem(checklist.id, item.id, e.target.checked)}
-                                className="mt-1 w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA] transition-colors cursor-pointer"
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA] transition-colors cursor-pointer disabled:cursor-not-allowed"
                               />
                               <span className={`text-sm flex-1 break-words transition-all duration-300 ${item.is_completed ? 'line-through text-slate-400 opacity-60' : 'text-slate-700'}`}>
                                 {item.content}
@@ -1042,10 +1107,11 @@ export function TaskDetailsModal({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteItem(checklist.id, item.id)}
-                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all ml-2 p-1"
+                                disabled={item.isPending || checklist.isPending}
+                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all ml-2 p-1 disabled:cursor-not-allowed"
                                 title="Xóa mục này"
                               >
-                                ✕
+                                {item.isPending ? '...' : '✕'}
                               </button>
                             </div>
                           ))}
@@ -1054,8 +1120,9 @@ export function TaskDetailsModal({
                         <div className="mt-4">
                           <input
                             type="text"
-                            placeholder="Thêm mục..."
-                            className="w-full text-sm text-slate-900 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#28B8FA] transition-colors placeholder:text-slate-300 shadow-sm"
+                            placeholder={checklist.isPending ? "Vui lòng đợi..." : "Thêm mục..."}
+                            disabled={checklist.isPending}
+                            className="w-full text-sm text-slate-900 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#28B8FA] transition-colors placeholder:text-slate-300 shadow-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
