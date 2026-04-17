@@ -905,9 +905,24 @@ export function TaskDetailsModal({
               {initialData && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                      Hệ thống Checklist
-                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Hệ thống Checklist
+                      </label>
+                      {!isAddingChecklist && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingChecklist(true);
+                            setNewChecklistTitle("Việc cần làm");
+                          }}
+                          disabled={isSubmitting}
+                          className="text-[10px] font-bold text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF] px-2 py-1 rounded-lg transition-colors flex items-center gap-1 uppercase"
+                        >
+                          + Thêm Checklist
+                        </button>
+                      )}
+                    </div>
                     {isAddingChecklist && (
                       <div className="flex items-center gap-2 relative z-10 bg-white p-1.5 rounded-xl shadow-sm border border-slate-200">
                         <input
@@ -1078,27 +1093,11 @@ export function TaskDetailsModal({
             </div>
 
             {/* CỘT PHẢI */}
-            <div className="flex flex-col gap-6 w-full md:sticky md:top-0 h-fit mb-4 md:max-h-[80vh]">
+            <div className="flex flex-col gap-6 w-full h-fit">
 
               {initialData && (
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Thao tác
-                  </h3>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingChecklist(true);
-                      setNewChecklistTitle("Việc cần làm");
-                    }}
-                    disabled={isSubmitting}
-                    className="w-full text-left bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2"
-                  >
-                    <span className="text-lg leading-none">+</span> Thêm Checklist
-                  </button>
-
-                  <div className="h-px bg-slate-200 my-2 shadow-sm"></div>
 
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">
                     Người thực hiện
@@ -1187,7 +1186,7 @@ export function TaskDetailsModal({
                     Hoạt động & Bình luận
                   </h3>
 
-                  <div className="space-y-3 overflow-y-auto pr-2 flex-1 max-h-[35vh] custom-scrollbar">
+                  <div className="space-y-3 pr-2 flex flex-col">
                     {commentsLoading ? (
                       <div className="text-sm text-slate-400 italic">Đang tải bình luận...</div>
                     ) : comments.length === 0 ? (
@@ -1226,7 +1225,7 @@ export function TaskDetailsModal({
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2 mt-1">
+                  <div className="flex flex-col gap-2 mt-1 pr-2">
                     <textarea
                       value={commentInput}
                       onChange={(e) => setCommentInput(e.target.value)}
