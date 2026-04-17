@@ -135,6 +135,7 @@ export function TaskDetailsModal({
 
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [checklistsLoading, setChecklistsLoading] = useState(false);
+  const [checklistsError, setChecklistsError] = useState<string | null>(null);
   const [isAddingChecklist, setIsAddingChecklist] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("Việc cần làm");
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
@@ -217,20 +218,32 @@ export function TaskDetailsModal({
     let ignore = false;
     const fetchChecklists = async () => {
       setChecklistsLoading(true);
-      const { data, error } = await supabase
-        .from("checklists")
-        .select("*, items:checklist_items(*)")
-        .eq("task_id", initialData.id)
-        .order("created_at", { ascending: true })
-        .order("created_at", { foreignTable: "checklist_items", ascending: true });
+      setChecklistsError(null);
 
-      if (!error && data && !ignore) {
-        setChecklists(data);
-      } else if (!ignore) {
-        setChecklists([]);
-      }
-      if (!ignore) {
-        setChecklistsLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from("checklists")
+          .select("*, items:checklist_items(*)")
+          .eq("task_id", initialData.id)
+          .order("created_at", { ascending: true })
+          .order("created_at", { foreignTable: "checklist_items", ascending: true });
+
+        if (error) throw error;
+
+        if (!ignore) {
+          // Explicitly cast the returned data to the Checklist array type
+          setChecklists((data as any) || []);
+        }
+      } catch (err: any) {
+        console.error("Error fetching checklists:", err);
+        if (!ignore) {
+          setChecklistsError(err.message || "Không thể tải danh sách công việc");
+          setChecklists([]);
+        }
+      } finally {
+        if (!ignore) {
+          setChecklistsLoading(false);
+        }
       }
     };
 
@@ -238,6 +251,15 @@ export function TaskDetailsModal({
 
     return () => { ignore = true; };
   }, [isOpen, initialData?.id, supabase]);
+
+  useEffect(() => {
+    if (checklistsError) {
+      const timer = setTimeout(() => {
+        setChecklistsError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [checklistsError]);
 
   const handleAddChecklist = async (title: string = "Việc cần làm") => {
     const trimmedTitle = title.trim();
@@ -264,9 +286,11 @@ export function TaskDetailsModal({
       if (data && !error) {
         setChecklists(prev => prev.map(c => c.id === tempId ? { ...data, items: [], isPending: false } : c));
       } else {
+        if (error) console.error("Error adding checklist:", error);
         setChecklists(prev => prev.filter(c => c.id !== tempId));
       }
     } catch (err) {
+      console.error("Exception adding checklist:", err);
       setChecklists(prev => prev.filter(c => c.id !== tempId));
     }
   };
@@ -278,16 +302,30 @@ export function TaskDetailsModal({
     const checklist = checklists.find(c => c.id === id);
     if (!checklist || checklist.isPending) return;
 
+    const oldTitle = checklist.title;
     setChecklists(prev => prev.map(c => c.id === id ? { ...c, title: trimmedTitle } : c));
-    await supabase.from("checklists").update({ title: trimmedTitle }).eq("id", id);
+
+    const { error } = await supabase.from("checklists").update({ title: trimmedTitle }).eq("id", id);
+    if (error) {
+      console.error("Error updating checklist title:", error);
+      setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
+      setChecklists(prev => prev.map(c => c.id === id ? { ...c, title: oldTitle } : c));
+    }
   };
 
   const handleDeleteChecklist = async (id: string) => {
     const checklist = checklists.find(c => c.id === id);
     if (!checklist || checklist.isPending) return;
 
+    const oldChecklist = { ...checklist };
     setChecklists(prev => prev.filter(c => c.id !== id));
-    await supabase.from("checklists").delete().eq("id", id);
+
+    const { error } = await supabase.from("checklists").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting checklist:", error);
+      setChecklistsError("Lỗi: Không thể xóa nhóm việc. Đã hoàn tác.");
+      setChecklists(prev => [...prev, oldChecklist].sort((a, b) => a.created_at.localeCompare(b.created_at)));
+    }
   };
 
   const handleAddItem = async (checklistId: string, content: string) => {
@@ -322,12 +360,14 @@ export function TaskDetailsModal({
           items: c.items.map(i => i.id === tempId ? { ...data, isPending: false } : i)
         } : c));
       } else {
+        if (error) console.error("Error adding checklist item:", error);
         setChecklists(prev => prev.map(c => c.id === checklistId ? {
           ...c,
           items: c.items.filter(i => i.id !== tempId)
         } : c));
       }
     } catch (err) {
+      console.error("Exception adding checklist item:", err);
       setChecklists(prev => prev.map(c => c.id === checklistId ? {
         ...c,
         items: c.items.filter(i => i.id !== tempId)
@@ -342,11 +382,19 @@ export function TaskDetailsModal({
     const item = checklist.items.find(i => i.id === itemId);
     if (!item || item.isPending) return;
 
+    const oldStatus = item.is_completed;
     setChecklists(prev => prev.map(c => c.id === checklistId ? {
       ...c, items: c.items.map(i => i.id === itemId ? { ...i, is_completed: isCompleted } : i)
     } : c));
 
-    await supabase.from("checklist_items").update({ is_completed: isCompleted }).eq("id", itemId);
+    const { error } = await supabase.from("checklist_items").update({ is_completed: isCompleted }).eq("id", itemId);
+    if (error) {
+      console.error("Error toggling item:", error);
+      setChecklistsError("Lỗi: Không thể cập nhật trạng thái mục. Đã hoàn tác.");
+      setChecklists(prev => prev.map(c => c.id === checklistId ? {
+        ...c, items: c.items.map(i => i.id === itemId ? { ...i, is_completed: oldStatus } : i)
+      } : c));
+    }
   };
 
   const handleDeleteItem = async (checklistId: string, itemId: string) => {
@@ -356,8 +404,17 @@ export function TaskDetailsModal({
     const item = checklist.items.find(i => i.id === itemId);
     if (!item || item.isPending) return;
 
+    const oldItem = { ...item };
     setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c));
-    await supabase.from("checklist_items").delete().eq("id", itemId);
+
+    const { error } = await supabase.from("checklist_items").delete().eq("id", itemId);
+    if (error) {
+      console.error("Error deleting item:", error);
+      setChecklistsError("Lỗi: Không thể xóa mục. Đã hoàn tác.");
+      setChecklists(prev => prev.map(c => c.id === checklistId ? {
+        ...c, items: [...c.items, oldItem].sort((a, b) => a.created_at.localeCompare(b.created_at))
+      } : c));
+    }
   };
 
   const taskLabels = initialData?.labels || [];
@@ -1020,6 +1077,13 @@ export function TaskDetailsModal({
                   </div>
                 )}
               </div>
+
+              {checklistsError && (
+                <div className="text-sm text-red-500 bg-red-50 p-3 rounded-xl mb-4 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                  <span className="flex-1">{checklistsError}</span>
+                </div>
+              )}
 
               {checklistsLoading ? (
                 <div className="text-sm text-slate-400 mb-6">Đang tải...</div>
