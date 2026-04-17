@@ -642,6 +642,30 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleUpdateTaskField = async (taskId: number, updates: any) => {
+    markLocalWrite();
+    try {
+      const res = await fetch(`/api/kanban/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        lastLocalWriteRef.current = 0; // Reset on failure
+        throw new Error();
+      }
+      const updatedTask = await res.json();
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, ...updatedTask } : t))
+      );
+      // Optional: don't show toast for every minor edit, or maybe just for user feedback:
+      // toast.success("Đã lưu thay đổi");
+    } catch (error) {
+      console.error("Failed to update task field:", error);
+      toast.error("Lưu thay đổi thất bại");
+    }
+  };
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -711,6 +735,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
         currentUserId={user?.id || ""}
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
+        onUpdateTask={handleUpdateTaskField}
       />
 
       {/* Manage Labels Modal */}
