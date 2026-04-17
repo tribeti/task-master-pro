@@ -4,6 +4,23 @@ import React, { useState, useEffect } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
 import { UserAvatar } from "@/components/UserAvatar";
 import { AssigneeOption, Label, Comment, TaskAssignee } from "@/types/project";
+import { createClient } from "@/utils/supabase/client";
+
+interface ChecklistItem {
+  id: string;
+  checklist_id: string;
+  content: string;
+  is_completed: boolean;
+  created_at: string;
+}
+
+interface Checklist {
+  id: string;
+  task_id: number;
+  title: string;
+  created_at: string;
+  items: ChecklistItem[];
+}
 
 const INLINE_LABEL_PRESET_COLORS = [
   "#FF8B5E",
@@ -114,6 +131,14 @@ export function TaskDetailsModal({
   const [assignableMembers, setAssignableMembers] = useState<AssigneeOption[]>([]);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
 
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [checklistsLoading, setChecklistsLoading] = useState(false);
+  const [isAddingChecklist, setIsAddingChecklist] = useState(false);
+  const [newChecklistTitle, setNewChecklistTitle] = useState("Việc cần làm");
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
+  const [supabase] = useState(() => createClient());
+
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -139,6 +164,9 @@ export function TaskDetailsModal({
       setAssigneeError("");
       setSelectedAssigneeId("");
       setNameError(false);
+      setIsAddingChecklist(false);
+      setNewChecklistTitle("Việc cần làm");
+      setEditingChecklistId(null);
     }
   }, [isOpen, initialData]);
 
@@ -180,6 +208,99 @@ export function TaskDetailsModal({
       ignore = true;
     };
   }, [boardId, initialData?.id, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !initialData?.id) return;
+
+    let ignore = false;
+    const fetchChecklists = async () => {
+      setChecklistsLoading(true);
+      const { data: lists, error: listsError } = await supabase
+        .from("checklists")
+        .select("*")
+        .eq("task_id", initialData.id)
+        .order("created_at", { ascending: true });
+
+      if (!listsError && lists && !ignore) {
+        if (lists.length === 0) {
+          setChecklists([]);
+        } else {
+          const { data: items, error: itemsError } = await supabase
+            .from("checklist_items")
+            .select("*")
+            .in("checklist_id", lists.map((l: any) => l.id))
+            .order("created_at", { ascending: true });
+
+          if (!itemsError && items && !ignore) {
+            const enriched = lists.map((l: any) => ({
+              ...l,
+              items: items.filter((i: any) => i.checklist_id === l.id)
+            }));
+            setChecklists(enriched);
+          } else if (!ignore) {
+            setChecklists(lists.map((l: any) => ({ ...l, items: [] })));
+          }
+        }
+      } else if (!ignore) {
+        setChecklists([]);
+      }
+      if (!ignore) {
+        setChecklistsLoading(false);
+      }
+    };
+
+    fetchChecklists();
+
+    return () => { ignore = true; };
+  }, [isOpen, initialData?.id, supabase]);
+
+  const handleAddChecklist = async (title: string = "Việc cần làm") => {
+    if (!initialData?.id) return;
+    const tempId = crypto.randomUUID();
+    const newChecklist: Checklist = { id: tempId, task_id: initialData.id, title, created_at: new Date().toISOString(), items: [] };
+    setChecklists(prev => [...prev, newChecklist]);
+
+    const { data } = await supabase.from("checklists").insert({ task_id: initialData.id, title }).select().single();
+    if (data) {
+      setChecklists(prev => prev.map(c => c.id === tempId ? { ...data, items: [] } : c));
+    }
+  };
+
+  const handleUpdateChecklistTitle = async (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    setChecklists(prev => prev.map(c => c.id === id ? { ...c, title: newTitle } : c));
+    await supabase.from("checklists").update({ title: newTitle }).eq("id", id);
+  };
+
+  const handleDeleteChecklist = async (id: string) => {
+    setChecklists(prev => prev.filter(c => c.id !== id));
+    await supabase.from("checklists").delete().eq("id", id);
+  };
+
+  const handleAddItem = async (checklistId: string, content: string) => {
+    if (!content.trim()) return;
+    const tempId = crypto.randomUUID();
+    const newItem: ChecklistItem = { id: tempId, checklist_id: checklistId, content, is_completed: false, created_at: new Date().toISOString() };
+    setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c));
+
+    const { data } = await supabase.from("checklist_items").insert({ checklist_id: checklistId, content }).select().single();
+    if (data) {
+      setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: c.items.map(i => i.id === tempId ? data : i) } : c));
+    }
+  };
+
+  const handleToggleItem = async (checklistId: string, itemId: string, isCompleted: boolean) => {
+    setChecklists(prev => prev.map(c => c.id === checklistId ? {
+      ...c, items: c.items.map(i => i.id === itemId ? { ...i, is_completed: isCompleted } : i)
+    } : c));
+
+    await supabase.from("checklist_items").update({ is_completed: isCompleted }).eq("id", itemId);
+  };
+
+  const handleDeleteItem = async (checklistId: string, itemId: string) => {
+    setChecklists(prev => prev.map(c => c.id === checklistId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c));
+    await supabase.from("checklist_items").delete().eq("id", itemId);
+  };
 
   const taskLabels = initialData?.labels || [];
   const currentAssignees = initialData?.assignees || [];
@@ -783,6 +904,172 @@ export function TaskDetailsModal({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {initialData && (
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Việc cần làm
+                </label>
+                {!isAddingChecklist ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingChecklist(true);
+                      setNewChecklistTitle("Việc cần làm");
+                    }}
+                    disabled={isSubmitting}
+                    className="text-xs font-semibold text-[#28B8FA] hover:text-[#0EA5E9] transition-colors bg-cyan-50 px-3 py-1.5 rounded-lg"
+                  >
+                    + Thêm việc cần làm
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="text-xs text-slate-900 font-semibold border border-[#28B8FA] rounded-lg px-3 py-1.5 outline-none bg-white min-w-[150px]"
+                      value={newChecklistTitle}
+                      onChange={(e) => setNewChecklistTitle(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddChecklist(newChecklistTitle);
+                          setIsAddingChecklist(false);
+                        } else if (e.key === 'Escape') {
+                          setIsAddingChecklist(false);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAddChecklist(newChecklistTitle);
+                        setIsAddingChecklist(false);
+                      }}
+                      className="text-xs font-bold text-white bg-[#28B8FA] px-3 py-1.5 rounded-lg hover:bg-[#0EA5E9] transition-colors"
+                    >
+                      Thêm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingChecklist(false)}
+                      className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {checklistsLoading ? (
+                <div className="text-sm text-slate-400 mb-6">Đang tải...</div>
+              ) : (
+                <div className="space-y-6 mb-6">
+                  {checklists.map((checklist) => {
+                    const totalItems = checklist.items.length;
+                    const completedItems = checklist.items.filter((i) => i.is_completed).length;
+                    const progress = totalItems === 0 ? 0 : Math.round((completedItems / totalItems) * 100);
+
+                    return (
+                      <div key={checklist.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          {editingChecklistId === checklist.id ? (
+                            <input
+                              type="text"
+                              value={editingChecklistTitle}
+                              onChange={(e) => setEditingChecklistTitle(e.target.value)}
+                              autoFocus
+                              onBlur={() => {
+                                handleUpdateChecklistTitle(checklist.id, editingChecklistTitle);
+                                setEditingChecklistId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleUpdateChecklistTitle(checklist.id, editingChecklistTitle);
+                                  setEditingChecklistId(null);
+                                } else if (e.key === 'Escape') {
+                                  setEditingChecklistId(null);
+                                }
+                              }}
+                              className="text-sm font-bold text-slate-800 bg-white border border-[#28B8FA] rounded px-2 py-1 outline-none flex-1 mr-4"
+                            />
+                          ) : (
+                            <h3
+                              className="text-sm font-bold text-slate-800 hover:bg-slate-200/50 rounded px-2 py-1 cursor-pointer transition-colors flex-1 mr-4"
+                              onClick={() => {
+                                setEditingChecklistId(checklist.id);
+                                setEditingChecklistTitle(checklist.title);
+                              }}
+                            >
+                              {checklist.title}
+                            </h3>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteChecklist(checklist.id)}
+                            className="text-xs text-slate-400 hover:text-red-500 font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                          >
+                            Xóa nhóm
+                          </button>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mb-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-500 min-w-[32px]">{progress}%</span>
+                            <div className="h-2 flex-1 bg-slate-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${progress === 100 ? 'bg-green-500' : 'bg-[#28B8FA]'}`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-3 pl-1">
+                          {checklist.items.map((item) => (
+                            <div key={item.id} className="flex items-start gap-3 group">
+                              <input
+                                type="checkbox"
+                                checked={item.is_completed}
+                                onChange={(e) => handleToggleItem(checklist.id, item.id, e.target.checked)}
+                                className="mt-1 w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA] transition-colors cursor-pointer"
+                              />
+                              <span className={`text-sm flex-1 break-words transition-all duration-300 ${item.is_completed ? 'line-through text-slate-400 opacity-60' : 'text-slate-700'}`}>
+                                {item.content}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(checklist.id, item.id)}
+                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all ml-2 p-1"
+                                title="Xóa mục này"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4">
+                          <input
+                            type="text"
+                            placeholder="Thêm mục..."
+                            className="w-full text-sm text-slate-900 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#28B8FA] transition-colors placeholder:text-slate-300 shadow-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddItem(checklist.id, e.currentTarget.value);
+                                e.currentTarget.value = '';
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
