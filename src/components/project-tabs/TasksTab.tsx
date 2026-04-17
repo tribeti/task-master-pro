@@ -642,7 +642,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleUpdateTaskField = async (taskId: number, updates: any) => {
+  const handleUpdateTaskField = async (taskId: number, updates: Partial<Task>) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}`, {
@@ -663,6 +663,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     } catch (error) {
       console.error("Failed to update task field:", error);
       toast.error("Lưu thay đổi thất bại");
+      throw error;
     }
   };
 

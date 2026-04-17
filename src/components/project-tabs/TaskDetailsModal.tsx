@@ -614,9 +614,15 @@ export function TaskDetailsModal({
                     setTitle(e.target.value);
                     if (e.target.value.trim()) setNameError(false);
                   }}
-                  onBlur={() => {
-                    if (initialData?.id && title.trim() && title !== initialData.title) {
-                      onUpdateTask?.(initialData.id, { title: title.trim() });
+                  onBlur={async () => {
+                    if (!initialData?.id) return;
+                    const original = initialData.title ?? "";
+                    if (title !== original) {
+                      try {
+                        await onUpdateTask?.(initialData.id, { title });
+                      } catch (error) {
+                        setTitle(original);
+                      }
                     }
                   }}
                   className={`w-full bg-white text-slate-900 px-4 py-2.5 border rounded-xl text-sm font-semibold placeholder-slate-400 focus:outline-none transition-colors ${nameError
@@ -651,10 +657,15 @@ export function TaskDetailsModal({
                       return (
                         <button
                           key={p}
-                          onClick={() => {
+                          onClick={async () => {
+                            const original = initialData?.priority;
                             setPriority(p);
-                            if (initialData?.id && p !== initialData.priority) {
-                              onUpdateTask?.(initialData.id, { priority: p });
+                            if (initialData?.id && p !== original) {
+                              try {
+                                await onUpdateTask?.(initialData.id, { priority: p });
+                              } catch (error) {
+                                if (original) setPriority(original);
+                              }
                             }
                           }}
                           disabled={isSubmitting}
@@ -677,10 +688,20 @@ export function TaskDetailsModal({
                   <input
                     type="date"
                     value={deadline}
-                    onChange={(e) => {
-                      setDeadline(e.target.value);
-                      if (initialData?.id) {
-                        onUpdateTask?.(initialData.id, { deadline: e.target.value || null });
+                    onChange={(e) => setDeadline(e.target.value)}
+                    onBlur={async () => {
+                      if (!initialData?.id) return;
+                      const original = initialData.deadline
+                        ? initialData.deadline.split("T")[0]
+                        : "";
+                      if (deadline !== original) {
+                        try {
+                          await onUpdateTask?.(initialData.id, {
+                            deadline: deadline || null,
+                          });
+                        } catch (error) {
+                          setDeadline(original);
+                        }
                       }
                     }}
                     className="w-full bg-white text-slate-900 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-[#28B8FA] transition-colors cursor-pointer"
@@ -865,9 +886,14 @@ export function TaskDetailsModal({
                   placeholder="Mô tả chi tiết..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  onBlur={() => {
-                    if (initialData?.id && description !== initialData.description) {
-                      onUpdateTask?.(initialData.id, { description });
+                  onBlur={async () => {
+                    const original = initialData?.description || "";
+                    if (initialData?.id && description !== original) {
+                      try {
+                        await onUpdateTask?.(initialData.id, { description });
+                      } catch (error) {
+                        setDescription(original);
+                      }
                     }
                   }}
                   rows={4}
@@ -1207,7 +1233,7 @@ export function TaskDetailsModal({
                       placeholder="Viết bình luận..."
                       rows={2}
                       disabled={commentSubmitting || isSubmitting}
-                      className="w-full bg-slate-50/50 hover:bg-white focus:bg-white text-slate-900 px-3 py-2 border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-[#28B8FA] transition-colors resize-none"
+                      className="w-full bg-slate-50/50 hover:bg-white focus:bg-white text-slate-900 px-3 py-2 border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-[#28B8FA] transition-colors resize-y min-h-[80px]"
                     />
                     <button
                       type="button"
