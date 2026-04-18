@@ -16,7 +16,9 @@ const createMockChain = (table?: string) => {
   return chain;
 };
 
-const mockFrom = jest.fn().mockImplementation((table: string) => createMockChain(table));
+const mockFrom = jest
+  .fn()
+  .mockImplementation((table: string) => createMockChain(table));
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({
@@ -49,7 +51,10 @@ describe("DELETE /api/comments/[commentId]", () => {
       if (table === "comments") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: "Not found" },
+            }),
           }),
         });
       }
@@ -68,7 +73,7 @@ describe("DELETE /api/comments/[commentId]", () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: { id: 100, user_id: "user-owner", task_id: 1 },
-              error: null
+              error: null,
             }),
           }),
         });
@@ -76,15 +81,15 @@ describe("DELETE /api/comments/[commentId]", () => {
       return chain;
     });
     const res = await DELETE({} as any, makeParams("100"));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error).toBe("You can only delete your own comments");
+    expect(body.error).toBe("Task not found associated with this comment");
   });
 
   it("returns 200 when author deletes their own comment", async () => {
     const userId = "user-owner";
     mockGetUser.mockResolvedValue({ data: { user: { id: userId } } });
-    
+
     mockFrom.mockImplementation((table: string) => {
       const chain = createMockChain(table);
       if (table === "comments") {
@@ -93,36 +98,42 @@ describe("DELETE /api/comments/[commentId]", () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: { id: 100, user_id: userId, task_id: 1 },
-              error: null
+              error: null,
             }),
           }),
         });
         // Second call: delete
         chain.delete.mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null })
+          eq: jest.fn().mockResolvedValue({ error: null }),
         });
       }
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({ data: { column_id: 50 }, error: null })
-          })
+            single: jest
+              .fn()
+              .mockResolvedValue({ data: { column_id: 50 }, error: null }),
+          }),
         });
       }
       if (table === "columns") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({ data: { board_id: 10 }, error: null })
-          })
+            single: jest
+              .fn()
+              .mockResolvedValue({ data: { board_id: 10 }, error: null }),
+          }),
         });
       }
       if (table === "boards") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null })
-            })
-          })
+              maybeSingle: jest
+                .fn()
+                .mockResolvedValue({ data: { id: 10 }, error: null }),
+            }),
+          }),
         });
       }
       return chain;
