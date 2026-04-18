@@ -264,14 +264,14 @@ export default function ProfilePage() {
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Configuration &amp; Settings
+            Cấu hình &amp; Cài đặt
           </h1>
           <p className="text-slate-500 text-sm mt-1.5 font-medium">
-            Customize your{" "}
+            Tùy chỉnh trải nghiệm{" "}
             <span className="text-[#28B8FA] font-bold">
-              Energetic Command Center
+              Trung tâm Điều khiển
             </span>{" "}
-            experience.
+            của bạn.
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export default function ProfilePage() {
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
           )}
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
         </button>
       </header>
 
@@ -375,7 +375,7 @@ export default function ProfilePage() {
               <div className="w-full space-y-4 z-10">
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">
-                    Display Name
+                    Tên hiển thị
                   </label>
                   {isLoadingProfile ? (
                     <div className="w-full h-12 bg-slate-100 animate-pulse rounded-2xl"></div>
@@ -542,10 +542,10 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    Danger Zone
+                    Vùng nguy hiểm
                   </h3>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">
-                    Delete account
+                    Xóa tài khoản
                   </p>
                 </div>
               </div>
@@ -588,10 +588,10 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    Notification Vibes
+                    Thông báo &amp; Âm thanh
                   </h2>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
-                    Control your dopamine hits
+                    Điều chỉnh trải nghiệm của bạn
                   </p>
                 </div>
               </div>
@@ -600,10 +600,10 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-slate-900 text-base">
-                      Completion Fanfare
+                      Âm thanh hoàn thành nhiệm vụ
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
-                      Play a satisfying sound when a task is checked.
+                      Phát âm thanh khi hoàn thành nhiệm vụ.
                     </p>
                   </div>
                   <Toggle
@@ -615,10 +615,10 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between border-t border-slate-100 pt-8">
                   <div>
                     <h4 className="font-bold text-slate-900 text-base">
-                      Visual Rewards
+                      Phần thưởng trực tuyến
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
-                      Show confetti and starbursts for major milestones.
+                      Hiển thị hiệu ứng confetti và starbursts cho các cột mốc quan trọng.
                     </p>
                   </div>
                   <Toggle
@@ -630,10 +630,10 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between border-t border-slate-100 pt-8">
                   <div>
                     <h4 className="font-bold text-slate-900 text-base">
-                      Daily Digest
+                      Tóm tắt hàng ngày
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
-                      Receive a morning summary of your goals.
+                      Nhận tóm tắt hàng ngày về các mục tiêu của bạn.
                     </p>
                   </div>
                   <Toggle
@@ -664,10 +664,10 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    Theme Sync
+                    Đồng bộ giao diện
                   </h2>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
-                    Match the interface to your mental state
+                    Tùy biến giao diện theo trạng thái tư duy của bạn.
                   </p>
                 </div>
               </div>
@@ -685,7 +685,7 @@ export default function ProfilePage() {
                     <div className="w-full flex items-center justify-between mb-2.5">
                       <div className="w-16 h-2.5 bg-[#28B8FA] rounded-full opacity-80"></div>
                       <div className="px-2 py-0.5 bg-[#28B8FA] text-white text-[7px] font-black tracking-widest uppercase rounded">
-                        ACTIVE
+                        ĐANG HOẠT ĐỘNG
                       </div>
                     </div>
                     <div className="flex gap-3 items-center mt-auto pb-1 px-1">
@@ -694,7 +694,6 @@ export default function ProfilePage() {
                     </div>
                     <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
                       <span className="text-[7px] font-black text-slate-400 tracking-[0.2em]">
-                        ENERGETIC
                       </span>
                     </div>
                   </div>
@@ -704,7 +703,7 @@ export default function ProfilePage() {
                         Energetic Flow
                       </h4>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                        High contrast, vibrant
+                        Tương phản cao, rực rỡ
                       </p>
                     </div>
                     <div
@@ -738,7 +737,6 @@ export default function ProfilePage() {
                     </div>
                     <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
                       <span className="text-[7px] font-black text-slate-500 tracking-[0.2em]">
-                        COZY MODE
                       </span>
                     </div>
                   </div>
@@ -758,7 +756,7 @@ export default function ProfilePage() {
                           : "text-slate-500"
                           }`}
                       >
-                        Dark mode, warmer tones
+                        Chế độ tối, tông màu ấm
                       </p>
                     </div>
                     <div
