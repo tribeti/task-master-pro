@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { Comment, BoardMember } from "@/types/project";
+import { Comment } from "@/types/project";
 import { verifyTaskAccess, validateString } from "@/utils/board-access";
 
 // ────────────────────────────────────────────────
