@@ -121,6 +121,9 @@ export function TaskComments({
                               setCommentSubmitting(true);
                               try {
                                 await onDeleteComment(comment.id);
+                              } catch (err) {
+                                console.error("Failed to delete comment:", err);
+                                // TODO: surface error to user (toast/banner)
                               } finally {
                                 setCommentSubmitting(false);
                                 setDeletingCommentId(null);
