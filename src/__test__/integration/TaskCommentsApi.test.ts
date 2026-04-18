@@ -259,6 +259,19 @@ describe("GET /api/tasks/[taskId]/comments", () => {
           }),
         };
       }
+      if (table === "users") {
+        return {
+          select: jest.fn().mockReturnValue({
+            in: jest.fn().mockReturnValue({
+              data: [
+                { id: "owner-1", display_name: "Owner One", avatar_url: null },
+                { id: "user-2", display_name: "User Two", avatar_url: null },
+              ],
+              error: null,
+            }),
+          }),
+        };
+      }
       return {};
     });
 
@@ -347,6 +360,18 @@ describe("GET /api/tasks/[taskId]/comments", () => {
                 data: mockComments,
                 error: null,
               }),
+            }),
+          }),
+        };
+      }
+      if (table === "users") {
+        return {
+          select: jest.fn().mockReturnValue({
+            in: jest.fn().mockReturnValue({
+              data: [
+                { id: "member-1", display_name: "Member One", avatar_url: null },
+              ],
+              error: null,
             }),
           }),
         };
