@@ -12,11 +12,11 @@ export default function FeaturesSection() {
     <section id="features" className="max-w-7xl mx-auto px-6 py-24">
       <div className="text-center mb-16">
         <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
-          Everything you need to stay in flow.
+          Mọi thứ bạn cần để luôn tập trung.
         </h2>
         <p className="text-slate-500 font-medium text-lg">
-          Powerful features wrapped in an interface you&apos;ll actually enjoy
-          using.
+          Các tính năng mạnh mẽ được gói gọn trong một giao diện mà bạn sẽ thực sự
+          thích sử dụng.
         </p>
       </div>
 
@@ -31,8 +31,9 @@ export default function FeaturesSection() {
             Gamified Productivity
           </h3>
           <p className="text-slate-500 font-medium max-w-md mb-8">
-            Earn XP for completing tasks, unlock badges, and maintain your daily
-            streak. Work feels less like a chore and more like a game.
+            Kiếm XP khi hoàn thành nhiệm vụ, mở khóa huy hiệu và duy trì chuỗi
+            ngày của bạn. Làm việc bớt giống như một công việc vặt và giống như
+            một trò chơi hơn.
           </p>
 
           <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-max">
@@ -50,10 +51,10 @@ export default function FeaturesSection() {
             </div>
             <div>
               <h4 className="font-bold text-slate-800 line-through opacity-60">
-                Morning Calibration
+                Buổi sáng hiệu quả
               </h4>
               <div className="text-xs font-bold text-[#10B981] bg-[#D1FAE5] px-2 py-0.5 rounded-full w-max mt-1">
-                +50 XP Earned
+                +50 XP Kiếm được
               </div>
             </div>
           </div>
@@ -69,8 +70,8 @@ export default function FeaturesSection() {
             Visual Kanban
           </h3>
           <p className="text-slate-500 font-medium">
-            Drag and drop your way to a clearer mind. Intuitive boards that
-            adapt to your workflow.
+            Kéo và thả để làm rõ tâm trí của bạn. Bảng trực quan thích ứng với
+            quy trình làm việc của bạn.
           </p>
         </div>
 
@@ -81,11 +82,11 @@ export default function FeaturesSection() {
             <ZapIcon />
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-3">
-            Deep Focus Mode
+            Chế độ tập trung sâu
           </h3>
           <p className="text-slate-500 font-medium">
-            Built-in Pomodoro timers to help you reach the peak flow state
-            without leaving the app.
+            Bộ hẹn giờ Pomodoro tích hợp giúp bạn đạt trạng thái tập trung cao
+            độ mà không cần rời khỏi ứng dụng.
           </p>
         </div>
 
@@ -96,11 +97,12 @@ export default function FeaturesSection() {
             <UsersIcon />
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-3">
-            Seamless Collaboration
+            Phối hợp nhóm hiệu quả
           </h3>
           <p className="text-slate-500 font-medium max-w-md mb-8">
-            Invite members, assign tasks, and monitor team workload in
-            real-time. Built for high-performing teams.
+            Mời thành viên, giao nhiệm vụ và theo dõi khối lượng công việc của
+            nhóm trong thời gian thực. Được xây dựng cho các nhóm hoạt động hiệu
+            quả.
           </p>
 
           <div className="flex -space-x-4">

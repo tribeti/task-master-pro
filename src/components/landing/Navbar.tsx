@@ -31,7 +31,7 @@ export default function Navbar() {
             href="#features"
             className="hover:text-slate-900 transition-colors"
           >
-            Features
+            Tính năng
           </a>
           <a
             href="#gamification"
@@ -40,7 +40,7 @@ export default function Navbar() {
             Gamification
           </a>
           <a href="#pricing" className="hover:text-slate-900 transition-colors">
-            Pricing
+            Giá
           </a>
         </div>
 
@@ -49,13 +49,13 @@ export default function Navbar() {
             onClick={() => router.push("/login")}
             className="hidden sm:block font-bold text-sm text-slate-600 hover:text-slate-900 transition-colors"
           >
-            Log in
+            Đăng nhập
           </button>
           <button
             onClick={() => router.push("/login")}
             className="bg-[#1E293B] hover:bg-slate-800 transition-transform hover:scale-105 text-white font-bold text-sm px-6 py-2.5 rounded-full shadow-lg shadow-slate-300"
           >
-            Get Started
+            Bắt đầu
           </button>
         </div>
       </div>

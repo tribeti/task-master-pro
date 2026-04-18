@@ -10,22 +10,22 @@ export default function HeroSection() {
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></span>
         <span className="text-xs font-bold text-slate-600 tracking-widest uppercase">
-          Task Master Pro 2.0 is live
+          Task Master Pro 2.0 đã ra mắt
         </span>
       </div>
 
       <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-        Crush your tasks. <br className="hidden md:block" />
+        Hoàn thành nhiệm vụ. <br className="hidden md:block" />
         <span className="text-transparent bg-clip-text bg-linear-to-r from-[#28B8FA] via-[#34D399] to-[#34D399]">
-          Achieve peak state.
+          Đạt trạng thái cao nhất.
         </span>
       </h1>
 
       <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-        The first project management tool that uses{" "}
-        <strong className="text-slate-800">gamification</strong> to turn your
-        daily workflow into a rewarding experience. Build streaks, earn XP, and
-        get things done.
+        Công cụ quản lý dự án đầu tiên sử dụng{" "}
+        <strong className="text-slate-800">gamification</strong> để biến quy
+        trình làm việc hàng ngày của bạn thành một trải nghiệm thú vị. Xây
+        dựng chuỗi ngày, kiếm XP và hoàn thành công việc.
       </p>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-200">
@@ -33,13 +33,13 @@ export default function HeroSection() {
           onClick={() => router.push("/login")}
           className="w-full sm:w-auto bg-[#34D399] hover:bg-emerald-500 transition-all hover:scale-105 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl shadow-emerald-200 flex items-center justify-center gap-2"
         >
-          Start Free Trial <ArrowRightIcon />
+          Bắt đầu dùng thử miễn phí <ArrowRightIcon />
         </button>
         <button
           onClick={() => router.push("/login")}
           className="w-full sm:w-auto bg-white hover:bg-slate-50 transition-colors text-slate-700 font-bold text-lg px-8 py-4 rounded-full shadow-sm border border-slate-200 flex items-center justify-center gap-2"
         >
-          View Demo
+          Xem bản demo
         </button>
       </div>
 
@@ -66,7 +66,7 @@ export default function HeroSection() {
         {/* Floating Widget 1: Focus Timer */}
         <div className="absolute -left-4 sm:-left-12 top-10 bg-white p-6 rounded-4xl shadow-xl border border-slate-100 animate-[floatUpBounce_4s_ease-in-out_infinite_alternate]">
           <h3 className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">
-            Deep Focus
+            Tập trung sâu
           </h3>
           <div className="text-4xl font-black text-[#28B8FA] tracking-tighter mb-4">
             24:00
@@ -82,7 +82,7 @@ export default function HeroSection() {
             </div>
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-white/80">
-                Current Streak
+                Chuỗi ngày hiện tại
               </p>
               <p className="text-3xl font-black tracking-tighter">12 Days</p>
             </div>
