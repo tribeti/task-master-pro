@@ -534,7 +534,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
       }
       if (table === "users") {
         chain.select.mockReturnValue({
-          in: jest.fn().mockReturnValue({
+          in: jest.fn().mockResolvedValue({
             data: null,
             error: { message: "Users DB error" },
           }),
