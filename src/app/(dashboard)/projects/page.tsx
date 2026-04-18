@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { PlusIcon, UserIcon, ChatIcon } from "@/components/icons";
+import { PlusIcon, UserIcon } from "@/components/icons";
 import {
   TasksTab,
   TimelineTab,
@@ -119,7 +119,6 @@ export default function ProjectsPage() {
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isUpdateProjectOpen, setIsUpdateProjectOpen] = useState(false);
   const [projectToUpdate, setProjectToUpdate] = useState<Board | null>(null);
@@ -493,38 +492,6 @@ export default function ProjectsPage() {
           </>
         )}
       </div>
-
-      {/* FLOATING ACTION BUTTON */}
-      {selectedProject && (
-        <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${
-            projectTab === "Timeline"
-              ? "bg-[#1E293B] shadow-slate-400"
-              : "bg-[#34D399] shadow-emerald-200"
-          }`}
-        >
-          {projectTab === "Timeline" ? (
-            <ChatIcon />
-          ) : projectTab === "Files" ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          ) : (
-            <PlusIcon />
-          )}
-        </button>
-      )}
 
       {/* QUICK ENTRY MODAL */}
       <QuickEntryModal
