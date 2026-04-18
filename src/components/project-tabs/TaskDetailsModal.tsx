@@ -144,14 +144,21 @@ export function TaskDetailsModal({
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
   const [supabase] = useState(() => createClient());
 
+  const isEditing = !!initialData;
+  const initId = initialData?.id;
+  const initTitle = initialData?.title;
+  const initDescription = initialData?.description;
+  const initPriority = initialData?.priority;
+  const initDeadline = initialData?.deadline;
+
   useEffect(() => {
     if (isOpen) {
-      if (initialData) {
-        setTitle(initialData.title);
-        setDescription(initialData.description || "");
-        setPriority(initialData.priority);
+      if (isEditing) {
+        setTitle(initTitle as string);
+        setDescription(initDescription || "");
+        setPriority(initPriority as "Low" | "Medium" | "High");
         setDeadline(
-          initialData.deadline ? initialData.deadline.split("T")[0] : "",
+          initDeadline ? initDeadline.split("T")[0] : "",
         );
       } else {
         setTitle("");
@@ -159,7 +166,11 @@ export function TaskDetailsModal({
         setPriority("Medium");
         setDeadline("");
       }
+    }
+  }, [isOpen, isEditing, initTitle, initDescription, initPriority, initDeadline]);
 
+  useEffect(() => {
+    if (isOpen) {
       setSelectedLabelId("");
       setShowCreateLabelForm(false);
       setCustomLabelName("");
@@ -173,8 +184,7 @@ export function TaskDetailsModal({
       setNewChecklistTitle("Việc cần làm");
       setEditingChecklistId(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialData?.id]);
+  }, [isOpen, initId]);
 
   useEffect(() => {
     if (!isOpen || !initialData?.id) {
@@ -616,10 +626,16 @@ export function TaskDetailsModal({
                   }}
                   onBlur={async () => {
                     if (!initialData?.id) return;
+                    const trimmedTitle = title.trim();
+                    if (!trimmedTitle) {
+                      setNameError(true);
+                      setTitle(initialData.title ?? "");
+                      return;
+                    }
                     const original = initialData.title ?? "";
-                    if (title !== original) {
+                    if (trimmedTitle !== original) {
                       try {
-                        await onUpdateTask?.(initialData.id, { title });
+                        await onUpdateTask?.(initialData.id, { title: trimmedTitle });
                       } catch (error) {
                         setTitle(original);
                       }
