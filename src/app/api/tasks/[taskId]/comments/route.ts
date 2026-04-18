@@ -125,3 +125,99 @@ export async function GET(
     );
   }
 }
+
+// ────────────────────────────────────────────────
+// POST /api/tasks/[taskId]/comments
+// Creates a new comment for a task
+// ────────────────────────────────────────────────
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ taskId: string }> },
+) {
+  try {
+    const { taskId: taskIdStr } = await params;
+    const taskId = Number(taskIdStr);
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: "Invalid taskId" }, { status: 400 });
+    }
+
+    const { content } = await request.json();
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Resolve task → column → board to verify access (Reuse GET logic or use verifyTaskAccess)
+    // For consistency with this file's pattern, we inline the access check or import a helper.
+    // The previous POST used verifyTaskAccess helper. Let's stick to the inline pattern here for consistency with GET.
+    
+    // Check owner or member access via task
+    const { data: task, error: taskErr } = await supabase
+      .from("tasks")
+      .select("column_id")
+      .eq("id", taskId)
+      .single();
+
+    if (taskErr || !task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const { data: column, error: colErr } = await supabase
+      .from("columns")
+      .select("board_id")
+      .eq("id", task.column_id)
+      .single();
+
+    if (colErr || !column) {
+      return NextResponse.json({ error: "Column not found" }, { status: 404 });
+    }
+
+    const { data: board } = await supabase
+      .from("boards")
+      .select("id")
+      .eq("id", column.board_id)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (!board) {
+      const { data: membership } = await supabase
+        .from("board_members")
+        .select("user_id")
+        .eq("board_id", column.board_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!membership) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("comments")
+      .insert([{
+        content: content.trim(),
+        task_id: taskId,
+        user_id: user.id,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("POST comment error:", error.message);
+      return NextResponse.json({ error: "Failed to create comment." }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (err: any) {
+    console.error("POST comment unexpected error:", err);
+    return NextResponse.json(
+      { error: "Internal server error: " + (err.message || String(err)) },
+      { status: 500 },
+    );
+  }
+}

@@ -13,6 +13,9 @@ const createMockChain = (table?: string) => {
     eq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
   };
@@ -39,7 +42,16 @@ jest.mock("@/utils/supabase/server", () => ({
 }));
 
 // Import after mocks
-import { GET } from "@/app/api/tasks/[taskId]/comments/route";
+import { GET, POST } from "@/app/api/tasks/[taskId]/comments/route";
+
+/**
+ * Helper to make a request with a body
+ */
+function makeRequestBody(body: any) {
+  return {
+    json: jest.fn().mockResolvedValue(body),
+  } as any;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -547,5 +559,131 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).toBe("Failed to load comment authors.");
+  });
+});
+
+describe("POST /api/tasks/[taskId]/comments", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("returns 401 when user is not authenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const res = await POST(makeRequestBody({ content: "test" }), makeParams("1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when taskId is invalid", async () => {
+    const res = await POST(makeRequestBody({ content: "test" }), makeParams("abc"));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when content is missing", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    const res = await POST(makeRequestBody({ content: "" }), makeParams("1"));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 403 when user has no access to task", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+
+    mockFrom.mockImplementation((table: string) => {
+      const chain = createMockChain(table);
+      if (table === "tasks") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockReturnValue({
+              data: { column_id: 50 },
+              error: null,
+            }),
+          }),
+        });
+      }
+      if (table === "columns") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockReturnValue({
+              data: { board_id: 10 },
+              error: null,
+            }),
+          }),
+        });
+      }
+      if (table === "boards") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockReturnValue({ data: null, error: null }),
+            }),
+          }),
+        });
+      }
+      if (table === "board_members") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockReturnValue({ data: null, error: null }),
+            }),
+          }),
+        });
+      }
+      return chain;
+    });
+
+    const res = await POST(makeRequestBody({ content: "test" }), makeParams("1"));
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 200 and creates comment when authorized", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "owner-1" } } });
+
+    mockFrom.mockImplementation((table: string) => {
+      const chain = createMockChain(table);
+      if (table === "tasks") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockReturnValue({
+              data: { column_id: 50 },
+              error: null,
+            }),
+          }),
+        });
+      }
+      if (table === "columns") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockReturnValue({
+              data: { board_id: 10 },
+              error: null,
+            }),
+          }),
+        });
+      }
+      if (table === "boards") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockReturnValue({ data: { id: 10 }, error: null }),
+            }),
+          }),
+        });
+      }
+      if (table === "comments") {
+        chain.insert.mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockReturnValue({
+              data: { id: 100, content: "Success comment" },
+              error: null,
+            }),
+          }),
+        });
+      }
+      return chain;
+    });
+
+    const res = await POST(makeRequestBody({ content: "Success comment" }), makeParams("1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.content).toBe("Success comment");
   });
 });
