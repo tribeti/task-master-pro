@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
 import { UserAvatar } from "@/components/UserAvatar";
 import { AssigneeOption, Label, Comment, TaskAssignee } from "@/types/project";
@@ -87,7 +87,7 @@ interface TaskDetailsModalProps {
   currentUserId: string;
   onAddComment: (taskId: number, content: string) => Promise<void>;
   onDeleteComment: (commentId: number) => Promise<void>;
-  onUpdateTask?: (taskId: number, updates: Partial<{ title: string; description: string; priority: "Low" | "Medium" | "High"; deadline: string | null }>) => Promise<void>;
+  onUpdateTask?: (taskId: number, updates: Partial<{ title: string; description: string | null; priority: "Low" | "Medium" | "High"; deadline: string | null }>) => Promise<void>;
 }
 
 export function TaskDetailsModal({
@@ -150,24 +150,31 @@ export function TaskDetailsModal({
   const initDescription = initialData?.description;
   const initPriority = initialData?.priority;
   const initDeadline = initialData?.deadline;
+  const initializedFormKeyRef = useRef<string | null>(null);
+  const updateSessionsRef = useRef({ title: 0, priority: 0, deadline: 0, description: 0 });
 
   useEffect(() => {
-    if (isOpen) {
-      if (isEditing) {
-        setTitle(initTitle as string);
-        setDescription(initDescription || "");
-        setPriority(initPriority as "Low" | "Medium" | "High");
-        setDeadline(
-          initDeadline ? initDeadline.split("T")[0] : "",
-        );
-      } else {
-        setTitle("");
-        setDescription("");
-        setPriority("Medium");
-        setDeadline("");
-      }
+    if (!isOpen) {
+      initializedFormKeyRef.current = null;
+      return;
     }
-  }, [isOpen, isEditing, initTitle, initDescription, initPriority, initDeadline]);
+
+    const formKey = initId ? `edit:${initId}` : "create";
+    if (initializedFormKeyRef.current === formKey) return;
+    initializedFormKeyRef.current = formKey;
+
+    if (isEditing) {
+      setTitle(initTitle as string);
+      setDescription(initDescription || "");
+      setPriority(initPriority as "Low" | "Medium" | "High");
+      setDeadline(initDeadline ? initDeadline.split("T")[0] : "");
+    } else {
+      setTitle("");
+      setDescription("");
+      setPriority("Medium");
+      setDeadline("");
+    }
+  }, [isOpen, isEditing, initId, initTitle, initDescription, initPriority, initDeadline]);
 
   useEffect(() => {
     if (isOpen) {
@@ -634,10 +641,13 @@ export function TaskDetailsModal({
                     }
                     const original = initialData.title ?? "";
                     if (trimmedTitle !== original) {
+                      const session = ++updateSessionsRef.current.title;
                       try {
                         await onUpdateTask?.(initialData.id, { title: trimmedTitle });
                       } catch (error) {
-                        setTitle(original);
+                        if (session === updateSessionsRef.current.title) {
+                          setTitle(original);
+                        }
                       }
                     }
                   }}
@@ -677,10 +687,13 @@ export function TaskDetailsModal({
                             const original = initialData?.priority;
                             setPriority(p);
                             if (initialData?.id && p !== original) {
+                              const session = ++updateSessionsRef.current.priority;
                               try {
                                 await onUpdateTask?.(initialData.id, { priority: p });
                               } catch (error) {
-                                if (original) setPriority(original);
+                                if (session === updateSessionsRef.current.priority && original) {
+                                  setPriority(original);
+                                }
                               }
                             }
                           }}
@@ -711,12 +724,15 @@ export function TaskDetailsModal({
                         ? initialData.deadline.split("T")[0]
                         : "";
                       if (deadline !== original) {
+                        const session = ++updateSessionsRef.current.deadline;
                         try {
                           await onUpdateTask?.(initialData.id, {
                             deadline: deadline || null,
                           });
                         } catch (error) {
-                          setDeadline(original);
+                          if (session === updateSessionsRef.current.deadline) {
+                            setDeadline(original);
+                          }
                         }
                       }
                     }}
@@ -905,10 +921,13 @@ export function TaskDetailsModal({
                   onBlur={async () => {
                     const original = initialData?.description || "";
                     if (initialData?.id && description !== original) {
+                      const session = ++updateSessionsRef.current.description;
                       try {
                         await onUpdateTask?.(initialData.id, { description });
                       } catch (error) {
-                        setDescription(original);
+                        if (session === updateSessionsRef.current.description) {
+                          setDescription(original);
+                        }
                       }
                     }
                   }}
