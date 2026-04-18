@@ -1,18 +1,19 @@
 const mockGetUser = jest.fn();
 
-const DEFAULT_USERS_DATA = [
+const mockDefaultUsersData = [
   { id: "owner-1", display_name: "Owner One", avatar_url: null },
   { id: "member-1", display_name: "Member One", avatar_url: null },
   { id: "user-2", display_name: "User Two", avatar_url: null },
 ];
 
 // A generic chainable mock for Supabase query builder
-const createMockChain = (table?: string) => {
+const mockCreateMockChain = (table?: string) => {
   const chain: any = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
   };
@@ -20,7 +21,7 @@ const createMockChain = (table?: string) => {
   if (table === "users") {
     chain.select.mockReturnValue({
       in: jest.fn().mockResolvedValue({
-        data: DEFAULT_USERS_DATA,
+        data: mockDefaultUsersData,
         error: null,
       }),
     });
@@ -29,7 +30,7 @@ const createMockChain = (table?: string) => {
   return chain;
 };
 
-const mockFrom = jest.fn().mockImplementation((table: string) => createMockChain(table));
+const mockFrom = jest.fn().mockImplementation((table: string) => mockCreateMockChain(table));
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({
@@ -87,7 +88,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -114,7 +115,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -151,7 +152,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -229,7 +230,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     ];
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -300,7 +301,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     ];
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -372,7 +373,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -431,7 +432,7 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "tasks") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -566,7 +567,29 @@ describe("POST /api/tasks/[taskId]/comments", () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
+      if (table === "tasks") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { column_id: 1, columns: { board_id: 10 } },
+              error: null,
+            }),
+          }),
+        });
+      }
+      if (table === "boards") {
+        chain.select.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({
+                data: { id: 10 },
+                error: null,
+              }),
+            }),
+          }),
+        });
+      }
       if (table === "comments") {
         chain.select.mockReturnValue({
           single: jest.fn().mockResolvedValue({
@@ -604,7 +627,7 @@ describe("DELETE /api/tasks/[taskId]/comments/[commentId]", () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = mockCreateMockChain(table);
       if (table === "comments") {
         chain.delete.mockReturnValue({
           eq: jest.fn().mockReturnValue({
