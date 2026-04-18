@@ -85,7 +85,8 @@ export async function DELETE(
     const { error: deleteErr } = await supabase
       .from("comments")
       .delete()
-      .eq("id", commentId);
+      .eq("id", commentId)
+      .eq("user_id", user.id);
 
     if (deleteErr) {
       console.error("DELETE comment error:", deleteErr.message);
