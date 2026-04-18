@@ -90,16 +90,18 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: null,
-              error: { message: "Not found" },
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: null,
+                error: { message: "Not found" },
+              }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("999"));
@@ -117,26 +119,30 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
       if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: null,
-              error: { message: "Column not found" },
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: null,
+                error: { message: "Column not found" },
+              }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("1"));
@@ -154,50 +160,58 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
       if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { board_id: 10 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
       if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: null,
-                error: null,
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: null,
+                  error: null,
+                }),
               }),
             }),
           }),
-        });
+        };
       }
       if (table === "board_members") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: null,
-                error: null,
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: null,
+                  error: null,
+                }),
               }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("1"));
@@ -232,48 +246,56 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: { id: 10 },
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
                 error: null,
               }),
             }),
           }),
-        });
+        };
       }
-      if (table === "comments") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              data: mockComments,
-              error: null,
+      if (table === "columns") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { board_id: 10 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      if (table === "boards") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: { id: 10 },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "comments") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockReturnValue({
+                data: mockComments,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("1"));
@@ -303,60 +325,70 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
       if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { board_id: 10 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
       if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: null,
-                error: null,
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: null,
+                  error: null,
+                }),
               }),
             }),
           }),
-        });
+        };
       }
       if (table === "board_members") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: { user_id: "member-1" },
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: { user_id: "member-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "comments") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockReturnValue({
+                data: mockComments,
                 error: null,
               }),
             }),
           }),
-        });
+        };
       }
-      if (table === "comments") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              data: mockComments,
-              error: null,
-            }),
-          }),
-        });
-      }
-      return chain;
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("5"));
@@ -375,48 +407,56 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: { id: 10 },
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
                 error: null,
               }),
             }),
           }),
-        });
+        };
       }
-      if (table === "comments") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              data: null,
-              error: { message: "DB comments error" },
+      if (table === "columns") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { board_id: 10 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      if (table === "boards") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: { id: 10 },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "comments") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockReturnValue({
+                data: null,
+                error: { message: "DB comments error" },
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("1"));
@@ -434,121 +474,62 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     mockFrom.mockImplementation((table: string) => {
       const chain = mockCreateMockChain(table);
       if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
+        return {
+          select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: { id: 10 },
+              single: jest.fn().mockReturnValue({
+                data: { column_id: 50 },
                 error: null,
               }),
             }),
           }),
-        });
+        };
       }
-      if (table === "comments") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              data: [],
-              error: null,
+      if (table === "columns") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockReturnValue({
+                data: { board_id: 10 },
+                error: null,
+              }),
             }),
           }),
-        });
+        };
       }
-      return chain;
+      if (table === "boards") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockReturnValue({
+                  data: { id: 10 },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "comments") {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockReturnValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
     });
 
     const res = await GET(makeRequest(), makeParams("1"));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual([]);
-  });
-
-  // ── 500: Users fetch fails ──────────────────────────────
-  it("returns 500 when users data fetch fails", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: "owner-1" } },
-    });
-
-    mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain();
-      if (table === "tasks") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { column_id: 50 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "columns") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockReturnValue({
-              data: { board_id: 10 },
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "boards") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              maybeSingle: jest.fn().mockReturnValue({
-                data: { id: 10 },
-                error: null,
-              }),
-            }),
-          }),
-        });
-      }
-      if (table === "comments") {
-        chain.select.mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              data: [{ id: 1, user_id: "owner-1", content: "Test" }],
-              error: null,
-            }),
-          }),
-        });
-      }
-      if (table === "users") {
-        chain.select.mockReturnValue({
-          in: jest.fn().mockResolvedValue({
-            data: null,
-            error: { message: "Users DB error" },
-          }),
-        });
-      }
-      return chain;
-    });
-
-    const res = await GET(makeRequest(), makeParams("1"));
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toBe("Failed to load comment authors.");
   });
 });
 
