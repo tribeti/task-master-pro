@@ -14,6 +14,7 @@ const mockCreateMockChain = (table?: string) => {
     in: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
   };
@@ -572,10 +573,12 @@ describe("POST /api/tasks/[taskId]/comments", () => {
         });
       }
       if (table === "comments") {
-        chain.select.mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: { id: 100, content: "New comment", task_id: 1, user_id: "user-1" },
-            error: null,
+        chain.insert.mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { id: 100, content: "New comment", task_id: 1, user_id: "user-1" },
+              error: null,
+            }),
           }),
         });
       }
