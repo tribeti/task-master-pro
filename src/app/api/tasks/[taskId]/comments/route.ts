@@ -216,7 +216,7 @@ export async function POST(
   } catch (err: any) {
     console.error("POST comment unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal server error: " + (err.message || String(err)) },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
