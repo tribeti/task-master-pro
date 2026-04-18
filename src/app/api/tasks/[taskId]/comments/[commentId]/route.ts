@@ -35,7 +35,7 @@ export async function DELETE(
 
     if (error) {
       console.error("DELETE comment error:", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
     }
 
     return NextResponse.json({ message: "Comment deleted successfully" });
