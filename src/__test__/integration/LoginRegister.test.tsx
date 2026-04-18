@@ -39,16 +39,16 @@ describe('Login & Register UI Flow', () => {
 
   it('renders login view by default', () => {
     render(<TaskFlowAuth />);
-    expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+    expect(screen.getByText('Chào mừng trở lại')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
   });
 
-  it('switches to register view when "Sign up now" is clicked', () => {
+  it('switches to register view when "Đăng ký ngay" is clicked', () => {
     render(<TaskFlowAuth />);
-    fireEvent.click(screen.getByText('Sign up now'));
+    fireEvent.click(screen.getByText('Đăng ký ngay'));
     
     // UI responds dynamically
-    expect(screen.getByText('Create Account')).toBeInTheDocument();
+    expect(screen.getByText('Tạo tài khoản')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Full Name')).toBeInTheDocument();
   });
 

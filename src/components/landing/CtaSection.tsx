@@ -15,17 +15,17 @@ export default function CtaSection() {
 
         <div className="relative z-10">
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
-            Ready to level up your work?
+            Bắt đầu nâng cấp cách làm việc của bạn chưa?
           </h2>
           <p className="text-slate-400 text-lg font-medium max-w-xl mx-auto mb-10">
-            Join Task Master Pro today and experience the future of project
-            management. Free for individuals and small teams.
+            Tham gia Task Master Pro ngay hôm nay và trải nghiệm tương lai của
+            quản lý dự án. Miễn phí cho cá nhân và nhóm nhỏ.
           </p>
           <button
             onClick={() => router.push("/login")}
             className="bg-[#34D399] hover:bg-emerald-400 transition-transform hover:scale-105 text-white font-bold text-lg px-10 py-5 rounded-full shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto"
           >
-            Create Free Account <ArrowRightIcon />
+            Tạo tài khoản miễn phí <ArrowRightIcon />
           </button>
         </div>
       </div>
