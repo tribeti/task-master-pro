@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Comment, BoardMember } from "@/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
 
@@ -12,7 +12,7 @@ const COMMENT_DATE_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
   minute: "2-digit",
   second: "2-digit",
   hour12: false,
-  timeZone: "Asia/Bangkok",
+  timeZone: "Asia/Ho_Chi_Minh",
 });
 
 function formatCommentDate(dateString: string) {
@@ -42,6 +42,12 @@ export function TaskComments({
 }: TaskCommentsProps) {
   const [commentInput, setCommentInput] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+
+  // Optimize member lookup: O(N) -> O(1)
+  const memberMap = useMemo(() => {
+    return new Map(boardMembers.map((m) => [m.user_id, m]));
+  }, [boardMembers]);
 
   const handleAddCommentClick = async () => {
     if (!commentInput.trim() || commentSubmitting) return;
@@ -69,7 +75,7 @@ export function TaskComments({
         ) : (
           comments.map((comment) => {
             const isOwner = comment.user_id === currentUserId;
-            const memberInfo = boardMembers.find(m => m.user_id === comment.user_id);
+            const memberInfo = memberMap.get(comment.user_id);
             const fallbackName = isOwner ? "Bạn" : "Thành viên";
             const displayName = comment.user?.display_name || memberInfo?.display_name || fallbackName;
             const avatarUrl = comment.user?.avatar_url || memberInfo?.avatar_url || null;
@@ -96,14 +102,42 @@ export function TaskComments({
                     </p>
                   </div>
                   {isOwner && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteComment(comment.id)}
-                      disabled={commentSubmitting || isSubmitting}
-                      className="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase bg-slate-50 px-1.5 py-0.5 rounded transition-colors"
-                    >
-                      Xóa
-                    </button>
+                    <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-right-1 duration-200">
+                      {deletingCommentId === comment.id ? (
+                        <>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">
+                            Chắc chắn?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingCommentId(null)}
+                            className="text-[10px] font-bold text-slate-500 hover:text-slate-800 uppercase bg-slate-100 px-1.5 py-0.5 rounded transition-colors"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onDeleteComment(comment.id);
+                              setDeletingCommentId(null);
+                            }}
+                            disabled={commentSubmitting || isSubmitting}
+                            className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 uppercase px-1.5 py-0.5 rounded shadow-sm transition-colors"
+                          >
+                            Xóa
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeletingCommentId(comment.id)}
+                          disabled={commentSubmitting || isSubmitting}
+                          className="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase bg-slate-50 hover:bg-red-50 px-1.5 py-0.5 rounded transition-colors"
+                        >
+                          Xóa
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap break-words mt-1">

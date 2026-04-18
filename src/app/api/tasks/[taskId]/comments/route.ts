@@ -87,7 +87,7 @@ export async function GET(
     }
 
     const userIds = Array.from(new Set(commentsData.map((c) => c.user_id)));
-    
+
     const { data: usersData, error: userError } = await supabase
       .from("users")
       .select("id, display_name, avatar_url")
@@ -95,17 +95,23 @@ export async function GET(
 
     if (userError) {
       console.error("GET comments usersData error:", userError.message);
+      return NextResponse.json(
+        { error: "Failed to load comment authors." },
+        { status: 500 },
+      );
     }
 
+    const userMap = new Map(usersData?.map((u) => [u.id, u]) || []);
+
     const comments: Comment[] = commentsData.map((c) => {
-      const user = usersData?.find((u) => u.id === c.user_id);
+      const user = userMap.get(c.user_id);
       return {
         ...c,
         user: user
           ? {
-              display_name: user.display_name,
-              avatar_url: user.avatar_url,
-            }
+            display_name: user.display_name,
+            avatar_url: user.avatar_url,
+          }
           : undefined,
       };
     });

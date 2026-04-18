@@ -36,6 +36,14 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
   const [supabase] = useState(() => createClient());
 
+  // Reset local UI state when switching task
+  useEffect(() => {
+    setIsAddingChecklist(false);
+    setNewChecklistTitle("Việc cần làm");
+    setEditingChecklistId(null);
+    setEditingChecklistTitle("");
+  }, [taskId]);
+
   // Fetch Checklists
   useEffect(() => {
     let ignore = false;
@@ -54,7 +62,7 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         if (error) throw error;
 
         if (!ignore) {
-          setChecklists((data as any) || []);
+          setChecklists((data as Checklist[]) || []);
         }
       } catch (err: any) {
         console.error("Error fetching checklists:", err);
@@ -202,11 +210,11 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
           prev.map((c) =>
             c.id === checklistId
               ? {
-                  ...c,
-                  items: c.items.map((i) =>
-                    i.id === tempId ? { ...data, isPending: false } : i
-                  ),
-                }
+                ...c,
+                items: c.items.map((i) =>
+                  i.id === tempId ? { ...data, isPending: false } : i
+                ),
+              }
               : c
           )
         );
@@ -216,9 +224,9 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
           prev.map((c) =>
             c.id === checklistId
               ? {
-                  ...c,
-                  items: c.items.filter((i) => i.id !== tempId),
-                }
+                ...c,
+                items: c.items.filter((i) => i.id !== tempId),
+              }
               : c
           )
         );
@@ -229,9 +237,9 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         prev.map((c) =>
           c.id === checklistId
             ? {
-                ...c,
-                items: c.items.filter((i) => i.id !== tempId),
-              }
+              ...c,
+              items: c.items.filter((i) => i.id !== tempId),
+            }
             : c
         )
       );
@@ -254,11 +262,11 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
       prev.map((c) =>
         c.id === checklistId
           ? {
-              ...c,
-              items: c.items.map((i) =>
-                i.id === itemId ? { ...i, is_completed: isCompleted } : i
-              ),
-            }
+            ...c,
+            items: c.items.map((i) =>
+              i.id === itemId ? { ...i, is_completed: isCompleted } : i
+            ),
+          }
           : c
       )
     );
@@ -274,11 +282,11 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         prev.map((c) =>
           c.id === checklistId
             ? {
-                ...c,
-                items: c.items.map((i) =>
-                  i.id === itemId ? { ...i, is_completed: oldStatus } : i
-                ),
-              }
+              ...c,
+              items: c.items.map((i) =>
+                i.id === itemId ? { ...i, is_completed: oldStatus } : i
+              ),
+            }
             : c
         )
       );
@@ -312,11 +320,11 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         prev.map((c) =>
           c.id === checklistId
             ? {
-                ...c,
-                items: [...c.items, oldItem].sort((a, b) =>
-                  a.created_at.localeCompare(b.created_at)
-                ),
-              }
+              ...c,
+              items: [...c.items, oldItem].sort((a, b) =>
+                a.created_at.localeCompare(b.created_at)
+              ),
+            }
             : c
         )
       );
@@ -454,11 +462,10 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
                     />
                   ) : (
                     <h3
-                      className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 -ml-2 ${
-                        checklist.isPending
-                          ? "text-slate-400 cursor-not-allowed"
-                          : "text-slate-800 hover:bg-slate-200/50 cursor-pointer"
-                      }`}
+                      className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 -ml-2 ${checklist.isPending
+                        ? "text-slate-400 cursor-not-allowed"
+                        : "text-slate-800 hover:bg-slate-200/50 cursor-pointer"
+                        }`}
                       onClick={() => {
                         if (checklist.isPending) return;
                         setEditingChecklistId(checklist.id);
@@ -490,9 +497,8 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
                     </span>
                     <div className="h-1.5 flex-1 bg-slate-200 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          progress === 100 ? "bg-green-500" : "bg-[#28B8FA]"
-                        }`}
+                        className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : "bg-[#28B8FA]"
+                          }`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -503,9 +509,8 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
                   {checklist.items.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex items-start gap-3 group ${
-                        item.isPending ? "opacity-50" : ""
-                      }`}
+                      className={`flex items-start gap-3 group ${item.isPending ? "opacity-50" : ""
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -517,11 +522,10 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
                         className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA] transition-colors cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
                       />
                       <span
-                        className={`text-sm font-medium flex-1 break-words transition-all duration-300 ${
-                          item.is_completed
-                            ? "line-through text-slate-400 opacity-60"
-                            : "text-slate-700"
-                        }`}
+                        className={`text-sm font-medium flex-1 break-words transition-all duration-300 ${item.is_completed
+                          ? "line-through text-slate-400 opacity-60"
+                          : "text-slate-700"
+                          }`}
                       >
                         {item.content}
                       </span>
