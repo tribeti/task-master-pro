@@ -59,7 +59,7 @@ function TaskUrlHandler({
   return null;
 }
 
-export function TasksTab({ projectId }: { projectId: number }) {
+function TasksTabInner({ projectId }: { projectId: number }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useDashboardUser();
@@ -389,7 +389,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     setIsSubmitting(false);
-    setIsModalOpen(false);
+    handleCloseModal();
   };
 
   const handleDeleteTask = async () => {
@@ -413,7 +413,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     setIsSubmitting(false);
-    setIsModalOpen(false);
+    handleCloseModal();
   };
 
   const handleAddLabel = async (taskId: number, labelId: number) => {
@@ -788,5 +788,19 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onDeleteLabel={handleDeleteLabel}
       />
     </div>
+  );
+}
+
+export function TasksTab({ projectId }: { projectId: number }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 overflow-x-auto mt-4 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <TasksTabInner projectId={projectId} />
+    </Suspense>
   );
 }
