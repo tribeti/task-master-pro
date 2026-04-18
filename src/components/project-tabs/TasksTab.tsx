@@ -513,7 +513,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
 
   const handleAddComment = async (taskId: number, content: string) => {
     try {
-      const res = await fetch(`/api/kanban/tasks/${taskId}/comments`, {
+      const res = await fetch(`/api/tasks/${taskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -531,7 +531,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     if (!editingTask?.id) return;
 
     try {
-      const res = await fetch(`/api/kanban/comments/${commentId}`, {
+      const res = await fetch(`/api/tasks/${editingTask.id}/comments/${commentId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();

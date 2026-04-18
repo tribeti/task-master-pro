@@ -39,7 +39,8 @@ jest.mock("@/utils/supabase/server", () => ({
 }));
 
 // Import after mocks
-import { GET } from "@/app/api/tasks/[taskId]/comments/route";
+import { GET, POST } from "@/app/api/tasks/[taskId]/comments/route";
+import { DELETE } from "@/app/api/tasks/[taskId]/comments/[commentId]/route";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -547,5 +548,82 @@ describe("GET /api/tasks/[taskId]/comments", () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).toBe("Failed to load comment authors.");
+  });
+});
+
+describe("POST /api/tasks/[taskId]/comments", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function makePostRequest(body: any) {
+    return {
+      json: jest.fn().mockResolvedValue(body),
+    } as any;
+  }
+
+  it("successfully creates a comment", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+
+    mockFrom.mockImplementation((table: string) => {
+      const chain = createMockChain(table);
+      if (table === "comments") {
+        chain.select.mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { id: 100, content: "New comment", task_id: 1, user_id: "user-1" },
+            error: null,
+          }),
+        });
+      }
+      return chain;
+    });
+
+    const res = await POST(makePostRequest({ content: "New comment" }), makeParams("1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.content).toBe("New comment");
+  });
+
+  it("returns 401 when not authorized", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const res = await POST(makePostRequest({ content: "..." }), makeParams("1"));
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("DELETE /api/tasks/[taskId]/comments/[commentId]", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function makeDeleteParams(taskId: string, commentId: string) {
+    return { params: Promise.resolve({ taskId, commentId }) };
+  }
+
+  it("successfully deletes a comment", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+
+    mockFrom.mockImplementation((table: string) => {
+      const chain = createMockChain(table);
+      if (table === "comments") {
+        chain.delete.mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ error: null }),
+          }),
+        });
+      }
+      return chain;
+    });
+
+    const res = await DELETE(makeRequest(), makeDeleteParams("1", "100"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.message).toBe("Comment deleted successfully");
+  });
+
+  it("returns 401 when not authorized", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const res = await DELETE(makeRequest(), makeDeleteParams("1", "100"));
+    expect(res.status).toBe(401);
   });
 });

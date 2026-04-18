@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { Comment } from "@/types/project";
+import { Comment, BoardMember } from "@/types/project";
+import { verifyTaskAccess, validateString } from "@/utils/board-access";
 
 // ────────────────────────────────────────────────
 // GET /api/tasks/[taskId]/comments
@@ -121,6 +122,67 @@ export async function GET(
     console.error("GET comments unexpected error:", err);
     return NextResponse.json(
       { error: "Internal server error: " + (err.message || String(err)) },
+      { status: 500 },
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// POST /api/tasks/[taskId]/comments
+// Creates a new comment for a task
+// ────────────────────────────────────────────────
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ taskId: string }> },
+) {
+  try {
+    const { taskId: taskIdStr } = await params;
+    const taskId = Number(taskIdStr);
+    if (isNaN(taskId)) {
+      return NextResponse.json({ error: "Invalid taskId" }, { status: 400 });
+    }
+
+    const { content } = await request.json();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify task access using shared utility
+    await verifyTaskAccess(supabase, user.id, taskId);
+
+    // Validate comment length and content
+    const cleanContent = validateString(content, "Comment", 2000);
+
+    const payload = {
+      content: cleanContent,
+      task_id: taskId,
+      user_id: user.id,
+    };
+
+    const { data, error } = await supabase
+      .from("comments")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("POST comment error:", error.message);
+      return NextResponse.json(
+        { error: error.message || "Failed to create comment." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (err: any) {
+    console.error("POST comment unexpected error:", err);
+    return NextResponse.json(
+      { error: err.message || "Internal server error" },
       { status: 500 },
     );
   }
