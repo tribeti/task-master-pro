@@ -117,9 +117,14 @@ export function TaskComments({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              onDeleteComment(comment.id);
-                              setDeletingCommentId(null);
+                            onClick={async () => {
+                              setCommentSubmitting(true);
+                              try {
+                                await onDeleteComment(comment.id);
+                              } finally {
+                                setCommentSubmitting(false);
+                                setDeletingCommentId(null);
+                              }
                             }}
                             disabled={commentSubmitting || isSubmitting}
                             className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 uppercase px-1.5 py-0.5 rounded shadow-sm transition-colors"

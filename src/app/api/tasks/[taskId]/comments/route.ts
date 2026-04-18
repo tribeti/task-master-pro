@@ -104,13 +104,13 @@ export async function GET(
     const userMap = new Map(usersData?.map((u) => [u.id, u]) || []);
 
     const comments: Comment[] = commentsData.map((c) => {
-      const user = userMap.get(c.user_id);
+      const commentAuthor = userMap.get(c.user_id);
       return {
         ...c,
-        user: user
+        user: commentAuthor
           ? {
-            display_name: user.display_name,
-            avatar_url: user.avatar_url,
+            display_name: commentAuthor.display_name,
+            avatar_url: commentAuthor.avatar_url,
           }
           : undefined,
       };

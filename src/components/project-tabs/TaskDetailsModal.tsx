@@ -384,6 +384,7 @@ export function TaskDetailsModal({
                   onAddAssignee={onAddAssignee}
                   onRemoveAssignee={onRemoveAssignee}
                   onRemoveAllAssignees={onRemoveAllAssignees}
+                  boardMembers={boardMembers}
                 />
               )}
 

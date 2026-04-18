@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { AssigneeOption, TaskAssignee } from "@/types/project";
+import { BoardMember, TaskAssignee } from "@/types/project";
 
 interface TaskAssigneesProps {
   boardId: number;
@@ -12,6 +12,7 @@ interface TaskAssigneesProps {
   onAddAssignee: (taskId: number, assigneeId: string) => Promise<void>;
   onRemoveAssignee: (taskId: number, assigneeId: string) => Promise<void>;
   onRemoveAllAssignees: (taskId: number) => Promise<void>;
+  boardMembers: BoardMember[];
 }
 
 export function TaskAssignees({
@@ -22,49 +23,11 @@ export function TaskAssignees({
   onAddAssignee,
   onRemoveAssignee,
   onRemoveAllAssignees,
+  boardMembers,
 }: TaskAssigneesProps) {
-  const [membersLoading, setMembersLoading] = useState(false);
   const [assigneeSubmitting, setAssigneeSubmitting] = useState(false);
   const [assigneeError, setAssigneeError] = useState("");
-  const [assignableMembers, setAssignableMembers] = useState<AssigneeOption[]>([]);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
-
-  useEffect(() => {
-    let ignore = false;
-
-    const fetchAssignableMembers = async () => {
-      try {
-        setMembersLoading(true);
-        setAssigneeError("");
-        const res = await fetch(`/api/users?boardId=${boardId}`);
-        if (!res.ok) {
-          throw new Error("Failed to load users");
-        }
-        const data = (await res.json()) as AssigneeOption[];
-        if (!ignore) {
-          setAssignableMembers(data || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch assignee options:", error);
-        if (!ignore) {
-          setAssignableMembers([]);
-          // Optionally suppress this error if it frequently fails on local setups 
-          // without user table permissions.
-          // setAssigneeError("Failed to load assignees.");
-        }
-      } finally {
-        if (!ignore) {
-          setMembersLoading(false);
-        }
-      }
-    };
-
-    fetchAssignableMembers();
-
-    return () => {
-      ignore = true;
-    };
-  }, [boardId]);
 
   // Reset selected assignee when task changes
   useEffect(() => {
@@ -75,7 +38,7 @@ export function TaskAssignees({
   const assignedAssigneeIds = new Set(
     currentAssignees.map((assignee) => assignee.user_id)
   );
-  const availableAssigneeOptions = assignableMembers.filter(
+  const availableAssigneeOptions = boardMembers.filter(
     (member) => !assignedAssigneeIds.has(member.user_id)
   );
 
@@ -175,7 +138,7 @@ export function TaskAssignees({
         <select
           value={selectedAssigneeId}
           onChange={(e) => setSelectedAssigneeId(e.target.value)}
-          disabled={membersLoading || assigneeSubmitting || isSubmitting}
+          disabled={assigneeSubmitting || isSubmitting}
           className="w-full appearance-none rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors disabled:opacity-50"
         >
           <option value="">Gán thành viên...</option>
