@@ -8,7 +8,7 @@ import React, {
   useMemo,
   Suspense,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -35,16 +35,24 @@ function TaskUrlHandler({
 }) {
   const searchParams = useSearchParams();
   const urlTaskId = searchParams.get("taskId");
+  const lastAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (urlTaskId && tasks.length > 0) {
+      if (lastAppliedRef.current === urlTaskId) {
+        return;
+      }
+      
       const tid = parseInt(urlTaskId, 10);
       if (selectedTaskId !== tid) {
         const taskToOpen = tasks.find((t) => t.id === tid);
         if (taskToOpen) {
           onTaskFound(taskToOpen);
+          lastAppliedRef.current = urlTaskId;
         }
       }
+    } else if (!urlTaskId) {
+      lastAppliedRef.current = null;
     }
   }, [urlTaskId, tasks, selectedTaskId, onTaskFound]);
 
@@ -52,6 +60,8 @@ function TaskUrlHandler({
 }
 
 export function TasksTab({ projectId }: { projectId: number }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useDashboardUser();
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -249,6 +259,24 @@ export function TasksTab({ projectId }: { projectId: number }) {
     },
     [editingTask?.id, openEditModal],
   );
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    
+    // Use timeout to delay clearing states so modal exit animation can play smoothly
+    setTimeout(() => {
+      setEditingTask(null);
+      setSelectedColumnId(null);
+    }, 300);
+
+    // Remove taskId from URL so that if it is clicked again it registers as a new change
+    const currentTaskId = searchParams.get("taskId");
+    if (currentTaskId) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("taskId");
+      router.replace(`?${newParams.toString()}`, { scroll: false });
+    }
+  }, [router, searchParams]);
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
@@ -719,7 +747,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       <TaskDetailsModal
         isOpen={isModalOpen}
         boardId={projectId}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}
         initialData={currentEditingTask}
