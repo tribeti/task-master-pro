@@ -32,6 +32,7 @@ export async function DELETE(
       .from("comments")
       .delete()
       .eq("id", commentId)
+      .eq("task_id", taskId)
       .eq("user_id", user.id);
 
     if (error) {
