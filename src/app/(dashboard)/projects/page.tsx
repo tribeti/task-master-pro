@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { PlusIcon, UserIcon } from "@/components/icons";
+import { PlusIcon } from "@/components/icons";
 import {
   TasksTab,
   TimelineTab,
@@ -361,10 +361,6 @@ export default function ProjectsPage() {
         <div>
           {selectedProject ? (
             <>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                <span className="text-[#28B8FA]">GIAI ĐOẠN HIỆN TẠI</span>{" "}
-                <span className="mx-2 text-slate-300">&gt;</span> KẾ HOẠCH Q4
-              </p>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
                   onClick={handleCloseProject}
@@ -423,20 +419,6 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               )}
-              <button
-                onClick={() => setIsQuickEntryOpen(true)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full shadow-md transition-transform hover:scale-105 text-sm font-semibold text-white ${projectTab === "Team" ? "bg-[#1E293B] shadow-slate-300" : "bg-[#28B8FA] shadow-cyan-200"}`}
-              >
-                {projectTab === "Team" ? (
-                  <>
-                    <UserIcon /> Mời thành viên
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon /> Thêm nhiệm vụ
-                  </>
-                )}
-              </button>
             </>
           ) : (
             <button
