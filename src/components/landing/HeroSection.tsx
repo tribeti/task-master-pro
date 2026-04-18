@@ -84,7 +84,7 @@ export default function HeroSection() {
               <p className="text-[10px] font-bold tracking-widest uppercase text-white/80">
                 Chuỗi ngày hiện tại
               </p>
-              <p className="text-3xl font-black tracking-tighter">12 Days</p>
+              <p className="text-3xl font-black tracking-tighter">12 ngày</p>
             </div>
           </div>
         </div>

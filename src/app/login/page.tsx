@@ -219,7 +219,7 @@ export default function TaskFlowAuth() {
                 <CheckIcon />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg">+150 XP Earned</h4>
+                <h4 className="text-white font-bold text-lg">nhận 150 XP</h4>
                 <p className="text-slate-300 text-sm font-medium mt-1">
                   Trạng thái tập trung sâu hoàn thành
                 </p>
@@ -486,8 +486,8 @@ export default function TaskFlowAuth() {
                   <div className="relative group">
                     <div
                       className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${emailFormatError
-                          ? "text-red-400"
-                          : "text-slate-400 group-focus-within:text-[#FF8B5E]"
+                        ? "text-red-400"
+                        : "text-slate-400 group-focus-within:text-[#FF8B5E]"
                         }`}
                     >
                       <MailIcon />
@@ -502,8 +502,8 @@ export default function TaskFlowAuth() {
                       }}
                       placeholder="Email address"
                       className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${emailFormatError
-                          ? "border-red-300 focus:border-red-400"
-                          : "border-slate-200 focus:border-[#FF8B5E]"
+                        ? "border-red-300 focus:border-red-400"
+                        : "border-slate-200 focus:border-[#FF8B5E]"
                         }`}
                       aria-describedby="email-format-error"
                     />
