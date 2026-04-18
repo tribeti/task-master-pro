@@ -34,12 +34,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    // 2. Check authorship
-    if (comment.user_id !== user.id) {
-      return NextResponse.json({ error: "You can only delete your own comments" }, { status: 403 });
-    }
-
-    // 3. Verify access to the task/board
+    // 2. Verify access to the task/board
     // Resolve task → column → board to verify access
     const { data: task, error: taskErr } = await supabase
       .from("tasks")
@@ -79,6 +74,11 @@ export async function DELETE(
       if (!membership) {
         return NextResponse.json({ error: "Access denied to the project" }, { status: 403 });
       }
+    }
+
+    // 3. Check authorship
+    if (comment.user_id !== user.id) {
+      return NextResponse.json({ error: "You can only delete your own comments" }, { status: 403 });
     }
 
     // 4. Perform deletion
