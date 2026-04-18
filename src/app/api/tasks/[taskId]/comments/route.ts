@@ -68,7 +68,7 @@ export async function GET(
       }
     }
 
-    const { data, error } = await supabase
+    const { data: commentsData, error } = await supabase
       .from("comments")
       .select("*")
       .eq("task_id", taskId)
@@ -82,7 +82,41 @@ export async function GET(
       );
     }
 
-    return NextResponse.json((data as Comment[]) || []);
+    if (!commentsData || commentsData.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const userIds = Array.from(new Set(commentsData.map((c) => c.user_id)));
+
+    const { data: usersData, error: userError } = await supabase
+      .from("users")
+      .select("id, display_name, avatar_url")
+      .in("id", userIds);
+
+    if (userError) {
+      console.error("GET comments usersData error:", userError.message);
+      return NextResponse.json(
+        { error: "Failed to load comment authors." },
+        { status: 500 },
+      );
+    }
+
+    const userMap = new Map(usersData?.map((u) => [u.id, u]) || []);
+
+    const comments: Comment[] = commentsData.map((c) => {
+      const commentAuthor = userMap.get(c.user_id);
+      return {
+        ...c,
+        user: commentAuthor
+          ? {
+            display_name: commentAuthor.display_name,
+            avatar_url: commentAuthor.avatar_url,
+          }
+          : undefined,
+      };
+    });
+
+    return NextResponse.json(comments);
   } catch (err: any) {
     console.error("GET comments unexpected error:", err);
     return NextResponse.json(
