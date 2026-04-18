@@ -294,11 +294,6 @@ export default function CommandCenter() {
         </div>
       </div>
 
-      {/* FLOATING ACTION BUTTON */}
-      <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
-        <PlusIcon />
-      </button>
-
       {/* 3. QUICK ENTRY MODAL OVERLAY */}
       {isQuickEntryOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
@@ -388,8 +383,6 @@ export default function CommandCenter() {
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
       />
-
-      {/* Global Style for dropdown animation */}
     </>
   );
 }
