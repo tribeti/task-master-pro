@@ -75,10 +75,6 @@ export interface Comment {
   created_at: string;
   task_id: number;
   user_id: string;
-  user?: {
-    display_name: string;
-    avatar_url: string | null;
-  };
 }
 
 export interface BoardMember {

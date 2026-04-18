@@ -734,7 +734,6 @@ export function TasksTab({ projectId }: { projectId: number }) {
         comments={taskComments}
         commentsLoading={commentsLoading}
         currentUserId={user?.id || ""}
-        boardMembers={boardMembers}
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
         onUpdateTask={handleUpdateTaskField}
