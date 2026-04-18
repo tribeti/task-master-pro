@@ -69,39 +69,244 @@ npm run start
 
 ```text
 task-master-pro/
+├── .github/
+│   ├── workflows/
+│   │   └── ci.yml
+│   └── dependabot.yml
 ├── src/
-│   ├── app/                    # 📌 Nền tảng App Router (Định tuyến chính)
-│   │   ├── (auth)/             # Nhóm Public Route (Không yêu cầu đăng nhập)
-│   │   │   ├── login/          # Giao diện Đăng nhập / Đăng ký
-│   │   │   └── auth/callback/  # API Route hứng và xử lý token từ Supabase OAuth
-│   │   ├── (dashboard)/        # Nhóm Private Route (Yêu cầu xác thực)
-│   │   │   ├── boards/[id]/    # Trang chi tiết Không gian làm việc (Kanban Board)
-│   │   │   ├── profile/        # Quản lý thông tin cá nhân & Tài khoản
-│   │   │   ├── admin/          # Bảng điều khiển dành riêng cho Quản trị viên
-│   │   │   └── page.tsx        # Trang chủ Dashboard: Danh sách dự án đang tham gia
-│   │   ├── layout.tsx          # Layout bao bọc toàn ứng dụng (Navbar, Auth Provider)
-│   │   └── globals.css         # CSS toàn cục & Cấu hình Tailwind Utilities
-│   │
-│   ├── components/             # 🧩 UI Components (Các mảnh ghép giao diện tái sử dụng)
-│   │   ├── auth/               # Form đăng nhập, đăng ký, quên mật khẩu
-│   │   ├── kanban/             # Component cốt lõi: Cột (Column), Thẻ công việc (Task Card)
-│   │   └── shared/             # Các UI Elements chung (Button, Modal, Toast, Icons)
-│   │
-│   ├── hooks/                  # 🎣 Custom React Hooks (Xử lý logic FE)
-│   │   ├── useAuth.ts          # Quản lý State của phiên đăng nhập
-│   │   └── useKanban.ts        # Xử lý logic kéo/thả (Drag & Drop) của thẻ
-│   │
-│   ├── lib/                    # 🛠 Thư viện, Tiện ích & Cấu hình Backend
-│   │   ├── supabase.ts         # Khởi tạo Supabase Client
-│   │   └── utils.ts            # Các hàm helpers (format ngày tháng, debounce...)
-│   │
-│   └── types/                  # 🏷 Khai báo kiểu dữ liệu (TypeScript Interfaces)
-│       └── database.types.ts   # Định nghĩa Schema cho Board, Task, User, Notification
-│
-├── public/                     # 🖼 Tài nguyên tĩnh (Hình ảnh, Icons, Favicon)
-├── tailwind.config.ts          # Cấu hình theme, màu sắc chủ đạo của dự án
-├── middleware.ts               # Next.js Middleware bảo vệ các Private Routes
-└── .env.local                  # Biến môi trường (Chứa khóa API Supabase)
+│   ├── __test__/
+│   │   ├── actions/
+│   │   │   ├── auth.actions.test.ts
+│   │   │   └── notification.actions.test.ts
+│   │   ├── hooks/
+│   │   │   ├── useDebounce.test.ts
+│   │   │   ├── useNotifications.test.ts
+│   │   │   └── useProjects.test.ts
+│   │   ├── integration/
+│   │   │   ├── auth-api/
+│   │   │   │   ├── ChangePasswordApi.test.ts
+│   │   │   │   ├── LoginApi.test.ts
+│   │   │   │   ├── Logout.test.ts
+│   │   │   │   ├── ProfileApi.test.ts
+│   │   │   │   └── RegisterApi.test.ts
+│   │   │   ├── board-api/
+│   │   │   │   ├── AcceptInvitationApi.test.ts
+│   │   │   │   ├── BoardMembersApi.test.ts
+│   │   │   │   ├── Create-ReadBoardApi.test.ts
+│   │   │   │   ├── GetKanbanBoardApi.test.ts
+│   │   │   │   ├── RemoveBoardMemberApi.test.ts
+│   │   │   │   ├── SeedColumnApi.test.ts
+│   │   │   │   └── Update-DeleteBoardApi.test.ts
+│   │   │   ├── kanban-api/
+│   │   │   │   ├── ColumnDetailApi.test.ts
+│   │   │   │   ├── CommentsApi.test.ts
+│   │   │   │   ├── Create-ReadTaskApi.test.ts
+│   │   │   │   ├── KanbanColumnsApi.test.ts
+│   │   │   │   ├── KanbanLabelsApi.test.ts
+│   │   │   │   ├── LabelDetailApi.test.ts
+│   │   │   │   ├── TaskAssigneesApi.test.ts
+│   │   │   │   ├── TaskCommentsApi.test.ts
+│   │   │   │   ├── TaskLabelsApi.test.ts
+│   │   │   │   └── Update-DeleteTaskApi.test.ts
+│   │   │   ├── CommentDeleteApi.test.ts
+│   │   │   ├── CronNotificationsApi.test.ts
+│   │   │   ├── HealthApi.test.ts
+│   │   │   ├── LoginRegister.test.tsx
+│   │   │   ├── ProjectsPage.test.tsx
+│   │   │   ├── TaskCommentsApi.test.ts
+│   │   │   ├── TeamTab.test.tsx
+│   │   │   └── UsersApi.test.ts
+│   │   ├── services/
+│   │   │   └── project.service.test.ts
+│   │   └── unit/
+│   │       ├── components/
+│   │       │   ├── CreateProjectModal.test.tsx
+│   │       │   └── Toggle.test.tsx
+│   │       └── utils/
+│   │           ├── time.test.ts
+│   │           └── validate-string.test.ts
+│   ├── app/
+│   │   ├── (dashboard)/
+│   │   │   ├── command/
+│   │   │   │   └── page.tsx
+│   │   │   ├── insights/
+│   │   │   │   └── page.tsx
+│   │   │   ├── notifications/
+│   │   │   │   └── page.tsx
+│   │   │   ├── profile/
+│   │   │   │   └── page.tsx
+│   │   │   ├── projects/
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── provider.tsx
+│   │   │   └── sidebar.tsx
+│   │   ├── actions/
+│   │   │   ├── auth.actions.ts
+│   │   │   └── notification.actions.ts
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   ├── change-password/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── login/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── logout/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── profile/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── register/
+│   │   │   │       └── route.ts
+│   │   │   ├── boards/
+│   │   │   │   ├── [boardId]/
+│   │   │   │   │   ├── columns/
+│   │   │   │   │   │   └── default/
+│   │   │   │   │   │       └── route.ts
+│   │   │   │   │   ├── invitations/
+│   │   │   │   │   │   └── accept/
+│   │   │   │   │   │       └── route.ts
+│   │   │   │   │   ├── kanban/
+│   │   │   │   │   │   └── route.ts
+│   │   │   │   │   ├── members/
+│   │   │   │   │   │   ├── [userId]/
+│   │   │   │   │   │   │   └── route.ts
+│   │   │   │   │   │   └── route.ts
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
+│   │   │   ├── comments/
+│   │   │   │   └── [commentId]/
+│   │   │   │       └── route.ts
+│   │   │   ├── cron/
+│   │   │   │   └── notifications/
+│   │   │   │       └── route.ts
+│   │   │   ├── health/
+│   │   │   │   └── route.ts
+│   │   │   ├── kanban/
+│   │   │   │   ├── columns/
+│   │   │   │   │   ├── [columnId]/
+│   │   │   │   │   │   └── route.ts
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── comments/
+│   │   │   │   │   └── [commentId]/
+│   │   │   │   │       └── route.ts
+│   │   │   │   ├── labels/
+│   │   │   │   │   ├── [labelId]/
+│   │   │   │   │   │   └── route.ts
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── tasks/
+│   │   │   │       ├── [taskId]/
+│   │   │   │       │   ├── assignees/
+│   │   │   │       │   │   └── route.ts
+│   │   │   │       │   ├── comments/
+│   │   │   │       │   │   └── route.ts
+│   │   │   │       │   ├── labels/
+│   │   │   │       │   │   └── route.ts
+│   │   │   │       │   └── route.ts
+│   │   │   │       └── route.ts
+│   │   │   ├── tasks/
+│   │   │   │   └── [taskId]/
+│   │   │   │       └── comments/
+│   │   │   │           └── route.ts
+│   │   │   └── users/
+│   │   │       └── route.ts
+│   │   ├── auth/
+│   │   │   ├── callback/
+│   │   │   │   └── page.tsx
+│   │   │   └── reset-password/
+│   │   │       └── page.tsx
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── board/
+│   │   │   ├── BoardCard.tsx
+│   │   │   └── BoardList.tsx
+│   │   ├── Kanban/
+│   │   │   ├── KanbanBoard.tsx
+│   │   │   ├── KanbanColumn.tsx
+│   │   │   └── KanbanTask.tsx
+│   │   ├── landing/
+│   │   │   ├── CtaSection.tsx
+│   │   │   ├── FeaturesSection.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   ├── GamificationSection.tsx
+│   │   │   ├── HeroSection.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   └── PricingSection.tsx
+│   │   ├── project-tabs/
+│   │   │   ├── task-details/
+│   │   │   │   ├── TaskAssignees.tsx
+│   │   │   │   ├── TaskChecklist.tsx
+│   │   │   │   ├── TaskComments.tsx
+│   │   │   │   └── TaskLabels.tsx
+│   │   │   ├── FilesTab.tsx
+│   │   │   ├── index.ts
+│   │   │   ├── ManageLabelsModal.tsx
+│   │   │   ├── TaskDetailsModal.tsx
+│   │   │   ├── TasksTab.tsx
+│   │   │   ├── TeamTab.tsx
+│   │   │   └── TimelineTab.tsx
+│   │   ├── projects/
+│   │   │   ├── DeleteConfirmModal.tsx
+│   │   │   ├── ProjectCard.tsx
+│   │   │   ├── QuickEntryModal.tsx
+│   │   │   └── UpdateProjectModal.tsx
+│   │   ├── timeline/
+│   │   │   ├── helper.ts
+│   │   │   └── TaskPreviewModal.tsx
+│   │   ├── CreateProjectModal.tsx
+│   │   ├── icons.tsx
+│   │   ├── logo.tsx
+│   │   ├── Toggle.tsx
+│   │   └── UserAvatar.tsx
+│   ├── hooks/
+│   │   ├── useDebounce.ts
+│   │   ├── useNotifications.ts
+│   │   └── useProjects.ts
+│   ├── lib/
+│   │   ├── auth/
+│   │   │   ├── helpers.ts
+│   │   │   └── validators.ts
+│   │   └── constants.ts
+│   ├── public/
+│   │   ├── file.svg
+│   │   ├── globe.svg
+│   │   ├── next.svg
+│   │   ├── vercel.svg
+│   │   └── window.svg
+│   ├── services/
+│   │   └── project.service.ts
+│   ├── types/
+│   │   └── project.ts
+│   ├── utils/
+│   │   ├── supabase/
+│   │   │   ├── admin.ts
+│   │   │   ├── client.ts
+│   │   │   ├── middleware.ts
+│   │   │   └── server.ts
+│   │   ├── board-access.ts
+│   │   ├── deadline.ts
+│   │   ├── time.ts
+│   │   ├── validate-string.ts
+│   │   └── verify-board-ownership.ts
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── eslint.config.mjs
+│   ├── jest.config.ts
+│   ├── jest.setup.ts
+│   ├── middleware.ts
+│   ├── next.config.ts
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.mjs
+│   ├── README.md
+│   └── tsconfig.json
+├── .dockerignore
+├── docker-compose.yml
+├── Dockerfile
+├── LICENSE
+└── README.md
 ```
 
 ## 🤝 Đóng góp
