@@ -10,11 +10,12 @@ export async function DELETE(
   { params }: { params: Promise<{ taskId: string; commentId: string }> },
 ) {
   try {
-    const { commentId: commentIdStr } = await params;
-    const commentId = parseInt(commentIdStr);
+    const { taskId: taskIdStr, commentId: commentIdStr } = await params;
+    const taskId = Number(taskIdStr);
+    const commentId = Number(commentIdStr);
 
-    if (isNaN(commentId)) {
-      return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+    if (isNaN(taskId) || isNaN(commentId)) {
+      return NextResponse.json({ error: "Invalid IDs" }, { status: 400 });
     }
 
     const supabase = await createClient();
