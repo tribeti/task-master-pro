@@ -139,7 +139,7 @@ export async function POST(
     if (error) {
       console.error("POST comment error:", error.message);
       return NextResponse.json(
-        { error: error.message || "Failed to create comment." },
+        { error: "Failed to create comment." },
         { status: 500 },
       );
     }
