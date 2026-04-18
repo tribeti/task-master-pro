@@ -62,8 +62,6 @@ export default function CreateProjectModal({
     resetAndClose();
   };
 
-  const today = new Date().toISOString().split("T")[0];
-
   if (!isOpen) return null;
 
   return (
