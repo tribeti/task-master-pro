@@ -79,6 +79,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // ══════════════════════════════════════════════════════════════
   //  SHARED REF: KanbanBoard sets this to true while dragging
@@ -237,6 +244,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }, []);
 
   const openCreateModal = (columnId: number) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(null);
     setSelectedColumnId(columnId);
     setTaskComments([]);
@@ -244,6 +252,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const openEditModal = async (task: Task) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
@@ -263,8 +272,10 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+
     // Use timeout to delay clearing states so modal exit animation can play smoothly
-    setTimeout(() => {
+    closeTimeoutRef.current = setTimeout(() => {
       setEditingTask(null);
       setSelectedColumnId(null);
     }, 300);
