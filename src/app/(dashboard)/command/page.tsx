@@ -37,6 +37,8 @@ export default function CommandCenter() {
   const [isQueueExpanded, setIsQueueExpanded] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
   const [upcomingTasks, setUpcomingTasks] = useState<RealTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
@@ -45,63 +47,114 @@ export default function CommandCenter() {
 
   // Fetch real schedule data (Next 6 days & Filtered by User)
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchSchedule() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const today = new Date().toISOString();
-      const next6Days = new Date();
-      next6Days.setDate(next6Days.getDate() + 8);
-
-      // Step 1: Get boards user has access to
-      const { data: ownedBoardIds } = await supabase
-        .from("boards")
-        .select("id")
-        .eq("owner_id", user.id);
-
-      const { data: memberBoardIds } = await supabase
-        .from("board_members")
-        .select("board_id")
-        .eq("user_id", user.id);
-
-      const accessibleBoardIds = [
-        ...(ownedBoardIds?.map(b => b.id) || []),
-        ...(memberBoardIds?.map(m => m.board_id) || [])
-      ];
-
-      if (accessibleBoardIds.length === 0) {
-        setUpcomingTasks([]);
-        return;
+      if (!cancelled) {
+        setLoading(true);
+        setFetchError(null);
       }
 
-      // Step 2: Get tasks for those boards within 6 days
-      const { data } = await supabase
-        .from("tasks")
-        .select(`
-          id, 
-          title, 
-          deadline,
-          column:columns!inner (
-            board_id,
-            board:boards (title)
-          )
-        `)
-        .in("column.board_id", accessibleBoardIds)
-        .gte("deadline", today)
-        .lte("deadline", next6Days.toISOString())
-        .order("deadline", { ascending: true });
+      try {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (authErr || !user) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
 
-      if (data) {
-        const formatted = data.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          deadline: t.deadline,
-          project_title: t.column?.board?.title || "Dự án"
-        }));
-        setUpcomingTasks(formatted);
+        const today = new Date().toISOString();
+        const windowEnd = new Date();
+        windowEnd.setDate(windowEnd.getDate() + 6);
+
+        // Step 1: Get boards user has access to
+        const { data: ownedBoards, error: ownedErr } = await supabase
+          .from("boards")
+          .select("id")
+          .eq("owner_id", user.id);
+
+        const { data: memberBoards, error: memberErr } = await supabase
+          .from("board_members")
+          .select("board_id")
+          .eq("user_id", user.id);
+
+        if (cancelled) return;
+        if (ownedErr || memberErr) {
+          console.error("Board fetch error:", ownedErr || memberErr);
+          if (!cancelled) {
+            setFetchError("Không thể tải danh sách dự án.");
+            setLoading(false);
+          }
+          return;
+        }
+
+        const accessibleBoardIds = [
+          ...(ownedBoards?.map((b) => b.id) || []),
+          ...(memberBoards?.map((m) => m.board_id) || []),
+        ];
+
+        if (accessibleBoardIds.length === 0) {
+          if (!cancelled) {
+            setUpcomingTasks([]);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Step 2: Get tasks for those boards within 6 days
+        const { data: taskData, error: taskErr } = await supabase
+          .from("tasks")
+          .select(`
+            id, 
+            title, 
+            deadline,
+            column:columns!inner (
+              board_id,
+              board:boards (title)
+            )
+          `)
+          .in("column.board_id", accessibleBoardIds)
+          .gte("deadline", today)
+          .lte("deadline", windowEnd.toISOString())
+          .order("deadline", { ascending: true });
+
+        if (cancelled) return;
+        if (taskErr) {
+          console.error("Task fetch error:", taskErr);
+          if (!cancelled) {
+            setFetchError("Không thể tải lịch trình nhiệm vụ.");
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (taskData && !cancelled) {
+          const formatted = taskData.map((t: any) => {
+            // Xử lý cardinality: PostgREST có thể trả về object hoặc array tùy theo định nghĩa quan hệ
+            const colInfo = Array.isArray(t.column) ? t.column[0] : t.column;
+            const boardInfo = Array.isArray(colInfo?.board) ? colInfo.board[0] : colInfo?.board;
+            
+            return {
+              id: t.id,
+              title: t.title,
+              deadline: t.deadline,
+              project_title: boardInfo?.title || "Dự án",
+            };
+          });
+          setUpcomingTasks(formatted);
+        }
+      } catch (err) {
+        console.error("Unexpected fetch error:", err);
+        if (!cancelled) setFetchError("Đã xảy ra lỗi không xác định.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
+
     fetchSchedule();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase]);
 
 
@@ -301,14 +354,34 @@ export default function CommandCenter() {
               Lịch trình sắp tới
             </h3>
             <div className="flex flex-col gap-4">
-              {upcomingTasks.length === 0 ? (
-                <p className="text-[10px] text-slate-400">Đang tải lịch trình...</p>
+              {loading ? (
+                <div className="flex flex-col gap-4 animate-pulse">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex items-stretch gap-3">
+                      <div className="w-1 bg-slate-100 rounded-full h-10"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-3 bg-slate-100 rounded w-3/4"></div>
+                        <div className="h-2 bg-slate-100 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : fetchError ? (
+                <p className="text-[10px] text-red-400 font-bold bg-red-50 p-2 rounded-lg">
+                  {fetchError}
+                </p>
+              ) : upcomingTasks.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                    Tuyệt vời!<br />Không có deadline nào trong 6 ngày tới.
+                  </p>
+                </div>
               ) : (
                 upcomingTasks.map((task) => (
-                  <div key={task.id} className="flex items-stretch gap-2">
-                    <div className="w-1 bg-[#34D399] rounded-full shrink-0"></div>
+                  <div key={task.id} className="flex items-stretch gap-2 group cursor-default">
+                    <div className="w-1 bg-[#34D399] rounded-full shrink-0 group-hover:bg-[#28B8FA] transition-colors"></div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-slate-800 line-clamp-1">
+                      <h4 className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-slate-900 transition-colors">
                         {task.title}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
@@ -317,7 +390,9 @@ export default function CommandCenter() {
                         </p>
                         <span className="text-[10px] text-slate-300">•</span>
                         <p className="text-[10px] font-bold text-slate-400">
-                          {new Date(task.deadline!).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })}
+                          {task.deadline
+                            ? new Date(task.deadline).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
+                            : '—'}
                         </p>
                       </div>
                     </div>
