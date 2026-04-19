@@ -29,8 +29,8 @@ interface RealTask {
   project_title: string;
 }
 
+const supabase = createClient();
 export default function CommandCenter() {
-  const supabase = createClient();
 
   // --- STATES ---
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -68,15 +68,13 @@ export default function CommandCenter() {
         windowEnd.setDate(windowEnd.getDate() + 6);
 
         // Step 1: Get boards user has access to
-        const { data: ownedBoards, error: ownedErr } = await supabase
-          .from("boards")
-          .select("id")
-          .eq("owner_id", user.id);
+        const [ownedRes, memberRes] = await Promise.all([
+          supabase.from("boards").select("id").eq("owner_id", user.id),
+          supabase.from("board_members").select("board_id").eq("user_id", user.id),
+        ]);
 
-        const { data: memberBoards, error: memberErr } = await supabase
-          .from("board_members")
-          .select("board_id")
-          .eq("user_id", user.id);
+        const { data: ownedBoards, error: ownedErr } = ownedRes;
+        const { data: memberBoards, error: memberErr } = memberRes;
 
         if (cancelled) return;
         if (ownedErr || memberErr) {
@@ -133,7 +131,7 @@ export default function CommandCenter() {
             // Xử lý cardinality: PostgREST có thể trả về object hoặc array tùy theo định nghĩa quan hệ
             const colInfo = Array.isArray(t.column) ? t.column[0] : t.column;
             const boardInfo = Array.isArray(colInfo?.board) ? colInfo.board[0] : colInfo?.board;
-            
+
             return {
               id: t.id,
               title: t.title,
