@@ -39,9 +39,17 @@ function ProjectUrlHandler({
   const searchParams = useSearchParams();
   const urlProjectId = searchParams.get("projectId");
   const urlTab = searchParams.get("tab");
+  const lastAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!boardsLoading && urlProjectId) {
+      const currentKey = `${urlProjectId}-${urlTab || ""}`;
+      
+      // If we just applied this exact URL state, skip to prevent reopening if user manually closed it
+      if (lastAppliedRef.current === currentKey) {
+        return;
+      }
+
       const id = parseInt(urlProjectId, 10);
       const isNewProject = selectedProjectId !== id;
       const isNewTab = urlTab && currentTab !== urlTab;
@@ -52,8 +60,12 @@ function ProjectUrlHandler({
           joinedBoards.find((b) => b.id === id);
         if (found) {
           onProjectFound(found, urlTab);
+          lastAppliedRef.current = currentKey;
         }
       }
+    } else if (!urlProjectId) {
+      // Clear the ref when url clears, so they can reopen it later
+      lastAppliedRef.current = null;
     }
   }, [
     boardsLoading,

@@ -8,7 +8,7 @@ import React, {
   useMemo,
   Suspense,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { KanbanBoard } from "@/components/Kanban/KanbanBoard";
 import { TaskDetailsModal } from "./TaskDetailsModal";
 import { ManageLabelsModal } from "./ManageLabelsModal";
@@ -35,23 +35,33 @@ function TaskUrlHandler({
 }) {
   const searchParams = useSearchParams();
   const urlTaskId = searchParams.get("taskId");
+  const lastAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (urlTaskId && tasks.length > 0) {
+      if (lastAppliedRef.current === urlTaskId) {
+        return;
+      }
+      
       const tid = parseInt(urlTaskId, 10);
       if (selectedTaskId !== tid) {
         const taskToOpen = tasks.find((t) => t.id === tid);
         if (taskToOpen) {
           onTaskFound(taskToOpen);
+          lastAppliedRef.current = urlTaskId;
         }
       }
+    } else if (!urlTaskId) {
+      lastAppliedRef.current = null;
     }
   }, [urlTaskId, tasks, selectedTaskId, onTaskFound]);
 
   return null;
 }
 
-export function TasksTab({ projectId }: { projectId: number }) {
+function TasksTabInner({ projectId }: { projectId: number }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useDashboardUser();
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -69,6 +79,13 @@ export function TasksTab({ projectId }: { projectId: number }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // ══════════════════════════════════════════════════════════════
   //  SHARED REF: KanbanBoard sets this to true while dragging
@@ -227,6 +244,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   }, []);
 
   const openCreateModal = (columnId: number) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(null);
     setSelectedColumnId(columnId);
     setTaskComments([]);
@@ -234,6 +252,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
   };
 
   const openEditModal = async (task: Task) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
@@ -249,6 +268,26 @@ export function TasksTab({ projectId }: { projectId: number }) {
     },
     [editingTask?.id, openEditModal],
   );
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+
+    // Use timeout to delay clearing states so modal exit animation can play smoothly
+    closeTimeoutRef.current = setTimeout(() => {
+      setEditingTask(null);
+      setSelectedColumnId(null);
+    }, 300);
+
+    // Remove taskId from URL so that if it is clicked again it registers as a new change
+    const currentTaskId = searchParams.get("taskId");
+    if (currentTaskId) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("taskId");
+      router.replace(`?${newParams.toString()}`, { scroll: false });
+    }
+  }, [router, searchParams]);
 
   // ══════════════════════════════════════════════════════════════
   //  CRUD Handlers
@@ -350,7 +389,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     setIsSubmitting(false);
-    setIsModalOpen(false);
+    handleCloseModal();
   };
 
   const handleDeleteTask = async () => {
@@ -374,7 +413,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
     }
 
     setIsSubmitting(false);
-    setIsModalOpen(false);
+    handleCloseModal();
   };
 
   const handleAddLabel = async (taskId: number, labelId: number) => {
@@ -719,7 +758,7 @@ export function TasksTab({ projectId }: { projectId: number }) {
       <TaskDetailsModal
         isOpen={isModalOpen}
         boardId={projectId}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}
         initialData={currentEditingTask}
@@ -749,5 +788,19 @@ export function TasksTab({ projectId }: { projectId: number }) {
         onDeleteLabel={handleDeleteLabel}
       />
     </div>
+  );
+}
+
+export function TasksTab({ projectId }: { projectId: number }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 overflow-x-auto mt-4 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <TasksTabInner projectId={projectId} />
+    </Suspense>
   );
 }
