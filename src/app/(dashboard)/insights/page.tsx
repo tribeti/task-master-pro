@@ -106,19 +106,12 @@ export default function InsightsPage() {
     const columnTitleLower = columnTitle.toLowerCase();
 
     // 1. Completed
-    if (
-      columnTitleLower.includes("done") ||
-      columnTitleLower.includes("hoàn thành")
-    ) {
+    if (task.is_completed) {
       completedTasks++;
     }
 
     // 2. Overdue (only if NOT completed)
-    if (
-      !columnTitleLower.includes("done") &&
-      !columnTitleLower.includes("hoàn thành") &&
-      task.deadline
-    ) {
+    if (!task.is_completed && task.deadline) {
       const [year, month, day] = String(task.deadline)
         .slice(0, 10)
         .split("-")
@@ -138,13 +131,12 @@ export default function InsightsPage() {
 
     // 4. Status distribution
     let statusLabel = columnTitle;
-    if (columnTitleLower === "to do") statusLabel = "Cần làm";
-    else if (columnTitleLower === "in progress") statusLabel = "Đang làm";
-    else if (
-      columnTitleLower.includes("done") ||
-      columnTitleLower.includes("hoàn thành")
-    )
+    if (task.is_completed) {
       statusLabel = "Hoàn thành";
+    } else {
+      if (columnTitleLower === "to do") statusLabel = "Cần làm";
+      else if (columnTitleLower === "in progress") statusLabel = "Đang làm";
+    }
 
     statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
   });

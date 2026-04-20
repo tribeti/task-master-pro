@@ -16,6 +16,41 @@ export function useNotifications(userId: string | undefined) {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
+  const hideNotification = async (notificationId: number) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification) return;
+
+    setNotifications(prev => {
+      const next = prev.filter(n => n.id !== notificationId);
+      setUnreadCount(next.filter(n => !n.is_read).length);
+      return next;
+    });
+
+    const newContent = notification.content.startsWith("[DELETED]") 
+      ? notification.content 
+      : `[DELETED]${notification.content}`;
+
+    await supabase
+      .from("notifications")
+      .update({ content: newContent })
+      .eq("id", notificationId);
+  };
+
+  const hideAllNotifications = async () => {
+    const toHide = [...notifications];
+    setNotifications([]);
+    setUnreadCount(0);
+
+    for (const n of toHide) {
+      if (!n.content.startsWith("[DELETED]")) {
+        await supabase
+          .from("notifications")
+          .update({ content: `[DELETED]${n.content}` })
+          .eq("id", n.id);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!userId) return;
 
@@ -30,8 +65,9 @@ export function useNotifications(userId: string | undefined) {
       if (error) {
         console.error("Error fetching notifications:", error.message, error);
       } else if (data) {
-        setNotifications(data as Notification[]);
-        setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
+        const visibleData = data.filter((n: Notification) => !n.content.startsWith("[DELETED]"));
+        setNotifications(visibleData as Notification[]);
+        setUnreadCount(visibleData.filter((n: Notification) => !n.is_read).length);
       }
       setIsLoading(false);
     };
@@ -62,6 +98,8 @@ export function useNotifications(userId: string | undefined) {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const newNotification = payload.new as Notification;
+            if (newNotification.content.startsWith("[DELETED]")) return;
+            
             setNotifications((prev) => {
               const exists = prev.find((n) => n.id === newNotification.id);
               if (exists) return prev;
@@ -85,10 +123,19 @@ export function useNotifications(userId: string | undefined) {
             });
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as Notification;
+            
             setNotifications((prev) => {
+              if (updated.content.startsWith("[DELETED]")) {
+                const next = prev.filter(n => n.id !== updated.id);
+                setUnreadCount(next.filter((n) => !n.is_read).length);
+                return next;
+              }
               const next = prev.map((n) =>
                 n.id === updated.id ? { ...n, ...updated } : n,
               );
+              if (!prev.some(n => n.id === updated.id)) {
+                next.unshift(updated);
+              }
               setUnreadCount(next.filter((n) => !n.is_read).length);
               return next;
             });
@@ -150,5 +197,5 @@ export function useNotifications(userId: string | undefined) {
     }
   };
 
-  return { notifications, unreadCount, isLoading, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, hideNotification, hideAllNotifications };
 }
