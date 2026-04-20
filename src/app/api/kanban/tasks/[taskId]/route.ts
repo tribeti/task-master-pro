@@ -74,14 +74,25 @@ export async function PUT(request: Request, context: any) {
           
           let boardIdToUse = Array.isArray(updatedTask.column) ? updatedTask.column[0]?.board_id : updatedTask.column?.board_id;
 
-          await adminSupabase.from("notifications").insert([{
-            user_id: updatedTask.assignee_id,
-            project_id: boardIdToUse,
-            task_id: taskId,
-            type: "deadline",
-            content: `Sắp đến hạn: Nhiệm vụ "${updatedTask.title}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${updatedTask.deadline}]`,
-            is_read: false
-          }]);
+          const { data: existingDeadlineNotif } = await adminSupabase
+            .from("notifications")
+            .select("id")
+            .eq("user_id", updatedTask.assignee_id)
+            .eq("task_id", taskId)
+            .eq("type", "deadline")
+            .like("content", `%${status.urgencyStr}%`)
+            .maybeSingle();
+
+          if (!existingDeadlineNotif) {
+            await adminSupabase.from("notifications").insert([{
+              user_id: updatedTask.assignee_id,
+              project_id: boardIdToUse,
+              task_id: taskId,
+              type: "deadline",
+              content: `Sắp đến hạn: Nhiệm vụ "${updatedTask.title}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${updatedTask.deadline}]`,
+              is_read: false
+            }]);
+          }
         }
       } catch (e) {
         console.error("Instant deadline evaluation error on PUT", e);

@@ -65,17 +65,29 @@ export async function POST(request: Request, context: any) {
       const taskTitle = taskResponse.data?.title || "một nhiệm vụ";
       const assignerName = assignerResponse.data?.display_name || "Ai đó";
 
-      const { error: insertErr } = await adminSupabase.from("notifications").insert([{
-        user_id: assigneeId,
-        project_id: boardId,
-        task_id: taskId,
-        type: "System", // Added to satisfy NOT NULL constraint
-        content: `${assignerName} đã giao cho bạn nhiệm vụ: ${taskTitle}`,
-        is_read: false
-      }]);
+      const systemContent = `${assignerName} đã giao cho bạn nhiệm vụ: ${taskTitle}`;
+      const { data: existingSystemNotif } = await adminSupabase
+        .from("notifications")
+        .select("id")
+        .eq("user_id", assigneeId)
+        .eq("task_id", taskId)
+        .eq("type", "System")
+        .eq("content", systemContent)
+        .maybeSingle();
 
-      if (insertErr) {
-        console.error("Supabase insert error (Notification):", insertErr);
+      if (!existingSystemNotif) {
+        const { error: insertErr } = await adminSupabase.from("notifications").insert([{
+          user_id: assigneeId,
+          project_id: boardId,
+          task_id: taskId,
+          type: "System",
+          content: systemContent,
+          is_read: false
+        }]);
+
+        if (insertErr) {
+          console.error("Supabase insert error (Notification):", insertErr);
+        }
       }
 
       // Also instantly evaluate and generate Deadline notification if urgent
@@ -91,14 +103,25 @@ export async function POST(request: Request, context: any) {
           const { getDeadlineStatus } = await import("@/utils/deadline");
           const status = getDeadlineStatus(taskResponse.data.deadline);
           
-          await adminSupabase.from("notifications").insert([{
-            user_id: assigneeId,
-            project_id: boardId,
-            task_id: taskId,
-            type: "deadline",
-            content: `Sắp đến hạn: Nhiệm vụ "${taskTitle}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${taskResponse.data.deadline}]`,
-            is_read: false
-          }]);
+          const { data: existingDeadlineNotif } = await adminSupabase
+            .from("notifications")
+            .select("id")
+            .eq("user_id", assigneeId)
+            .eq("task_id", taskId)
+            .eq("type", "deadline")
+            .like("content", `%${status.urgencyStr}%`)
+            .maybeSingle();
+
+          if (!existingDeadlineNotif) {
+            await adminSupabase.from("notifications").insert([{
+              user_id: assigneeId,
+              project_id: boardId,
+              task_id: taskId,
+              type: "deadline",
+              content: `Sắp đến hạn: Nhiệm vụ "${taskTitle}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${taskResponse.data.deadline}]`,
+              is_read: false
+            }]);
+          }
         }
       }
 

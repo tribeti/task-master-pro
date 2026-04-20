@@ -149,23 +149,22 @@ export default function NotificationsPage() {
                   if (!isRead) markAsRead(notification.id);
                   const pid = notification.project_id || projObj?.id;
                   const tid = notification.task_id || taskObj?.id;
-                  
+
                   if (pid && tid) {
                     router.push(`/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`);
                   } else if (pid) {
                     router.push(`/projects?projectId=${pid}`);
                   }
                 }}
-                className={`block relative group bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
-                  isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr
-                }`}
+                className={`block relative group bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr
+                  }`}
               >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     hideNotification(notification.id);
                   }}
-                  className="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  className="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 rounded"
                   aria-label="Xóa thông báo"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

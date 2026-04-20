@@ -20,33 +20,57 @@ export function useNotifications(userId: string | undefined) {
     const notification = notifications.find(n => n.id === notificationId);
     if (!notification) return;
 
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     setNotifications(prev => {
       const next = prev.filter(n => n.id !== notificationId);
       setUnreadCount(next.filter(n => !n.is_read).length);
       return next;
     });
 
-    const newContent = notification.content.startsWith("[DELETED]") 
-      ? notification.content 
+    const newContent = notification.content.startsWith("[DELETED]")
+      ? notification.content
       : `[DELETED]${notification.content}`;
 
-    await supabase
+    const { error } = await supabase
       .from("notifications")
       .update({ content: newContent })
       .eq("id", notificationId);
+
+    if (error) {
+      console.error("Failed to hide notification:", error);
+      toast.error("Không thể xóa thông báo. Vui lòng thử lại.");
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
+    }
   };
 
   const hideAllNotifications = async () => {
-    const toHide = [...notifications];
+    const toHide = notifications.filter(n => !n.content.startsWith("[DELETED]"));
+    
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     setNotifications([]);
     setUnreadCount(0);
 
-    for (const n of toHide) {
-      if (!n.content.startsWith("[DELETED]")) {
-        await supabase
-          .from("notifications")
-          .update({ content: `[DELETED]${n.content}` })
-          .eq("id", n.id);
+    if (toHide.length > 0) {
+      const results = await Promise.all(
+        toHide.map((n) =>
+          supabase
+            .from("notifications")
+            .update({ content: `[DELETED]${n.content}` })
+            .eq("id", n.id)
+        )
+      );
+
+      const hasError = results.some(res => res.error);
+      if (hasError) {
+        console.error("Failed to hide all notifications");
+        toast.error("Đã xảy ra lỗi khi xóa tất cả thông báo.");
+        setNotifications(previousNotifications);
+        setUnreadCount(previousUnreadCount);
       }
     }
   };
@@ -68,8 +92,8 @@ export function useNotifications(userId: string | undefined) {
         const visibleData = data
           .filter((n: Notification) => !n.content.startsWith("[DELETED]"))
           .map((n: Notification) => ({
-             ...n,
-             content: n.content.replace(/\[DEADLINE_ISO:.*?\]/, "")
+            ...n,
+            content: n.content.replace(/\[DEADLINE_ISO:.*?\]/, "")
           }));
         setNotifications(visibleData as Notification[]);
         setUnreadCount(visibleData.filter((n: Notification) => !n.is_read).length);
@@ -104,10 +128,10 @@ export function useNotifications(userId: string | undefined) {
           if (payload.eventType === "INSERT") {
             const rawNotification = payload.new as Notification;
             if (rawNotification.content.startsWith("[DELETED]")) return;
-            
+
             // Extract deadline ISO if embedded to synchronously render correct colors without fetching
             const deadlineMatch = rawNotification.content.match(/\[DEADLINE_ISO:(.*?)\]/);
-            
+
             const finalNotification = { ...rawNotification } as Notification;
             finalNotification.content = rawNotification.content.replace(/\[DEADLINE_ISO:.*?\]/, "");
             if (deadlineMatch) {
@@ -137,15 +161,20 @@ export function useNotifications(userId: string | undefined) {
             });
           } else if (payload.eventType === "UPDATE") {
             const rawUpdated = payload.new as Notification;
-            
+
             setNotifications((prev) => {
               if (rawUpdated.content.startsWith("[DELETED]")) {
                 const next = prev.filter(n => n.id !== rawUpdated.id);
                 setUnreadCount(next.filter((n) => !n.is_read).length);
                 return next;
               }
-              
+
+              const deadlineMatch = rawUpdated.content.match(/\[DEADLINE_ISO:(.*?)\]/);
               const updated = { ...rawUpdated, content: rawUpdated.content.replace(/\[DEADLINE_ISO:.*?\]/, "") };
+              if (deadlineMatch) {
+                updated.task = { title: "", deadline: deadlineMatch[1] };
+              }
+
               const next = prev.map((n) =>
                 n.id === updated.id ? { ...n, ...updated } : n,
               );
