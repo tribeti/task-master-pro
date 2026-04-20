@@ -14,6 +14,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Task } from "@/types/project";
+
+interface InsightsTask extends Task {
+  columns: { title: string } | { title: string }[];
+}
 
 const PIE_COLORS = [
   "#34D399",
@@ -25,7 +30,7 @@ const PIE_COLORS = [
 ];
 
 export default function InsightsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<InsightsTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -133,9 +138,11 @@ export default function InsightsPage() {
     let statusLabel = columnTitle;
     if (columnTitleLower === "to do") statusLabel = "Cần làm";
     else if (columnTitleLower === "in progress") statusLabel = "Đang làm";
-    
+
     if (task.is_completed) {
       statusLabel = "Hoàn thành";
+    } else if (statusLabel === "Hoàn thành") {
+      statusLabel = "Chưa hoàn thành";
     }
 
     statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
