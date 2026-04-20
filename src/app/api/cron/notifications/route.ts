@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
     const tasks = rawTasks || [];
 
-    console.log(`[Cron] Found ${rawTasks?.length ?? 0} urgent tasks, ${tasks.length} after filtering DONE`);
+    console.log(`[Cron] Processed ${tasks.length} urgent uncompleted tasks`);
 
     if (tasks.length === 0) {
       return NextResponse.json({ message: "No urgent tasks found." }, { status: 200 });

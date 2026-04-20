@@ -48,7 +48,7 @@ export async function PUT(request: Request, context: any) {
       .from("tasks")
       .update(payload)
       .eq("id", taskId)
-      .select("*")
+      .select("*, column:columns(board_id)")
       .single();
 
     if (error)
@@ -56,6 +56,37 @@ export async function PUT(request: Request, context: any) {
         { error: "Failed to update task." },
         { status: 500 },
       );
+
+    // If deadline was updated and is urgent, instantly notify assignee
+    if (payload.deadline !== undefined && updatedTask.deadline && updatedTask.assignee_id && !updatedTask.is_completed) {
+      try {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const threeDaysFromNow = new Date(now);
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        if (new Date(updatedTask.deadline) <= threeDaysFromNow) {
+          const { createAdminClient } = await import("@/utils/supabase/admin");
+          const { getDeadlineStatus } = await import("@/utils/deadline");
+          
+          const adminSupabase = createAdminClient();
+          const status = getDeadlineStatus(updatedTask.deadline);
+          
+          let boardIdToUse = Array.isArray(updatedTask.column) ? updatedTask.column[0]?.board_id : updatedTask.column?.board_id;
+
+          await adminSupabase.from("notifications").insert([{
+            user_id: updatedTask.assignee_id,
+            project_id: boardIdToUse,
+            task_id: taskId,
+            type: "deadline",
+            content: `Sắp đến hạn: Nhiệm vụ "${updatedTask.title}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${updatedTask.deadline}]`,
+            is_read: false
+          }]);
+        }
+      } catch (e) {
+        console.error("Instant deadline evaluation error on PUT", e);
+      }
+    }
 
     return NextResponse.json(updatedTask);
   } catch (error: any) {

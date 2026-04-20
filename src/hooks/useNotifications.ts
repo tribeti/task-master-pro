@@ -65,7 +65,12 @@ export function useNotifications(userId: string | undefined) {
       if (error) {
         console.error("Error fetching notifications:", error.message, error);
       } else if (data) {
-        const visibleData = data.filter((n: Notification) => !n.content.startsWith("[DELETED]"));
+        const visibleData = data
+          .filter((n: Notification) => !n.content.startsWith("[DELETED]"))
+          .map((n: Notification) => ({
+             ...n,
+             content: n.content.replace(/\[DEADLINE_ISO:.*?\]/, "")
+          }));
         setNotifications(visibleData as Notification[]);
         setUnreadCount(visibleData.filter((n: Notification) => !n.is_read).length);
       }
@@ -97,39 +102,50 @@ export function useNotifications(userId: string | undefined) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            const newNotification = payload.new as Notification;
-            if (newNotification.content.startsWith("[DELETED]")) return;
+            const rawNotification = payload.new as Notification;
+            if (rawNotification.content.startsWith("[DELETED]")) return;
             
+            // Extract deadline ISO if embedded to synchronously render correct colors without fetching
+            const deadlineMatch = rawNotification.content.match(/\[DEADLINE_ISO:(.*?)\]/);
+            
+            const finalNotification = { ...rawNotification } as Notification;
+            finalNotification.content = rawNotification.content.replace(/\[DEADLINE_ISO:.*?\]/, "");
+            if (deadlineMatch) {
+              finalNotification.task = { title: "", deadline: deadlineMatch[1] };
+            }
+
             setNotifications((prev) => {
-              const exists = prev.find((n) => n.id === newNotification.id);
+              const exists = prev.find((n) => n.id === finalNotification.id);
               if (exists) return prev;
 
-              const next = [newNotification, ...prev];
+              const next = [finalNotification, ...prev];
               setUnreadCount(next.filter((n) => !n.is_read).length);
               return next;
             });
 
             toast("Thông báo mới", {
-              description: newNotification.content,
+              description: finalNotification.content,
               action: {
                 label: "Đã đọc",
                 onClick: async () => {
                   await supabase
                     .from("notifications")
                     .update({ is_read: true })
-                    .eq("id", newNotification.id);
+                    .eq("id", finalNotification.id);
                 },
               },
             });
           } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new as Notification;
+            const rawUpdated = payload.new as Notification;
             
             setNotifications((prev) => {
-              if (updated.content.startsWith("[DELETED]")) {
-                const next = prev.filter(n => n.id !== updated.id);
+              if (rawUpdated.content.startsWith("[DELETED]")) {
+                const next = prev.filter(n => n.id !== rawUpdated.id);
                 setUnreadCount(next.filter((n) => !n.is_read).length);
                 return next;
               }
+              
+              const updated = { ...rawUpdated, content: rawUpdated.content.replace(/\[DEADLINE_ISO:.*?\]/, "") };
               const next = prev.map((n) =>
                 n.id === updated.id ? { ...n, ...updated } : n,
               );
