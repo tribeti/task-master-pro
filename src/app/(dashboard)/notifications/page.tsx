@@ -8,12 +8,10 @@ import { Notification } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { formatRelativeTime } from "@/utils/time";
 import { useRouter } from "next/navigation";
-import { StandaloneTaskModal } from "./StandaloneTaskModal";
 
 export default function NotificationsPage() {
   const { user } = useDashboardUser();
   const router = useRouter();
-  const [selectedTaskId, setSelectedTaskId] = React.useState<number | null>(null);
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, hideNotification, hideAllNotifications } =
     useNotifications(user?.id);
 
@@ -152,9 +150,7 @@ export default function NotificationsPage() {
                   const pid = notification.project_id || projObj?.id;
                   const tid = notification.task_id || taskObj?.id;
                   
-                  if (notification.type === "deadline") {
-                    if (tid) setSelectedTaskId(tid);
-                  } else if (pid && tid) {
+                  if (pid && tid) {
                     router.push(`/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`);
                   } else if (pid) {
                     router.push(`/projects?projectId=${pid}`);
@@ -233,7 +229,6 @@ export default function NotificationsPage() {
           })}
         </div>
       )}
-      <StandaloneTaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
     </div>
   );
 }
