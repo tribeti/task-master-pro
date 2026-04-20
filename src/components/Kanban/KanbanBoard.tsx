@@ -44,6 +44,7 @@ interface KanbanBoardProps {
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   onToggleComplete?: (taskId: number, newValue: boolean) => void;
+  onTasksReordered?: (updates: Array<{id: number; column_id: number; position: number}>) => void;
 }
 
 export function KanbanBoard({
@@ -68,6 +69,7 @@ export function KanbanBoard({
   onAddLabel,
   onRemoveLabel,
   onToggleComplete,
+  onTasksReordered,
 }: KanbanBoardProps) {
   /* ── Hydration fix for Next.js ── */
   const [isMounted, setIsMounted] = useState(false);
@@ -421,6 +423,13 @@ export function KanbanBoard({
         })
           .then(async (res) => {
             if (!res.ok) throw new Error();
+            // Sync parent state with new column_id/position so subsequent
+            // state changes (e.g. toggle complete) don't use stale data
+            onTasksReordered?.(changedTasks.map((t) => ({
+              id: t.id,
+              column_id: t.column_id,
+              position: t.position,
+            })));
           })
           .catch(() => {
             setLocalTasks(previousTasks);
