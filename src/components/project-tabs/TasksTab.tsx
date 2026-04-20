@@ -761,6 +761,21 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     );
   }, []);
 
+  const handleTasksReordered = useCallback(
+    (updates: Array<{ id: number; column_id: number; position: number }>) => {
+      setTasks((prev) =>
+        prev.map((t) => {
+          const update = updates.find((u) => u.id === t.id);
+          if (update) {
+            return { ...t, column_id: update.column_id, position: update.position };
+          }
+          return t;
+        })
+      );
+    },
+    []
+  );
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -809,6 +824,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
         onToggleComplete={handleToggleComplete}
+        onTasksReordered={handleTasksReordered}
       />
 
       <TaskDetailsModal
