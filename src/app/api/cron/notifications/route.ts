@@ -32,10 +32,12 @@ export async function GET(request: Request) {
         title, 
         deadline, 
         assignee_id,
+        is_completed,
         column:columns(board_id, title)
       `)
       .not("deadline", "is", null)
       .not("assignee_id", "is", null)
+      .eq("is_completed", false)
       .lte("deadline", threeDaysFromNow.toISOString());
 
     if (tasksError) {
@@ -43,14 +45,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: tasksError.message }, { status: 500 });
     }
 
-    // Filter out tasks that are in a "Done" column (case-insensitive)
-    const tasks = (rawTasks || []).filter(task => {
-      const colInfo = Array.isArray(task.column) ? task.column[0] : task.column;
-      const colTitle = (colInfo?.title || "").toLowerCase();
-      return colTitle !== "done";
-    });
+    const tasks = rawTasks || [];
 
-    console.log(`[Cron] Found ${rawTasks?.length ?? 0} urgent tasks, ${tasks.length} after filtering DONE`);
+    console.log(`[Cron] Processed ${tasks.length} urgent uncompleted tasks`);
 
     if (tasks.length === 0) {
       return NextResponse.json({ message: "No urgent tasks found." }, { status: 200 });
