@@ -367,7 +367,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           if (prev.some((t) => t.id === newTask.id)) return prev;
           return [
             ...prev,
-            { ...newTask, labels: [], assignees: [], assignee: null },
+            { ...newTask, labels: [], assignees: [], assignee: null, is_completed: false, checklists: [] },
           ];
         });
       } catch (insertError) {
@@ -706,6 +706,53 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleToggleComplete = (taskId: number, newValue: boolean) => {
+    // Optimistic UI: update local state immediately
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, is_completed: newValue } : t
+      )
+    );
+
+    // Fire API call in background
+    markLocalWrite();
+    fetch(`/api/kanban/tasks/${taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_completed: newValue }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error();
+      })
+      .catch(() => {
+        // Rollback on failure
+        lastLocalWriteRef.current = 0;
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, is_completed: !newValue } : t
+          )
+        );
+        toast.error("Cập nhật trạng thái thất bại");
+      });
+  };
+
+  const handleChecklistsUpdate = useCallback((taskId: number, newChecklists: any[]) => {
+    // Map full checklists to the Summary type used by KanbanTask
+    const checklistSummaries = newChecklists.map((cl) => ({
+      id: cl.id,
+      checklist_items: cl.items.map((item: any) => ({
+        id: item.id,
+        is_completed: item.is_completed,
+      })),
+    }));
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, checklists: checklistSummaries } : t
+      )
+    );
+  }, []);
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -753,6 +800,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onDeleteColumn={handleDeleteColumn}
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
+        onToggleComplete={handleToggleComplete}
       />
 
       <TaskDetailsModal
@@ -777,6 +825,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
         onUpdateTask={handleUpdateTaskField}
+        onChecklistsUpdate={handleChecklistsUpdate}
       />
 
       {/* Manage Labels Modal */}

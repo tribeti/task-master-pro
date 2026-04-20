@@ -43,6 +43,7 @@ interface KanbanBoardProps {
   onDeleteColumn: (columnId: number) => void;
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
+  onToggleComplete?: (taskId: number, newValue: boolean) => void;
 }
 
 export function KanbanBoard({
@@ -66,6 +67,7 @@ export function KanbanBoard({
   onDeleteColumn,
   onAddLabel,
   onRemoveLabel,
+  onToggleComplete,
 }: KanbanBoardProps) {
   /* ── Hydration fix for Next.js ── */
   const [isMounted, setIsMounted] = useState(false);
@@ -866,6 +868,7 @@ export function KanbanBoard({
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
                     isDragDisabled={isFiltering}
+                    onToggleComplete={onToggleComplete}
                   />
                 );
               })}

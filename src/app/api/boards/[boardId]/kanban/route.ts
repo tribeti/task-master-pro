@@ -77,6 +77,7 @@ export async function GET(
         labels: [],
         assignee: null,
         assignees: [],
+        checklists: [],
       }));
 
       if (tasks.length > 0) {
@@ -200,6 +201,59 @@ export async function GET(
             labels: labels.filter((label) => relatedLabelIds.has(label.id)),
           };
         });
+
+        // ── Fetch checklists + checklist_items for all tasks ──
+        const { data: checklistsData, error: checklistsErr } = await supabase
+          .from("checklists")
+          .select("id, task_id")
+          .in("task_id", taskIds);
+
+        if (checklistsErr) {
+          console.error("GET kanban checklists error:", checklistsErr.message);
+          // Non-fatal: continue without checklist data
+        }
+
+        if (checklistsData && checklistsData.length > 0) {
+          const checklistIds = checklistsData.map((c: any) => c.id);
+
+          const { data: checklistItemsData, error: itemsErr } = await supabase
+            .from("checklist_items")
+            .select("id, checklist_id, is_completed")
+            .in("checklist_id", checklistIds);
+
+          if (itemsErr) {
+            console.error("GET kanban checklist_items error:", itemsErr.message);
+          }
+
+          // Build a map: checklist_id -> items[]
+          const checklistItemsMap = new Map<string, { id: string; is_completed: boolean }[]>();
+          for (const item of (checklistItemsData || [])) {
+            if (!checklistItemsMap.has(item.checklist_id)) {
+              checklistItemsMap.set(item.checklist_id, []);
+            }
+            checklistItemsMap.get(item.checklist_id)!.push({
+              id: item.id,
+              is_completed: item.is_completed ?? false,
+            });
+          }
+
+          // Build a map: task_id -> checklists[]
+          const taskChecklistsMap = new Map<number, { id: string; checklist_items: { id: string; is_completed: boolean }[] }[]>();
+          for (const cl of checklistsData) {
+            if (!taskChecklistsMap.has(cl.task_id)) {
+              taskChecklistsMap.set(cl.task_id, []);
+            }
+            taskChecklistsMap.get(cl.task_id)!.push({
+              id: cl.id,
+              checklist_items: checklistItemsMap.get(cl.id) || [],
+            });
+          }
+
+          tasks = tasks.map((task) => ({
+            ...task,
+            checklists: taskChecklistsMap.get(task.id) || [],
+          }));
+        }
       }
     }
 

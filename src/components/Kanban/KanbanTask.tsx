@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Label, TaskAssignee } from "@/types/project";
+import { Label, TaskAssignee, ChecklistSummary } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
@@ -25,6 +25,11 @@ interface KanbanTaskProps {
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   onClick: () => void;
   isDragDisabled?: boolean;
+  /* ── New: Checklist progress ── */
+  checklists?: ChecklistSummary[];
+  /* ── New: Quick complete ── */
+  isCompleted?: boolean;
+  onToggleComplete?: (taskId: number, newValue: boolean) => void;
 }
 
 const PRIORITY_BADGE: Record<
@@ -35,6 +40,20 @@ const PRIORITY_BADGE: Record<
   Medium: { label: "Medium", text: "text-sky-600", bg: "bg-sky-50" },
   Low: { label: "Low", text: "text-emerald-600", bg: "bg-emerald-50" },
 };
+
+/** Calculate total and completed checklist items across all checklists */
+function getChecklistProgress(checklists?: ChecklistSummary[]) {
+  if (!checklists || checklists.length === 0) return { total: 0, completed: 0 };
+  let total = 0;
+  let completed = 0;
+  for (const cl of checklists) {
+    for (const item of cl.checklist_items) {
+      total++;
+      if (item.is_completed) completed++;
+    }
+  }
+  return { total, completed };
+}
 
 export function KanbanTask({
   id,
@@ -50,7 +69,29 @@ export function KanbanTask({
   onRemoveLabel,
   onClick,
   isDragDisabled = false,
+  checklists,
+  isCompleted = false,
+  onToggleComplete,
 }: KanbanTaskProps) {
+  /* ── Optimistic completed state ── */
+  const [localCompleted, setLocalCompleted] = useState(isCompleted);
+
+  // Sync with prop changes (e.g. from realtime updates)
+  useEffect(() => {
+    setLocalCompleted(isCompleted);
+  }, [isCompleted]);
+
+  const handleToggleComplete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newValue = !localCompleted;
+    setLocalCompleted(newValue); // Optimistic update
+    onToggleComplete?.(id, newValue);
+  };
+
+  /* ── Checklist progress ── */
+  const { total: totalItems, completed: completedItems } = getChecklistProgress(checklists);
+  const allChecklistDone = totalItems > 0 && completedItems === totalItems;
+
   /* ── Deadline logic ── */
   let deadlineBadge: { label: string; color: string } | null = null;
   let leftStripeColor = "";
@@ -153,18 +194,52 @@ export function KanbanTask({
             group/card
             ${leftStripeColor ? `border-l-[3px] ${leftStripeColor}` : ""}
             ${snapshot.isDragging ? "opacity-80 ring-2 ring-sky-300/50 scale-[1.02] rotate-1 z-50 shadow-lg" : "shadow-sm"}
+            ${localCompleted ? "opacity-60" : ""}
           `}
         >
           <div className="px-4 py-3 flex flex-col gap-2">
-            {/* Row 1: Priority badge + Title */}
+            {/* Row 1: Completion checkbox + Priority badge + Title */}
             <div className="flex items-start gap-2">
+              {/* Completion Checkbox */}
+              <button
+                type="button"
+                onClick={handleToggleComplete}
+                className={`mt-0.5 shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                  localCompleted
+                    ? "bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200"
+                    : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50"
+                }`}
+                title={localCompleted ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
+              >
+                {localCompleted && (
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+
               <span
                 className={`text-[10px] font-black leading-none px-1.5 py-0.5 rounded mt-0.5 shrink-0 uppercase ${PRIORITY_BADGE[priority]?.text || "text-slate-500"} ${PRIORITY_BADGE[priority]?.bg || "bg-slate-50"}`}
                 title={priority}
               >
                 {PRIORITY_BADGE[priority]?.label || "?"}
               </span>
-              <h4 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">
+              <h4
+                className={`text-sm font-semibold leading-snug line-clamp-2 transition-all ${
+                  localCompleted
+                    ? "line-through text-slate-400"
+                    : "text-slate-800"
+                }`}
+              >
                 {title}
               </h4>
             </div>
@@ -353,6 +428,37 @@ export function KanbanTask({
                   </div>
                 </div>
               )}
+
+            {/* Footer: Checklist progress badge */}
+            {totalItems > 0 && (
+              <div className="flex items-center pl-4">
+                <span
+                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${
+                    allChecklistDone
+                      ? "bg-emerald-500 text-white"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="5" width="6" height="6" rx="1" />
+                    <path d="m3 17 2 2 4-4" />
+                    <path d="M13 6h8" />
+                    <path d="M13 12h8" />
+                    <path d="M13 18h8" />
+                  </svg>
+                  {completedItems}/{totalItems}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

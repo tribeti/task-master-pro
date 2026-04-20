@@ -57,6 +57,7 @@ interface TaskDetailsModalProps {
       deadline: string | null;
     }>
   ) => Promise<void>;
+  onChecklistsUpdate?: (taskId: number, checklists: any[]) => void;
 }
 
 export function TaskDetailsModal({
@@ -81,6 +82,7 @@ export function TaskDetailsModal({
   onAddComment,
   onDeleteComment,
   onUpdateTask,
+  onChecklistsUpdate,
 }: TaskDetailsModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -369,6 +371,7 @@ export function TaskDetailsModal({
                 <TaskChecklist
                   taskId={initialData.id}
                   isSubmitting={isSubmitting}
+                  onChecklistsUpdate={(data) => onChecklistsUpdate?.(initialData.id!, data)}
                 />
               )}
             </div>
