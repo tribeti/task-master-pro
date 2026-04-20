@@ -14,6 +14,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Task } from "@/types/project";
+
+interface InsightsTask extends Task {
+  columns: { title: string } | { title: string }[];
+}
 
 const PIE_COLORS = [
   "#34D399",
@@ -25,7 +30,7 @@ const PIE_COLORS = [
 ];
 
 export default function InsightsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<InsightsTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -35,10 +40,38 @@ export default function InsightsPage() {
     async function fetchData() {
       try {
         const supabase = createClient();
-        // Fetch tasks and join with columns to get the status title
+
+        // 1. Get the authenticated user
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw authErr || new Error("Unauthorized");
+
+        // 2. Fetch boards user has access to (owned or as member)
+        const [ownedRes, memberRes] = await Promise.all([
+          supabase.from("boards").select("id").eq("owner_id", user.id),
+          supabase.from("board_members").select("board_id").eq("user_id", user.id),
+        ]);
+
+        if (ownedRes.error) throw ownedRes.error;
+        if (memberRes.error) throw memberRes.error;
+
+        const accessibleBoardIds = [
+          ...(ownedRes.data?.map((b) => b.id) || []),
+          ...(memberRes.data?.map((m) => m.board_id) || []),
+        ];
+
+        // 3. If no boards, set empty data
+        if (accessibleBoardIds.length === 0) {
+          setData([]);
+          setLoading(false);
+          return;
+        }
+
+        // 4. Fetch tasks and join with columns to get the status title
+        // We use columns!inner to filter by the board_id from the accessible list
         const { data: tasks, error: supabaseError } = await supabase
           .from("tasks")
-          .select("*, columns(title)");
+          .select("*, columns!inner(title, board_id)")
+          .in("columns.board_id", accessibleBoardIds);
 
         if (supabaseError) throw supabaseError;
         setData(tasks || []);
@@ -106,19 +139,12 @@ export default function InsightsPage() {
     const columnTitleLower = columnTitle.toLowerCase();
 
     // 1. Completed
-    if (
-      columnTitleLower.includes("done") ||
-      columnTitleLower.includes("hoàn thành")
-    ) {
+    if (task.is_completed) {
       completedTasks++;
     }
 
     // 2. Overdue (only if NOT completed)
-    if (
-      !columnTitleLower.includes("done") &&
-      !columnTitleLower.includes("hoàn thành") &&
-      task.deadline
-    ) {
+    if (!task.is_completed && task.deadline) {
       const [year, month, day] = String(task.deadline)
         .slice(0, 10)
         .split("-")
@@ -140,11 +166,14 @@ export default function InsightsPage() {
     let statusLabel = columnTitle;
     if (columnTitleLower === "to do") statusLabel = "Cần làm";
     else if (columnTitleLower === "in progress") statusLabel = "Đang làm";
-    else if (
-      columnTitleLower.includes("done") ||
-      columnTitleLower.includes("hoàn thành")
-    )
+
+    else if (["done", "hoàn thành", "completed"].includes(columnTitleLower)) {
+      statusLabel = "Chưa hoàn thành";
+    }
+
+    if (task.is_completed) {
       statusLabel = "Hoàn thành";
+    }
 
     statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
   });
