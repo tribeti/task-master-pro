@@ -58,25 +58,73 @@ export async function POST(request: Request, context: any) {
       const adminSupabase = createAdminClient();
 
       const [taskResponse, assignerResponse] = await Promise.all([
-        adminSupabase.from("tasks").select("title").eq("id", taskId).single(),
+        adminSupabase.from("tasks").select("title, deadline, is_completed").eq("id", taskId).single(),
         adminSupabase.from("users").select("display_name").eq("id", user.id).single()
       ]);
 
       const taskTitle = taskResponse.data?.title || "một nhiệm vụ";
       const assignerName = assignerResponse.data?.display_name || "Ai đó";
 
-      const { error: insertErr } = await adminSupabase.from("notifications").insert([{
-        user_id: assigneeId,
-        project_id: boardId,
-        task_id: taskId,
-        type: "System", // Added to satisfy NOT NULL constraint
-        content: `${assignerName} đã giao cho bạn nhiệm vụ: ${taskTitle}`,
-        is_read: false
-      }]);
+      const systemContent = `${assignerName} đã giao cho bạn nhiệm vụ: ${taskTitle}`;
+      const { data: existingSystemNotif } = await adminSupabase
+        .from("notifications")
+        .select("id")
+        .eq("user_id", assigneeId)
+        .eq("task_id", taskId)
+        .eq("type", "System")
+        .eq("content", systemContent)
+        .maybeSingle();
 
-      if (insertErr) {
-        console.error("Supabase insert error (Notification):", insertErr);
+      if (!existingSystemNotif) {
+        const { error: insertErr } = await adminSupabase.from("notifications").insert([{
+          user_id: assigneeId,
+          project_id: boardId,
+          task_id: taskId,
+          type: "System",
+          content: systemContent,
+          is_read: false
+        }]);
+
+        if (insertErr) {
+          console.error("Supabase insert error (Notification):", insertErr);
+        }
       }
+
+      // Also instantly evaluate and generate Deadline notification if urgent
+      if (taskResponse.data?.deadline && !taskResponse.data.is_completed) {
+        // Check if urgent
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const threeDaysFromNow = new Date(now);
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        if (new Date(taskResponse.data.deadline) <= threeDaysFromNow) {
+          // It's urgent! We must import getDeadlineStatus to get the localized string
+          const { getDeadlineStatus } = await import("@/utils/deadline");
+          const status = getDeadlineStatus(taskResponse.data.deadline);
+          
+          const { data: existingDeadlineNotif } = await adminSupabase
+            .from("notifications")
+            .select("id")
+            .eq("user_id", assigneeId)
+            .eq("task_id", taskId)
+            .eq("type", "deadline")
+            .like("content", `%${status.urgencyStr}%`)
+            .maybeSingle();
+
+          if (!existingDeadlineNotif) {
+            await adminSupabase.from("notifications").insert([{
+              user_id: assigneeId,
+              project_id: boardId,
+              task_id: taskId,
+              type: "deadline",
+              content: `Sắp đến hạn: Nhiệm vụ "${taskTitle}" (Hạn chót: ${status.urgencyStr})[DEADLINE_ISO:${taskResponse.data.deadline}]`,
+              is_read: false
+            }]);
+          }
+        }
+      }
+
     } catch (e: any) {
       console.error("Failed to insert notification exception:", e);
     }

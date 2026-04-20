@@ -85,9 +85,11 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: [],
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -111,9 +113,11 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: [],
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -137,9 +141,11 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: null,
-                  error: { message: "DB error" },
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: null,
+                    error: { message: "DB error" },
+                  }),
                 }),
               }),
             }),
@@ -168,17 +174,19 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [
-                    {
-                      id: 1,
-                      title: "Task A",
-                      deadline: yesterday.toISOString(),
-                      assignee_id: "user-1",
-                      column: { board_id: 10, title: "In Progress" },
-                    },
-                  ],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: [
+                      {
+                        id: 1,
+                        title: "Task A",
+                        deadline: yesterday.toISOString(),
+                        assignee_id: "user-1",
+                        column: { board_id: 10, title: "In Progress" },
+                      },
+                    ],
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -216,42 +224,7 @@ describe("GET /api/cron/notifications", () => {
     expect(insertCall.project_id).toBe(10);
   });
 
-  // ── 200: Skips tasks in "Done" column ──────────────────────
-  it("filters out tasks in Done column", async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "tasks") {
-        return {
-          select: jest.fn().mockReturnValue({
-            not: jest.fn().mockReturnValue({
-              not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [
-                    {
-                      id: 2,
-                      title: "Done Task",
-                      deadline: tomorrow.toISOString(),
-                      assignee_id: "user-2",
-                      column: { board_id: 10, title: "Done" },
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-        };
-      }
-      return {};
-    });
-
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.message).toBe("No urgent tasks found.");
-  });
 
   // ── 200: Skips duplicate notifications ─────────────────────
   it("skips notification if same urgency stage already exists", async () => {
@@ -266,17 +239,19 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [
-                    {
-                      id: 3,
-                      title: "Overdue Task",
-                      deadline: yesterday.toISOString(),
-                      assignee_id: "user-3",
-                      column: { board_id: 20, title: "In Progress" },
-                    },
-                  ],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: [
+                      {
+                        id: 3,
+                        title: "Overdue Task",
+                        deadline: yesterday.toISOString(),
+                        assignee_id: "user-3",
+                        column: { board_id: 20, title: "In Progress" },
+                      },
+                    ],
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -324,17 +299,19 @@ describe("GET /api/cron/notifications", () => {
           select: jest.fn().mockReturnValue({
             not: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
-                lte: jest.fn().mockReturnValue({
-                  data: [
-                    {
-                      id: 4,
-                      title: "Task X",
-                      deadline: yesterday.toISOString(),
-                      assignee_id: "user-4",
-                      column: { board_id: 30, title: "Todo" },
-                    },
-                  ],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  lte: jest.fn().mockReturnValue({
+                    data: [
+                      {
+                        id: 4,
+                        title: "Task X",
+                        deadline: yesterday.toISOString(),
+                        assignee_id: "user-4",
+                        column: { board_id: 30, title: "Todo" },
+                      },
+                    ],
+                    error: null,
+                  }),
                 }),
               }),
             }),

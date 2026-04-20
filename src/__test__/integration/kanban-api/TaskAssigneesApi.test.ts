@@ -77,12 +77,14 @@ describe("Task Assignees API (POST & DELETE)", () => {
     mockAdminQueryBuilder = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
+      like: jest.fn().mockReturnThis(),
       single: jest
         .fn()
         .mockResolvedValue({
           data: { title: "Mock Task", display_name: "Mock User" },
           error: null,
         }),
+      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
       insert: jest.fn().mockResolvedValue({ error: null }),
     };
     mockAdminSupabase = {
