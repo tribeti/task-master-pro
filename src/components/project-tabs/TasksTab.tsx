@@ -42,7 +42,7 @@ function TaskUrlHandler({
       if (lastAppliedRef.current === urlTaskId) {
         return;
       }
-      
+
       const tid = parseInt(urlTaskId, 10);
       if (selectedTaskId !== tid) {
         const taskToOpen = tasks.find((t) => t.id === tid);
@@ -80,6 +80,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionToggleSeqRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     return () => {
@@ -271,7 +272,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
-    
+
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
 
     // Use timeout to delay clearing states so modal exit animation can play smoothly
@@ -707,6 +708,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   };
 
   const handleToggleComplete = (taskId: number, newValue: boolean) => {
+    const previousValue = tasks.find((t) => t.id === taskId)?.is_completed;
+    const requestSeq = (completionToggleSeqRef.current[taskId] ?? 0) + 1;
+    completionToggleSeqRef.current[taskId] = requestSeq;
+
     // Optimistic UI: update local state immediately
     setTasks((prev) =>
       prev.map((t) =>
@@ -727,9 +732,12 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       .catch(() => {
         // Rollback on failure
         lastLocalWriteRef.current = 0;
+        if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
         setTasks((prev) =>
           prev.map((t) =>
-            t.id === taskId ? { ...t, is_completed: !newValue } : t
+            t.id === taskId && previousValue !== undefined
+              ? { ...t, is_completed: previousValue }
+              : t
           )
         );
         toast.error("Cập nhật trạng thái thất bại");

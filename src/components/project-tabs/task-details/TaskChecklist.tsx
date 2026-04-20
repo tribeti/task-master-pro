@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export interface ChecklistItem {
@@ -39,9 +39,16 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
 
   // Helper to notify parent - ONLY called on user interaction
   // Important: Must be called outside of state updater functions to avoid React warning.
-  const notifyParent = (currentChecklists: Checklist[]) => {
-    onChecklistsUpdate?.(currentChecklists);
+  const shouldNotifyParentRef = useRef(false);
+  const markParentDirty = () => {
+    shouldNotifyParentRef.current = true;
   };
+
+  useEffect(() => {
+    if (!shouldNotifyParentRef.current) return;
+    shouldNotifyParentRef.current = false;
+    onChecklistsUpdate?.(checklists);
+  }, [checklists, onChecklistsUpdate]);
 
   // Reset local UI state when switching task
   useEffect(() => {
@@ -116,9 +123,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       items: [],
       isPending: true,
     };
-    
+
     setChecklists((prev) => [...prev, newChecklist]);
-    
+
     try {
       const { data, error } = await supabase
         .from("checklists")
@@ -131,25 +138,24 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           const next = prev.map((c) =>
             c.id === tempId ? { ...data, items: [], isPending: false } : c
           );
-          // notifyParent(next); // Removed from here
-          setTimeout(() => notifyParent(next), 0); // Using setTimeout is safe or call after setState
           return next;
         });
+        markParentDirty();
       } else {
         if (error) console.error("Error adding checklist:", error);
         setChecklists((prev) => {
           const next = prev.filter((c) => c.id !== tempId);
-          setTimeout(() => notifyParent(next), 0);
           return next;
         });
+        markParentDirty();
       }
     } catch (err) {
       console.error("Exception adding checklist:", err);
       setChecklists((prev) => {
         const next = prev.filter((c) => c.id !== tempId);
-        setTimeout(() => notifyParent(next), 0);
         return next;
       });
+      markParentDirty();
     }
   };
 
@@ -163,7 +169,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     const oldTitle = checklist.title;
     const nextOptimistic = checklists.map((c) => (c.id === id ? { ...c, title: trimmedTitle } : c));
     setChecklists(nextOptimistic);
-    notifyParent(nextOptimistic);
+    markParentDirty();
 
     const { error } = await supabase
       .from("checklists")
@@ -175,9 +181,10 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c));
-        notifyParent(reset);
+        markParentDirty();
         return reset;
       });
+
     }
   };
 
@@ -188,7 +195,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     const oldChecklist = { ...checklist };
     const nextOptimistic = checklists.filter((c) => c.id !== id);
     setChecklists(nextOptimistic);
-    notifyParent(nextOptimistic);
+    markParentDirty();
 
     const { error } = await supabase.from("checklists").delete().eq("id", id);
     if (error) {
@@ -198,7 +205,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
         const reset = [...prev, oldChecklist].sort((a, b) =>
           a.created_at.localeCompare(b.created_at)
         );
-        notifyParent(reset);
+        markParentDirty();
         return reset;
       });
     }
@@ -225,7 +232,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c
     );
     setChecklists(nextOptimistic);
-    notifyParent(nextOptimistic);
+    markParentDirty();
 
     try {
       const { data, error } = await supabase
@@ -246,7 +253,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
               }
               : c
           );
-          setTimeout(() => notifyParent(next), 0);
+          markParentDirty();
           return next;
         });
       } else {
@@ -257,7 +264,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
               ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
               : c
           );
-          setTimeout(() => notifyParent(next), 0);
+          markParentDirty();
           return next;
         });
       }
@@ -269,7 +276,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
             ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
             : c
         );
-        setTimeout(() => notifyParent(next), 0);
+        markParentDirty();
         return next;
       });
     }
@@ -298,7 +305,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
         : c
     );
     setChecklists(nextOptimistic);
-    notifyParent(nextOptimistic);
+    markParentDirty();
 
     const { error } = await supabase
       .from("checklist_items")
@@ -319,7 +326,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
             }
             : c
         );
-        notifyParent(reset);
+        markParentDirty();
         return reset;
       });
     }
@@ -339,7 +346,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
         : c
     );
     setChecklists(nextOptimistic);
-    notifyParent(nextOptimistic);
+    markParentDirty();
 
     const { error } = await supabase
       .from("checklist_items")
@@ -360,7 +367,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
             }
             : c
         );
-        notifyParent(reset);
+        markParentDirty();
         return reset;
       });
     }
