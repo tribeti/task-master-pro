@@ -181,9 +181,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c));
-        markParentDirty();
         return reset;
       });
+      markParentDirty();
 
     }
   };
