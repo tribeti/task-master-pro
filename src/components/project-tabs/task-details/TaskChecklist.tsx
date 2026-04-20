@@ -171,13 +171,15 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     setChecklists(nextOptimistic);
     markParentDirty();
 
-    const { error } = await supabase
-      .from("checklists")
-      .update({ title: trimmedTitle })
-      .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("checklists")
+        .update({ title: trimmedTitle })
+        .eq("id", id);
 
-    if (error) {
-      console.error("Error updating checklist title:", error);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error updating checklist title:", err);
       setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c));
@@ -197,9 +199,11 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     setChecklists(nextOptimistic);
     markParentDirty();
 
-    const { error } = await supabase.from("checklists").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting checklist:", error);
+    try {
+      const { error } = await supabase.from("checklists").delete().eq("id", id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error deleting checklist:", err);
       setChecklistsError("Lỗi: Không thể xóa nhóm việc. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = [...prev, oldChecklist].sort((a, b) =>
@@ -307,13 +311,15 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     setChecklists(nextOptimistic);
     markParentDirty();
 
-    const { error } = await supabase
-      .from("checklist_items")
-      .update({ is_completed: isCompleted })
-      .eq("id", itemId);
+    try {
+      const { error } = await supabase
+        .from("checklist_items")
+        .update({ is_completed: isCompleted })
+        .eq("id", itemId);
 
-    if (error) {
-      console.error("Error toggling item:", error);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error toggling item:", err);
       setChecklistsError("Lỗi: Không thể cập nhật trạng thái mục. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = prev.map((c) =>
@@ -348,13 +354,15 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     setChecklists(nextOptimistic);
     markParentDirty();
 
-    const { error } = await supabase
-      .from("checklist_items")
-      .delete()
-      .eq("id", itemId);
+    try {
+      const { error } = await supabase
+        .from("checklist_items")
+        .delete()
+        .eq("id", itemId);
 
-    if (error) {
-      console.error("Error deleting item:", error);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error deleting item:", err);
       setChecklistsError("Lỗi: Không thể xóa mục. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = prev.map((c) =>
