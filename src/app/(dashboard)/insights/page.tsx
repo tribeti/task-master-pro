@@ -40,7 +40,7 @@ export default function InsightsPage() {
     async function fetchData() {
       try {
         const supabase = createClient();
-        
+
         // 1. Get the authenticated user
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw authErr || new Error("Unauthorized");
@@ -167,10 +167,12 @@ export default function InsightsPage() {
     if (columnTitleLower === "to do") statusLabel = "Cần làm";
     else if (columnTitleLower === "in progress") statusLabel = "Đang làm";
 
+    else if (["done", "hoàn thành", "completed"].includes(columnTitleLower)) {
+      statusLabel = "Chưa hoàn thành";
+    }
+
     if (task.is_completed) {
       statusLabel = "Hoàn thành";
-    } else if (statusLabel === "Hoàn thành") {
-      statusLabel = "Chưa hoàn thành";
     }
 
     statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
