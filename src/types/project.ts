@@ -45,10 +45,21 @@ export interface AssigneeOption extends TaskAssignee {
   is_board_member?: boolean;
 }
 
+export interface ChecklistItemSummary {
+  id: string;
+  is_completed: boolean;
+}
+
+export interface ChecklistSummary {
+  id: string;
+  checklist_items: ChecklistItemSummary[];
+}
+
 export interface KanbanTask extends Task {
   labels?: Label[];
   assignee?: TaskAssignee | null;
   assignees?: TaskAssignee[];
+  checklists?: ChecklistSummary[];
 }
 
 export interface KanbanColumn {
@@ -67,6 +78,7 @@ export interface Task {
   position: number;
   column_id: number;
   assignee_id: string | null;
+  is_completed: boolean;
 }
 
 export interface Comment {

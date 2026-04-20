@@ -42,7 +42,7 @@ function TaskUrlHandler({
       if (lastAppliedRef.current === urlTaskId) {
         return;
       }
-      
+
       const tid = parseInt(urlTaskId, 10);
       if (selectedTaskId !== tid) {
         const taskToOpen = tasks.find((t) => t.id === tid);
@@ -80,6 +80,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
   const isInitialLoad = useRef(true);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionToggleSeqRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     return () => {
@@ -271,7 +272,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
-    
+
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
 
     // Use timeout to delay clearing states so modal exit animation can play smoothly
@@ -367,7 +368,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           if (prev.some((t) => t.id === newTask.id)) return prev;
           return [
             ...prev,
-            { ...newTask, labels: [], assignees: [], assignee: null },
+            { ...newTask, labels: [], assignees: [], assignee: null, is_completed: false, checklists: [] },
           ];
         });
       } catch (insertError) {
@@ -706,6 +707,60 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleToggleComplete = (taskId: number, newValue: boolean) => {
+    const previousValue = tasks.find((t) => t.id === taskId)?.is_completed;
+    const requestSeq = (completionToggleSeqRef.current[taskId] ?? 0) + 1;
+    completionToggleSeqRef.current[taskId] = requestSeq;
+
+    // Optimistic UI: update local state immediately
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, is_completed: newValue } : t
+      )
+    );
+
+    // Fire API call in background
+    markLocalWrite();
+    fetch(`/api/kanban/tasks/${taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_completed: newValue }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error();
+      })
+      .catch(() => {
+        // Rollback on failure
+        lastLocalWriteRef.current = 0;
+        if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId && previousValue !== undefined
+              ? { ...t, is_completed: previousValue }
+              : t
+          )
+        );
+        toast.error("Cập nhật trạng thái thất bại");
+      });
+  };
+
+  const handleChecklistsUpdate = useCallback((taskId: number, newChecklists: any[]) => {
+    // Map full checklists to the Summary type used by KanbanTask
+    const checklistSummaries = newChecklists.map((cl) => ({
+      id: cl.id,
+      checklist_items: cl.items.map((item: any) => ({
+        id: item.id,
+        is_completed: item.is_completed,
+      })),
+    }));
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, checklists: checklistSummaries } : t
+      )
+    );
+  }, []);
+
   const currentEditingTask = editingTask
     ? tasks.find((task) => task.id === editingTask.id) || editingTask
     : null;
@@ -753,6 +808,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onDeleteColumn={handleDeleteColumn}
         onAddLabel={handleAddLabel}
         onRemoveLabel={handleRemoveLabel}
+        onToggleComplete={handleToggleComplete}
       />
 
       <TaskDetailsModal
@@ -777,6 +833,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}
         onUpdateTask={handleUpdateTaskField}
+        onChecklistsUpdate={handleChecklistsUpdate}
       />
 
       {/* Manage Labels Modal */}

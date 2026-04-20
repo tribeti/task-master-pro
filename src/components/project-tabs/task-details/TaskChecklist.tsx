@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export interface ChecklistItem {
@@ -24,9 +24,10 @@ export interface Checklist {
 interface TaskChecklistProps {
   taskId: number;
   isSubmitting: boolean;
+  onChecklistsUpdate?: (checklists: Checklist[]) => void;
 }
 
-export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
+export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: TaskChecklistProps) {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [checklistsLoading, setChecklistsLoading] = useState(false);
   const [checklistsError, setChecklistsError] = useState<string | null>(null);
@@ -35,6 +36,19 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
   const [supabase] = useState(() => createClient());
+
+  // Helper to notify parent - ONLY called on user interaction
+  // Important: Must be called outside of state updater functions to avoid React warning.
+  const shouldNotifyParentRef = useRef(false);
+  const markParentDirty = () => {
+    shouldNotifyParentRef.current = true;
+  };
+
+  useEffect(() => {
+    if (!shouldNotifyParentRef.current) return;
+    shouldNotifyParentRef.current = false;
+    onChecklistsUpdate?.(checklists);
+  }, [checklists, onChecklistsUpdate]);
 
   // Reset local UI state when switching task
   useEffect(() => {
@@ -62,7 +76,10 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         if (error) throw error;
 
         if (!ignore) {
-          setChecklists((data as Checklist[]) || []);
+          const fetchedData = (data as Checklist[]) || [];
+          setChecklists(fetchedData);
+          // Note: We deliberately DO NOT call notifyParent here 
+          // to prevent the "reload flicker" on the Kanban card when opening the modal.
         }
       } catch (err: any) {
         console.error("Error fetching checklists:", err);
@@ -106,6 +123,7 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
       items: [],
       isPending: true,
     };
+
     setChecklists((prev) => [...prev, newChecklist]);
 
     try {
@@ -116,18 +134,28 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         .single();
 
       if (data && !error) {
-        setChecklists((prev) =>
-          prev.map((c) =>
+        setChecklists((prev) => {
+          const next = prev.map((c) =>
             c.id === tempId ? { ...data, items: [], isPending: false } : c
-          )
-        );
+          );
+          return next;
+        });
+        markParentDirty();
       } else {
         if (error) console.error("Error adding checklist:", error);
-        setChecklists((prev) => prev.filter((c) => c.id !== tempId));
+        setChecklists((prev) => {
+          const next = prev.filter((c) => c.id !== tempId);
+          return next;
+        });
+        markParentDirty();
       }
     } catch (err) {
       console.error("Exception adding checklist:", err);
-      setChecklists((prev) => prev.filter((c) => c.id !== tempId));
+      setChecklists((prev) => {
+        const next = prev.filter((c) => c.id !== tempId);
+        return next;
+      });
+      markParentDirty();
     }
   };
 
@@ -139,20 +167,26 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
     if (!checklist || checklist.isPending) return;
 
     const oldTitle = checklist.title;
-    setChecklists((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title: trimmedTitle } : c))
-    );
+    const nextOptimistic = checklists.map((c) => (c.id === id ? { ...c, title: trimmedTitle } : c));
+    setChecklists(nextOptimistic);
+    markParentDirty();
 
-    const { error } = await supabase
-      .from("checklists")
-      .update({ title: trimmedTitle })
-      .eq("id", id);
-    if (error) {
-      console.error("Error updating checklist title:", error);
+    try {
+      const { error } = await supabase
+        .from("checklists")
+        .update({ title: trimmedTitle })
+        .eq("id", id);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error updating checklist title:", err);
       setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
-      setChecklists((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c))
-      );
+      setChecklists((prev) => {
+        const reset = prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c));
+        return reset;
+      });
+      markParentDirty();
+
     }
   };
 
@@ -161,17 +195,23 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
     if (!checklist || checklist.isPending) return;
 
     const oldChecklist = { ...checklist };
-    setChecklists((prev) => prev.filter((c) => c.id !== id));
+    const nextOptimistic = checklists.filter((c) => c.id !== id);
+    setChecklists(nextOptimistic);
+    markParentDirty();
 
-    const { error } = await supabase.from("checklists").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting checklist:", error);
+    try {
+      const { error } = await supabase.from("checklists").delete().eq("id", id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error deleting checklist:", err);
       setChecklistsError("Lỗi: Không thể xóa nhóm việc. Đã hoàn tác.");
-      setChecklists((prev) =>
-        [...prev, oldChecklist].sort((a, b) =>
+      setChecklists((prev) => {
+        const reset = [...prev, oldChecklist].sort((a, b) =>
           a.created_at.localeCompare(b.created_at)
-        )
-      );
+        );
+        markParentDirty();
+        return reset;
+      });
     }
   };
 
@@ -192,11 +232,11 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
       isPending: true,
     };
 
-    setChecklists((prev) =>
-      prev.map((c) =>
-        c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c
-      )
+    const nextOptimistic = checklists.map((c) =>
+      c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c
     );
+    setChecklists(nextOptimistic);
+    markParentDirty();
 
     try {
       const { data, error } = await supabase
@@ -206,8 +246,8 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
         .single();
 
       if (data && !error) {
-        setChecklists((prev) =>
-          prev.map((c) =>
+        setChecklists((prev) => {
+          const next = prev.map((c) =>
             c.id === checklistId
               ? {
                 ...c,
@@ -216,33 +256,33 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
                 ),
               }
               : c
-          )
-        );
+          );
+          markParentDirty();
+          return next;
+        });
       } else {
         if (error) console.error("Error adding checklist item:", error);
-        setChecklists((prev) =>
-          prev.map((c) =>
+        setChecklists((prev) => {
+          const next = prev.map((c) =>
             c.id === checklistId
-              ? {
-                ...c,
-                items: c.items.filter((i) => i.id !== tempId),
-              }
+              ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
               : c
-          )
-        );
+          );
+          markParentDirty();
+          return next;
+        });
       }
     } catch (err) {
       console.error("Exception adding checklist item:", err);
-      setChecklists((prev) =>
-        prev.map((c) =>
+      setChecklists((prev) => {
+        const next = prev.map((c) =>
           c.id === checklistId
-            ? {
-              ...c,
-              items: c.items.filter((i) => i.id !== tempId),
-            }
+            ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
             : c
-        )
-      );
+        );
+        markParentDirty();
+        return next;
+      });
     }
   };
 
@@ -258,28 +298,31 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
     if (!item || item.isPending) return;
 
     const oldStatus = item.is_completed;
-    setChecklists((prev) =>
-      prev.map((c) =>
-        c.id === checklistId
-          ? {
-            ...c,
-            items: c.items.map((i) =>
-              i.id === itemId ? { ...i, is_completed: isCompleted } : i
-            ),
-          }
-          : c
-      )
+    const nextOptimistic = checklists.map((c) =>
+      c.id === checklistId
+        ? {
+          ...c,
+          items: c.items.map((i) =>
+            i.id === itemId ? { ...i, is_completed: isCompleted } : i
+          ),
+        }
+        : c
     );
+    setChecklists(nextOptimistic);
+    markParentDirty();
 
-    const { error } = await supabase
-      .from("checklist_items")
-      .update({ is_completed: isCompleted })
-      .eq("id", itemId);
-    if (error) {
-      console.error("Error toggling item:", error);
+    try {
+      const { error } = await supabase
+        .from("checklist_items")
+        .update({ is_completed: isCompleted })
+        .eq("id", itemId);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error toggling item:", err);
       setChecklistsError("Lỗi: Không thể cập nhật trạng thái mục. Đã hoàn tác.");
-      setChecklists((prev) =>
-        prev.map((c) =>
+      setChecklists((prev) => {
+        const reset = prev.map((c) =>
           c.id === checklistId
             ? {
               ...c,
@@ -288,8 +331,10 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
               ),
             }
             : c
-        )
-      );
+        );
+        markParentDirty();
+        return reset;
+      });
     }
   };
 
@@ -301,23 +346,26 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
     if (!item || item.isPending) return;
 
     const oldItem = { ...item };
-    setChecklists((prev) =>
-      prev.map((c) =>
-        c.id === checklistId
-          ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
-          : c
-      )
+    const nextOptimistic = checklists.map((c) =>
+      c.id === checklistId
+        ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
+        : c
     );
+    setChecklists(nextOptimistic);
+    markParentDirty();
 
-    const { error } = await supabase
-      .from("checklist_items")
-      .delete()
-      .eq("id", itemId);
-    if (error) {
-      console.error("Error deleting item:", error);
+    try {
+      const { error } = await supabase
+        .from("checklist_items")
+        .delete()
+        .eq("id", itemId);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Error deleting item:", err);
       setChecklistsError("Lỗi: Không thể xóa mục. Đã hoàn tác.");
-      setChecklists((prev) =>
-        prev.map((c) =>
+      setChecklists((prev) => {
+        const reset = prev.map((c) =>
           c.id === checklistId
             ? {
               ...c,
@@ -326,8 +374,10 @@ export function TaskChecklist({ taskId, isSubmitting }: TaskChecklistProps) {
               ),
             }
             : c
-        )
-      );
+        );
+        markParentDirty();
+        return reset;
+      });
     }
   };
 

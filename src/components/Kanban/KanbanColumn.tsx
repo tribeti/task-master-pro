@@ -29,6 +29,7 @@ interface KanbanColumnProps {
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   isDragDisabled?: boolean;
   searchMatchedTaskIds?: Set<number> | null;
+  onToggleComplete?: (taskId: number, newValue: boolean) => void;
 }
 
 // All styles are visually distinct (no "plain/colorless" entry).
@@ -85,6 +86,7 @@ export function KanbanColumn({
   onRemoveLabel,
   isDragDisabled = false,
   searchMatchedTaskIds,
+  onToggleComplete,
 }: KanbanColumnProps) {
   // Prime multiplier spreads consecutive IDs across different colors.
   // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
@@ -259,6 +261,9 @@ export function KanbanColumn({
                     onRemoveLabel={onRemoveLabel}
                     onClick={() => onTaskClick(task)}
                     isDragDisabled={isDragDisabled}
+                    checklists={task.checklists}
+                    isCompleted={task.is_completed}
+                    onToggleComplete={onToggleComplete}
                   />
                 ))}
                 {droppableProvided.placeholder}
