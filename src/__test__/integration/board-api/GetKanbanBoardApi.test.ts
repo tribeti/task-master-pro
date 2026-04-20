@@ -55,6 +55,14 @@ const mockLabelSelect = jest.fn().mockReturnValue({ eq: mockLabelEq });
 const mockTaskLabelIn = jest.fn();
 const mockTaskLabelSelect = jest.fn().mockReturnValue({ in: mockTaskLabelIn });
 
+// --- Chain cho "checklists" ---
+const mockChecklistIn = jest.fn();
+const mockChecklistSelect = jest.fn().mockReturnValue({ in: mockChecklistIn });
+
+// --- Chain cho "checklist_items" ---
+const mockChecklistItemIn = jest.fn();
+const mockChecklistItemSelect = jest.fn().mockReturnValue({ in: mockChecklistItemIn });
+
 // Hàm from() tổng quản: Chuyển hướng query về đúng chain của từng bảng
 const mockFrom = jest.fn((tableName: string) => {
   switch (tableName) {
@@ -70,6 +78,10 @@ const mockFrom = jest.fn((tableName: string) => {
       return { select: mockLabelSelect };
     case "task_labels":
       return { select: mockTaskLabelSelect };
+    case "checklists":
+      return { select: mockChecklistSelect };
+    case "checklist_items":
+      return { select: mockChecklistItemSelect };
     default:
       return {};
   }
@@ -251,6 +263,14 @@ describe("GET /api/boards/[boardId]/kanban", () => {
     // 6. Data Task-Labels (liên kết)
     mockTaskLabelIn.mockResolvedValue({
       data: [{ task_id: 100, label_id: 50 }],
+    });
+    // 7. Data Checklists
+    mockChecklistIn.mockResolvedValue({
+      data: [{ id: "cl-1", task_id: 100 }],
+    });
+    // 8. Data Checklist Items
+    mockChecklistItemIn.mockResolvedValue({
+      data: [{ id: "item-1", checklist_id: "cl-1", is_completed: false }],
     });
 
     const req = createMockRequest();
