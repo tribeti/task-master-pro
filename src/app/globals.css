@@ -46,3 +46,51 @@ body {
     transform: translateY(-20px);
   }
 }
+
+/* Kanban column — slim, elegant scrollbar */
+.kanban-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.kanban-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background 0.2s;
+}
+.kanban-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+}
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+/* Firefox */
+.kanban-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.kanban-scroll:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+/* Kanban board — horizontal scrollbar (always visible) */
+.kanban-board-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.kanban-board-scroll::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.6);
+  border-radius: 9999px;
+}
+.kanban-board-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+.kanban-board-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+/* Firefox */
+.kanban-board-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) rgba(241, 245, 249, 0.6);
+}

@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useDashboardUser } from "../provider";
 import { useNotifications } from "@/hooks/useNotifications";
 import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
 import { Notification } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { formatRelativeTime } from "@/utils/time";
+import { useRouter } from "next/navigation";
 
 export default function NotificationsPage() {
   const { user } = useDashboardUser();
-  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } =
+  const router = useRouter();
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, hideNotification, hideAllNotifications } =
     useNotifications(user?.id);
 
   const getDisplayStatus = (notification: Notification) => {
@@ -39,14 +41,24 @@ export default function NotificationsPage() {
             Cập nhật các hạn chót và thông báo mới nhất về dự án của bạn.
           </p>
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF] transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
-          >
-            {unreadCount} CHƯA ĐỌC
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF] transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
+            >
+              {unreadCount} CHƯA ĐỌC
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={hideAllNotifications}
+              className="bg-red-50 text-red-500 hover:bg-red-100 transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
+            >
+              Xóa tất cả
+            </button>
+          )}
+        </div>
       </header>
 
       {isLoading ? (
@@ -108,7 +120,7 @@ export default function NotificationsPage() {
             let projectSubject = projObj?.title
               ? `DỰ ÁN: ${projObj.title}`
               : "CẬP NHẬT DỰ ÁN";
-            let taskTitle = taskObj?.title || notification.content;
+            let taskTitle = notification.content || taskObj?.title;
             let acceptUrl = "";
 
             if (notification.type === "Invite") {
@@ -125,7 +137,7 @@ export default function NotificationsPage() {
                 if (payload.token && notification.project_id) {
                   acceptUrl = `/api/boards/${notification.project_id}/invitations/accept?token=${payload.token}`;
                 }
-              } catch (e) {
+              } catch {
                 taskTitle = "Bạn có một lời mời tham gia dự án mới";
               }
             }
@@ -135,13 +147,35 @@ export default function NotificationsPage() {
                 key={notification.id}
                 onClick={() => {
                   if (!isRead) markAsRead(notification.id);
+                  const pid = notification.project_id || projObj?.id;
+                  const tid = notification.task_id || taskObj?.id;
+
+                  if (pid && tid) {
+                    router.push(`/projects?projectId=${pid}&tab=Tasks&taskId=${tid}`);
+                  } else if (pid) {
+                    router.push(`/projects?projectId=${pid}`);
+                  }
                 }}
-                className={`block relative bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
-                  isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr
-                }`}
+                className={`block relative group bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr
+                  }`}
               >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideNotification(notification.id);
+                  }}
+                  className="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 rounded"
+                  aria-label="Xóa thông báo"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                  </svg>
+                </button>
+
                 {!isRead && status.color === "red" && (
-                  <div className="absolute top-6 right-6 text-red-500 font-bold text-xl leading-none">
+                  <div className="absolute top-6 right-16 text-red-500 font-bold text-xl leading-none">
                     !
                   </div>
                 )}

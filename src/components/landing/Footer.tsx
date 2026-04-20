@@ -14,7 +14,7 @@ export default function Footer() {
           </span>
         </div>
         <p className="text-slate-400 font-medium text-sm">
-          © 2026 Apex Developers. Built for peak productivity.
+          © 2026 Apex Developers. Được xây dựng cho năng suất cao nhất.
         </p>
       </div>
     </footer>

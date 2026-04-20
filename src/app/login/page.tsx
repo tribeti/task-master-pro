@@ -204,14 +204,14 @@ export default function TaskFlowAuth() {
 
           <div className="mt-auto mb-auto">
             <h1 className="text-5xl font-black text-white leading-tight tracking-tight mb-6">
-              Master your <br /> workflow. <br />
+              Làm chủ <br /> công việc. <br />
               <span className="text-transparent bg-clip-text bg-linear-to-r from-[#34D399] to-[#28B8FA]">
-                Achieve peak state.
+                Đạt trạng thái tốt nhất.
               </span>
             </h1>
             <p className="text-slate-400 text-lg font-medium max-w-md">
-              Join thousands of professionals using gamification to crush their
-              daily objectives and build unbreakable streaks.
+              Tham gia cùng hàng ngàn chuyên gia sử dụng gamification để chinh phục
+              mục tiêu hàng ngày và xây dựng chuỗi thành tích không thể phá vỡ.
             </p>
 
             <div className="mt-12 bg-white/10 backdrop-blur-md border border-white/10 rounded-4xl p-6 max-w-sm flex items-center gap-5 shadow-2xl">
@@ -219,9 +219,9 @@ export default function TaskFlowAuth() {
                 <CheckIcon />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg">+150 XP Earned</h4>
+                <h4 className="text-white font-bold text-lg">nhận 150 XP</h4>
                 <p className="text-slate-300 text-sm font-medium mt-1">
-                  Deep Focus Session completed
+                  Trạng thái tập trung sâu hoàn thành
                 </p>
               </div>
             </div>
@@ -270,10 +270,10 @@ export default function TaskFlowAuth() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-black text-slate-800 mb-2">
-                  Welcome Back
+                  Chào mừng trở lại
                 </h2>
                 <p className="text-slate-500 text-sm font-medium">
-                  Sign in to continue your streak.
+                  Đăng nhập để tiếp tục chuỗi thành tích của bạn.
                 </p>
               </div>
 
@@ -300,13 +300,13 @@ export default function TaskFlowAuth() {
                     fill="#EA4335"
                   />
                 </svg>
-                Continue with Google
+                Tiếp tục với Google
               </button>
 
               <div className="flex items-center mb-6">
                 <div className="grow border-t border-slate-100"></div>
                 <span className="px-4 text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Or email
+                  Hoặc email
                 </span>
                 <div className="grow border-t border-slate-100"></div>
               </div>
@@ -349,7 +349,7 @@ export default function TaskFlowAuth() {
                       className="w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA]"
                     />
                     <span className="text-sm font-medium text-slate-500 group-hover:text-slate-800 transition-colors">
-                      Remember me
+                      Ghi nhớ đăng nhập
                     </span>
                   </label>
                   <button
@@ -357,7 +357,7 @@ export default function TaskFlowAuth() {
                     onClick={() => setView("forgot")}
                     className="text-sm font-bold text-[#28B8FA] hover:text-cyan-600 transition-colors focus:outline-none"
                   >
-                    Forgot password?
+                    Quên mật khẩu?
                   </button>
                 </div>
 
@@ -373,12 +373,12 @@ export default function TaskFlowAuth() {
 
               <div className="mt-8 pt-8 border-t border-slate-100 text-center">
                 <p className="text-slate-500 text-sm font-medium">
-                  Don&apos;t have an account?{" "}
+                  Chưa có tài khoản?{" "}
                   <button
                     onClick={() => setView("register")}
                     className="text-[#34D399] font-bold hover:text-emerald-600 transition-colors"
                   >
-                    Sign up now
+                    Đăng ký ngay
                   </button>
                 </p>
               </div>
@@ -396,10 +396,10 @@ export default function TaskFlowAuth() {
               </button>
               <div className="mb-8 text-center mt-2">
                 <h2 className="text-3xl font-black text-slate-800 mb-2">
-                  Create Account
+                  Tạo tài khoản
                 </h2>
                 <p className="text-slate-500 text-sm font-medium">
-                  Start your journey to peak productivity.
+                  Bắt đầu hành trình để đạt năng suất cao nhất.
                 </p>
               </div>
 
@@ -474,10 +474,10 @@ export default function TaskFlowAuth() {
                   <LockIcon />
                 </div>
                 <h2 className="text-2xl font-black text-slate-800 mb-2">
-                  Reset Password
+                  Quên mật khẩu
                 </h2>
                 <p className="text-slate-500 text-sm font-medium px-4">
-                  Enter your email and we'll send a recovery link.
+                  Nhập email và chúng tôi sẽ gửi liên kết khôi phục.
                 </p>
               </div>
 
@@ -485,11 +485,10 @@ export default function TaskFlowAuth() {
                 <div className="space-y-1">
                   <div className="relative group">
                     <div
-                      className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${
-                        emailFormatError
-                          ? "text-red-400"
-                          : "text-slate-400 group-focus-within:text-[#FF8B5E]"
-                      }`}
+                      className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${emailFormatError
+                        ? "text-red-400"
+                        : "text-slate-400 group-focus-within:text-[#FF8B5E]"
+                        }`}
                     >
                       <MailIcon />
                     </div>
@@ -502,11 +501,10 @@ export default function TaskFlowAuth() {
                         if (emailFormatError) setEmailFormatError("");
                       }}
                       placeholder="Email address"
-                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${
-                        emailFormatError
-                          ? "border-red-300 focus:border-red-400"
-                          : "border-slate-200 focus:border-[#FF8B5E]"
-                      }`}
+                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${emailFormatError
+                        ? "border-red-300 focus:border-red-400"
+                        : "border-slate-200 focus:border-[#FF8B5E]"
+                        }`}
                       aria-describedby="email-format-error"
                     />
                   </div>

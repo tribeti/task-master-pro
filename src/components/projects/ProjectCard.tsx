@@ -2,7 +2,6 @@ import React from "react";
 import { MoreIcon } from "@/components/icons";
 import { Board } from "@/types/project";
 
-
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
 interface ProjectCardProps {
@@ -50,10 +49,11 @@ export default function ProjectCard({
           </span>
           {memberRole && (
             <span
-              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${memberRole === "Owner"
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${
+                memberRole === "Owner"
                   ? "bg-emerald-100 text-emerald-700"
                   : "bg-sky-100 text-sky-700"
-                }`}
+              }`}
             >
               {memberRole === "Owner" ? "Chủ sở hữu" : "Thành viên"}
             </span>
@@ -141,33 +141,8 @@ export default function ProjectCard({
           "A comprehensive sub-project focusing on delivering specific objectives for the next sprint iteration."}
       </p>
 
-      <div className="w-full mb-8">
-        <div className="flex justify-between text-xs font-bold mb-3">
-          <span className="text-slate-500">Tiến độ</span>
-          <span style={{ color: projColor }}>{projProgress}%</span>
-        </div>
-        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${projProgress}%`,
-              backgroundColor: projColor,
-            }}
-          ></div>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between border-t border-slate-100 pt-6">
-        <div className="flex -space-x-2">
-          {Array.from({ length: projTeam }).map((_, i) => (
-            <img
-              key={i}
-              src={`https://api.dicebear.com/7.x/notionists/svg?seed=P${proj.id}${i}`}
-              className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm"
-              alt="Team"
-            />
-          ))}
-        </div>
+        <div className="flex -space-x-2"></div>
         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#28B8FA] group-hover:text-white transition-colors shadow-sm">
           <svg
             width="20"

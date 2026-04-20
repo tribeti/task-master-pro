@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
 import { BoardMember } from "@/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
@@ -130,6 +124,16 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Remove member state
+  const [memberToRemove, setMemberToRemove] = useState<BoardMember | null>(
+    null,
+  );
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const isCurrentUserOwner = useMemo(() => {
+    return members.some((m) => m.role === "Owner" && m.user_id === user?.id);
+  }, [members, user?.id]);
+
   // ── Fetch members ──
   const fetchMembers = useCallback(async () => {
     try {
@@ -194,6 +198,33 @@ export function TeamTab({ boardId }: TeamTabProps) {
     }
   };
 
+  // ── Remove member handler ──
+  const executeRemoveMember = async () => {
+    if (!memberToRemove) return;
+    setIsRemoving(true);
+    try {
+      const res = await fetch(
+        `/api/boards/${boardId}/members/${memberToRemove.user_id}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Xóa thành viên thất bại");
+      } else {
+        toast.success("Đã xóa thành viên khỏi dự án");
+        setMembers((prev) =>
+          prev.filter((m) => m.user_id !== memberToRemove.user_id),
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi kết nối khi xóa thành viên");
+    } finally {
+      setIsRemoving(false);
+      setMemberToRemove(null);
+    }
+  };
+
   // ── Filter by search ──
   const filteredMembers = members.filter((m) =>
     m.display_name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -219,81 +250,102 @@ export function TeamTab({ boardId }: TeamTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
         {loading
           ? // Skeleton loading cards
-            Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
-              >
-                <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-                <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-                <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
-              </div>
-            ))
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
+            >
+              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
+              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
+              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+          ))
           : filteredMembers.map((member, index) => {
-              const colors = getAvatarColor(index);
-              return (
-                <div
-                  key={member.user_id}
-                  className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
-                >
-                  <button className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-full p-1">
-                    <MoreIcon />
-                  </button>
-
-                  {/* Avatar */}
-                  <div className="relative mb-4">
-                    <TeamMemberAvatar
-                      avatarUrl={member.avatar_url}
-                      displayName={member.display_name}
-                      colors={colors}
-                      className="w-24 h-24"
-                    />
-                  </div>
-                  {/* Name & Role */}
-                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                    {member.display_name}
-                    {member.role === "Owner" && (
-                      <span
-                        title="Chủ dự án"
-                        className="inline-flex items-center"
-                      >
-                        <svg
-                          className="w-5 h-5 text-amber-500"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
-                        </svg>
-                      </span>
-                    )}
-                  </h3>
-                  <p
-                    className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${
-                      member.role === "Owner"
-                        ? "text-amber-500"
-                        : "text-slate-400"
-                    }`}
+            const colors = getAvatarColor(index);
+            return (
+              <div
+                key={member.user_id}
+                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+              >
+                {isCurrentUserOwner && member.role !== "Owner" && (
+                  <button
+                    onClick={() => setMemberToRemove(member)}
+                    title="Xóa thành viên"
+                    className="absolute top-6 right-6 text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors rounded-full p-2"
                   >
-                    {member.role === "Owner" ? "Chủ dự án" : member.role}
-                  </p>
-
-                  {/* Joined date */}
-                  <div className="w-full mb-6">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-400">Joined</span>
-                      <span className="text-slate-600">
-                        {new Date(member.joined_at).toLocaleDateString("vi-VN")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-                    View Profile
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
                   </button>
+                )}
+
+                {/* Avatar */}
+                <div className="relative mb-4">
+                  <TeamMemberAvatar
+                    avatarUrl={member.avatar_url}
+                    displayName={member.display_name}
+                    colors={colors}
+                    className="w-24 h-24"
+                  />
                 </div>
-              );
-            })}
+                {/* Name & Role */}
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  {member.display_name}
+                  {member.role === "Owner" && (
+                    <span
+                      title="Chủ dự án"
+                      className="inline-flex items-center"
+                    >
+                      <svg
+                        className="w-5 h-5 text-amber-500"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                      </svg>
+                    </span>
+                  )}
+                </h3>
+                <p
+                  className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${member.role === "Owner"
+                      ? "text-amber-500"
+                      : "text-slate-400"
+                    }`}
+                >
+                  {member.role === "Owner" ? "Chủ dự án" : member.role}
+                </p>
+
+                {/* Joined date */}
+                <div className="w-full mb-6">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-400">Joined</span>
+                    <span className="text-slate-600">
+                      {new Date(member.joined_at).toLocaleDateString("vi-VN")}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                  View Profile
+                </button>
+              </div>
+            );
+          })}
 
         {/* Add Member Card */}
         <div
@@ -435,6 +487,66 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Remove Member Modal ── */}
+      {memberToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !isRemoving && setMemberToRemove(null)}
+          ></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-extrabold text-slate-900 mb-2">
+              Xóa thành viên
+            </h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              Bạn có chắc chắn muốn xóa{" "}
+              <strong className="text-slate-800">
+                {memberToRemove.display_name}
+              </strong>{" "}
+              khỏi dự án này? Người dùng sẽ ngay lập tức mất quyền truy cập và
+              được gỡ khỏi tất cả công việc đang được giao.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                disabled={isRemoving}
+                className="flex-[1] py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                onClick={executeRemoveMember}
+                disabled={isRemoving}
+                className="flex-[1] py-2.5 rounded-xl bg-rose-500 text-white font-bold text-sm hover:bg-rose-600 shadow-md shadow-rose-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isRemoving ? (
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                ) : (
+                  "Xóa"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -49,7 +49,7 @@ export default function GamificationSection() {
                 </div>
                 <span className="font-black text-2xl text-slate-800">14</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Day Streak
+                  Chuỗi ngày
                 </span>
               </div>
               <div className="flex-1 bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col items-center text-center">
@@ -58,7 +58,7 @@ export default function GamificationSection() {
                 </div>
                 <span className="font-black text-2xl text-slate-800">6</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Badges Won
+                  Huy hiệu
                 </span>
               </div>
             </div>
@@ -68,12 +68,13 @@ export default function GamificationSection() {
         {/* Text Side */}
         <div className="w-full lg:w-1/2 p-10 lg:p-16 lg:pl-20">
           <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-6">
-            Work should feel rewarding.
+            Làm việc nên có cảm giác thú vị.
           </h2>
           <p className="text-lg text-slate-500 font-medium mb-8">
-            We've combined proven productivity frameworks with game design
-            mechanics. Stay motivated by leveling up your profile, maintaining
-            daily streaks, and earning badges for completing tough projects.
+            Chúng tôi đã kết hợp các phương pháp năng suất đã được chứng minh
+            với các cơ chế thiết kế trò chơi. Giữ động lực bằng cách nâng cấp
+            hồ sơ của bạn, duy trì chuỗi ngày và kiếm huy hiệu khi hoàn thành
+            các dự án khó.
           </p>
           <ul className="flex flex-col gap-5">
             <li className="flex items-start gap-4">
@@ -82,11 +83,11 @@ export default function GamificationSection() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 text-lg">
-                  XP for every task
+                  XP cho mỗi nhiệm vụ
                 </h4>
                 <p className="text-slate-500 text-sm font-medium">
-                  Big tasks yield big rewards. Watch your level climb as you
-                  clear your Kanban board.
+                  Nhiệm vụ lớn mang lại phần thưởng lớn. Hãy xem cấp độ của bạn
+                  tăng lên khi bạn hoàn thành bảng Kanban của mình.
                 </p>
               </div>
             </li>
@@ -96,11 +97,11 @@ export default function GamificationSection() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 text-lg">
-                  Unbreakable Streaks
+                  Chuỗi ngày không thể phá vỡ
                 </h4>
                 <p className="text-slate-500 text-sm font-medium">
-                  Complete at least one task a day to keep your fire burning.
-                  Don't break the chain.
+                  Hoàn thành ít nhất một nhiệm vụ mỗi ngày để giữ cho ngọn lửa
+                  của bạn cháy. Đừng phá vỡ chuỗi.
                 </p>
               </div>
             </li>
@@ -110,11 +111,11 @@ export default function GamificationSection() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 text-lg">
-                  Unlockable Badges
+                  Huy hiệu có thể mở khóa
                 </h4>
                 <p className="text-slate-500 text-sm font-medium">
-                  Earn unique badges for special achievements like "Deep Work
-                  Master" or "Early Bird".
+                  Kiếm huy hiệu độc đáo cho các thành tích đặc biệt như "Bậc
+                  thầy làm việc sâu" hoặc "Chim sớm".
                 </p>
               </div>
             </li>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { PlusIcon, UserIcon, ChatIcon } from "@/components/icons";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { PlusIcon } from "@/components/icons";
 import {
   TasksTab,
   TimelineTab,
@@ -16,8 +16,73 @@ import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
 import { useDashboardUser } from "../provider";
 import { useProjects } from "@/hooks/useProjects";
 import { Board } from "@/types/project";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ProjectUrlHandler({
+  ownedBoards,
+  joinedBoards,
+  boardsLoading,
+  selectedProjectId,
+  currentTab,
+  onProjectFound,
+}: {
+  ownedBoards: Board[];
+  joinedBoards: Board[];
+  boardsLoading: boolean;
+  selectedProjectId?: number;
+  currentTab: string;
+  onProjectFound: (project: Board, tab: string | null) => void;
+}) {
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get("projectId");
+  const urlTab = searchParams.get("tab");
+  const lastAppliedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!boardsLoading && urlProjectId) {
+      const currentKey = `${urlProjectId}-${urlTab || ""}`;
+      
+      // If we just applied this exact URL state, skip to prevent reopening if user manually closed it
+      if (lastAppliedRef.current === currentKey) {
+        return;
+      }
+
+      const id = parseInt(urlProjectId, 10);
+      const isNewProject = selectedProjectId !== id;
+      const isNewTab = urlTab && currentTab !== urlTab;
+
+      if (isNewProject || isNewTab) {
+        const found =
+          ownedBoards.find((b) => b.id === id) ||
+          joinedBoards.find((b) => b.id === id);
+        if (found) {
+          onProjectFound(found, urlTab);
+          lastAppliedRef.current = currentKey;
+        }
+      }
+    } else if (!urlProjectId) {
+      // Clear the ref when url clears, so they can reopen it later
+      lastAppliedRef.current = null;
+    }
+  }, [
+    boardsLoading,
+    urlProjectId,
+    urlTab,
+    ownedBoards,
+    joinedBoards,
+    selectedProjectId,
+    currentTab,
+    onProjectFound,
+  ]);
+
+  return null;
+}
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { user } = useDashboardUser();
   const userId = user?.id;
 
@@ -26,6 +91,7 @@ export default function ProjectsPage() {
     joinedBoards,
     boardsLoading,
     isSubmitting,
+    fetchBoards,
     confirmDeleteProject,
     handleCreateProject,
     handleUpdateExistingProject,
@@ -36,10 +102,35 @@ export default function ProjectsPage() {
     "Tasks" | "Timeline" | "Files" | "Team"
   >("Timeline");
   const [selectedProject, setSelectedProject] = useState<Board | null>(null);
+  const selectedProjectRef = useRef<Board | null>(null);
+
+  // Keep the ref in sync so the realtime callback always sees the latest value
+  useEffect(() => {
+    selectedProjectRef.current = selectedProject;
+  }, [selectedProject]);
+
+  const handleCloseProject = useCallback(() => {
+    setSelectedProject(null);
+    router.replace("/projects", { scroll: false });
+  }, [router]);
+
+  const handleProjectFoundFromUrl = useCallback(
+    (foundProject: Board, tab: string | null) => {
+      setSelectedProject(foundProject);
+      if (
+        tab === "Tasks" ||
+        tab === "Timeline" ||
+        tab === "Files" ||
+        tab === "Team"
+      ) {
+        setProjectTab(tab as any);
+      }
+    },
+    [],
+  );
 
   // Modal states
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isUpdateProjectOpen, setIsUpdateProjectOpen] = useState(false);
   const [projectToUpdate, setProjectToUpdate] = useState<Board | null>(null);
@@ -66,6 +157,41 @@ export default function ProjectsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ── Realtime: detect when current user is removed from ANY board ──
+  // This runs always so the board list updates even on the Dashboard view.
+  useEffect(() => {
+    if (!userId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`board-members-kick-global-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "board_members",
+        },
+        (payload) => {
+          const oldRow = payload.old as { user_id?: string; board_id?: number };
+          if (oldRow?.user_id === userId) {
+            // Read from ref to avoid stale closure
+            const current = selectedProjectRef.current;
+            if (current && oldRow.board_id === current.id) {
+              toast.error("Bạn đã bị xóa khỏi dự án này.");
+              handleCloseProject();
+            }
+            fetchBoards();
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchBoards]);
+
   // --- HANDLERS ---
   const handleDeleteProject = (projectId: number, projectTitle: string) => {
     setOpenMenuProjectId(null);
@@ -78,7 +204,7 @@ export default function ProjectsPage() {
     if (success) {
       setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: "" });
       if (selectedProject?.id === deleteConfirm.projectId) {
-        setSelectedProject(null);
+        handleCloseProject();
       }
     }
   };
@@ -112,12 +238,6 @@ export default function ProjectsPage() {
     if (success) {
       setIsCreateProjectOpen(false);
     }
-  };
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
   };
 
   const totalProjects = ownedBoards.length + joinedBoards.length;
@@ -169,20 +289,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-            <ProjectCard
-              key={proj.id}
-              proj={proj}
-              index={index}
-              openMenuProjectId={openMenuProjectId}
-              setOpenMenuProjectId={setOpenMenuProjectId}
-              menuRef={menuRef}
-              handleUpdateProject={handleUpdateProject}
-              handleDeleteProject={handleDeleteProject}
-              setSelectedProject={setSelectedProject}
-              currentUserId={userId}
-              memberRole="Owner"
-            />
-          ))}
+              <ProjectCard
+                key={proj.id}
+                proj={proj}
+                index={index}
+                openMenuProjectId={openMenuProjectId}
+                setOpenMenuProjectId={setOpenMenuProjectId}
+                menuRef={menuRef}
+                handleUpdateProject={handleUpdateProject}
+                handleDeleteProject={handleDeleteProject}
+                setSelectedProject={setSelectedProject}
+                currentUserId={userId}
+                memberRole="Owner"
+              />
+            ))}
 
         {/* Create New Project Card */}
         <div
@@ -239,17 +359,23 @@ export default function ProjectsPage() {
         selectedProject ? "flex flex-col h-screen overflow-hidden" : ""
       }
     >
+      <Suspense fallback={null}>
+        <ProjectUrlHandler
+          ownedBoards={ownedBoards}
+          joinedBoards={joinedBoards}
+          boardsLoading={boardsLoading}
+          selectedProjectId={selectedProject?.id}
+          currentTab={projectTab}
+          onProjectFound={handleProjectFoundFromUrl}
+        />
+      </Suspense>
       <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
         <div>
           {selectedProject ? (
             <>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                <span className="text-[#28B8FA]">GIAI ĐOẠN HIỆN TẠI</span>{" "}
-                <span className="mx-2 text-slate-300">&gt;</span> KẾ HOẠCH Q4
-              </p>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                 <button
-                  onClick={() => setSelectedProject(null)}
+                  onClick={handleCloseProject}
                   className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
                 >
                   <svg
@@ -305,20 +431,6 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               )}
-              <button
-                onClick={() => setIsQuickEntryOpen(true)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full shadow-md transition-transform hover:scale-105 text-sm font-semibold text-white ${projectTab === "Team" ? "bg-[#1E293B] shadow-slate-300" : "bg-[#28B8FA] shadow-cyan-200"}`}
-              >
-                {projectTab === "Team" ? (
-                  <>
-                    <UserIcon /> Mời thành viên
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon /> Thêm nhiệm vụ
-                  </>
-                )}
-              </button>
             </>
           ) : (
             <button
@@ -345,7 +457,7 @@ export default function ProjectsPage() {
                 { id: "Tasks", label: "Nhiệm vụ" },
                 { id: "Timeline", label: "Lịch trình" },
                 { id: "Files", label: "Tệp tin" },
-                { id: "Team", label: "Nhóm" }
+                { id: "Team", label: "Nhóm" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -363,7 +475,9 @@ export default function ProjectsPage() {
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
               )}
-              {projectTab === "Timeline" && <TimelineTab />}
+              {projectTab === "Timeline" && (
+                <TimelineTab projectId={selectedProject.id} />
+              )}
               {projectTab === "Files" && <FilesTab />}
               {projectTab === "Team" && (
                 <TeamTab boardId={selectedProject.id} />
@@ -372,41 +486,6 @@ export default function ProjectsPage() {
           </>
         )}
       </div>
-
-      {/* FLOATING ACTION BUTTON */}
-      {selectedProject ? (
-        <button
-          className={`absolute bottom-8 right-8 w-14 h-14 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg text-white z-20 ${projectTab === "Timeline"
-              ? "bg-[#1E293B] shadow-slate-400"
-              : "bg-[#34D399] shadow-emerald-200"
-            }`}
-        >
-          {projectTab === "Timeline" ? (
-            <ChatIcon />
-          ) : projectTab === "Files" ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          ) : (
-            <PlusIcon />
-          )}
-        </button>
-      ) : (
-        <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#34D399] hover:bg-emerald-500 transition-transform hover:scale-105 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 text-white z-10">
-          <PlusIcon />
-        </button>
-      )}
 
       {/* QUICK ENTRY MODAL */}
       <QuickEntryModal

@@ -1,264 +1,213 @@
-import { fetchUserBoards, deleteUserBoard, createNewBoard, createDefaultColumns } from '@/services/project.service';
-import { createClient } from '@/utils/supabase/client';
-import { createClient as createServerClient } from '@/utils/supabase/server';
+import {
+  fetchUserBoards,
+  createNewBoard,
+  createDefaultColumns,
+  updateUserBoard,
+  deleteUserBoard,
+} from "@/services/project.service";
 
-// Mock the Supabase clients
-jest.mock('@/utils/supabase/client', () => ({
-  createClient: jest.fn(),
-}));
-
-jest.mock('@/utils/supabase/server', () => ({
-  createClient: jest.fn(),
-}));
-
-jest.mock('next/cache', () => ({
-  revalidatePath: jest.fn(),
-}));
-
-describe('project.service', () => {
-  let mockSupabase: any;
+describe("Project Service", () => {
+  // Lưu lại fetch gốc
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
-    mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
-      auth: {
-        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
-      },
+    global.fetch = jest.fn();
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe("fetchUserBoards", () => {
+    it("should return boards successfully", async () => {
+      const mockData = {
+        ownedBoards: [{ id: 1, title: "Test API" }],
+        joinedBoards: [],
+      };
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockData,
+      });
+
+      const result = await fetchUserBoards();
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledWith("/api/boards", {
+        method: "GET",
+      });
+    });
+
+    it("should throw specific error on API failure", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Unauthorized access" }),
+      });
+
+      await expect(fetchUserBoards()).rejects.toThrow("Unauthorized access");
+    });
+
+    it("should throw fallback error if JSON parsing fails", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => {
+          throw new Error("Network error");
+        },
+      });
+
+      await expect(fetchUserBoards()).rejects.toThrow("Failed to fetch boards");
+    });
+  });
+
+  describe("createNewBoard", () => {
+    const newBoardData = {
+      title: "New API Board",
+      description: "Desc",
+      is_private: true,
+      color: "#fff",
+      tag: "General",
     };
-    (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-    (createServerClient as jest.Mock).mockResolvedValue(mockSupabase);
-  });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+    it("should send correct POST request to create board", async () => {
+      const mockResponse = { id: 2, ...newBoardData };
 
-  describe('fetchUserBoards', () => {
-    it('should return boards for a user', async () => {
-      const mockBoards = [{ id: 1, title: 'Test Board' }];
-      mockSupabase.order.mockResolvedValue({ data: mockBoards, error: null });
-
-      const result = await fetchUserBoards('user-1');
-      expect(mockSupabase.from).toHaveBeenCalledWith('boards');
-      expect(mockSupabase.eq).toHaveBeenCalledWith('owner_id', 'user-1');
-      expect(mockSupabase.order).toHaveBeenCalledWith('created_at', { ascending: false });
-      expect(result).toEqual(mockBoards);
-    });
-
-    it('should throw an error if fetch fails', async () => {
-      mockSupabase.order.mockResolvedValue({ data: null, error: { message: 'Fetch error' } });
-      await expect(fetchUserBoards('user-1')).rejects.toThrow('Failed to fetch projects.');
-    });
-  });
-
-  describe('deleteUserBoard', () => {
-    it('should successfully delete a board if all tasks are done', async () => {
-      const columns = [
-        { id: 1, title: 'To Do' },
-        { id: 2, title: 'Done' },
-      ];
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'boards') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'id') return { eq: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }) };
-              if (field === 'owner_id') return Promise.resolve({ data: { id: 10 }, error: null });
-              return Promise.resolve({ data: null, error: null });
-            }),
-            delete: jest.fn().mockReturnThis(),
-          };
-        }
-
-        if (table === 'columns') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'board_id') {
-                return Promise.resolve({ data: columns, error: null });
-              }
-              return Promise.resolve({ data: null, error: null });
-            }),
-            delete: jest.fn().mockReturnThis(),
-          };
-        }
-
-        if (table === 'tasks') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            in: jest.fn().mockImplementation((field: string) => {
-              if (field === 'column_id') {
-                // First call for non-done tasks (empty), second for done tasks (delete)
-                return Promise.resolve({ data: [], error: null });
-              }
-              return Promise.resolve({ data: null, error: null });
-            }),
-            delete: jest.fn().mockReturnThis(),
-          };
-        }
-
-        return {
-          select: jest.fn().mockReturnThis(),
-          delete: jest.fn().mockReturnThis(),
-          eq: jest.fn(),
-          in: jest.fn(),
-        };
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
       });
 
-      await deleteUserBoard(10, 'user-1');
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('boards');
-      expect(mockSupabase.from).toHaveBeenCalledWith('columns');
-      expect(mockSupabase.from).toHaveBeenCalledWith('tasks');
-    });
-
-    it('should block deletion when tasks exist outside Done column', async () => {
-      const columns = [
-        { id: 1, title: 'To Do' },
-        { id: 2, title: 'Done' },
-      ];
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'boards') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'id') return { eq: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }) };
-              if (field === 'owner_id') return Promise.resolve({ data: { id: 10 }, error: null });
-              return Promise.resolve({ data: null, error: null });
-            }),
-          };
-        }
-
-        if (table === 'columns') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'board_id') {
-                return Promise.resolve({ data: columns, error: null });
-              }
-              return Promise.resolve({ data: null, error: null });
-            }),
-          };
-        }
-
-        if (table === 'tasks') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            in: jest.fn().mockResolvedValue({ data: [{ id: 123 }], error: null }),
-          };
-        }
-
-        return {
-          select: jest.fn().mockReturnThis(),
-          delete: jest.fn().mockReturnThis(),
-          eq: jest.fn(),
-          in: jest.fn(),
-        };
-      });
-
-      await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow(
-        'Cannot delete project while there are tasks outside the Done column',
+      const result = await createNewBoard("user_123", newBoardData);
+      expect(result).toEqual(mockResponse);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/boards",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newBoardData),
+        }),
       );
     });
 
-    it('should throw an error if delete fails', async () => {
-      const columns: Array<{ id: number; title: string }> = [];
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'boards') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'id') return { eq: jest.fn().mockResolvedValue({ data: { id: 10 }, error: null }) };
-              if (field === 'owner_id') return Promise.resolve({ data: { id: 10 }, error: null });
-              return Promise.resolve({ error: null });
-            }),
-            delete: jest.fn().mockReturnThis(),
-          };
-        }
-
-        if (table === 'columns') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockImplementation((field: string) => {
-              if (field === 'board_id') {
-                return Promise.resolve({ data: columns, error: null });
-              }
-              return Promise.resolve({ data: null, error: null });
-            }),
-            delete: jest.fn().mockReturnThis(),
-          };
-        }
-
-        return {
-          select: jest.fn().mockReturnThis(),
-          delete: jest.fn().mockReturnThis(),
-          eq: jest.fn(),
-          in: jest.fn(),
-        };
+    it("should handle validation/creation error from API", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Missing required field" }),
       });
 
-      await expect(deleteUserBoard(10, 'user-1')).rejects.toThrow('Failed to delete project.');
+      await expect(createNewBoard("user123", newBoardData)).rejects.toThrow(
+        "Missing required field",
+      );
+    });
+
+    it("should throw fallback error on create failure without message", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({}), // Trả về object rỗng không có error field
+      });
+
+      await expect(createNewBoard("user123", newBoardData)).rejects.toThrow(
+        "Failed to create project.",
+      );
     });
   });
 
-  describe('createNewBoard', () => {
-    const mockBoardData = {
-      title: 'New Board',
-      description: 'Desc',
-      is_private: true,
-      color: 'blue',
-      tag: 'work',
-    };
+  describe("createDefaultColumns", () => {
+    it("should send correct POST request to create default columns", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-    it('should create and return a new board', async () => {
-      const returnedBoard = { id: 10, ...mockBoardData, owner_id: 'user-1' };
-      mockSupabase.select.mockResolvedValue({ data: [returnedBoard], error: null });
-
-      const result = await createNewBoard('user-1', mockBoardData);
-
-      expect(mockSupabase.from).toHaveBeenCalledWith('boards');
-      expect(mockSupabase.insert).toHaveBeenCalledWith([{ ...mockBoardData, owner_id: 'user-1' }]);
-      expect(result).toEqual(returnedBoard);
+      await createDefaultColumns(10);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/boards/10/columns/default",
+        {
+          method: "POST",
+        },
+      );
     });
 
-    it('should throw an error if insert fails', async () => {
-      mockSupabase.select.mockResolvedValue({ data: null, error: { message: 'Insert error' } });
-      await expect(createNewBoard('user-1', mockBoardData)).rejects.toThrow('Failed to create project.');
-    });
+    it("should throw fallback error on API failure", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => {
+          throw new Error("Parse error");
+        },
+      });
 
-    it('should throw an error if no data is returned', async () => {
-      mockSupabase.select.mockResolvedValue({ data: [], error: null });
-      await expect(createNewBoard('user-1', mockBoardData)).rejects.toThrow('Failed to create project: No data returned');
+      await expect(createDefaultColumns(10)).rejects.toThrow(
+        "Failed to create default columns.",
+      );
     });
   });
 
-  describe('createDefaultColumns', () => {
-    it('should insert default columns', async () => {
-      mockSupabase.insert.mockResolvedValue({ error: null });
+  describe("updateUserBoard", () => {
+    const updateData = { title: "Updated Title" };
 
-      await createDefaultColumns(15);
+    it("should send correct PUT request to update board", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('columns');
-      expect(mockSupabase.insert).toHaveBeenCalledWith([
-        { title: 'To Do', board_id: 15, position: 0 },
-        { title: 'In Progress', board_id: 15, position: 1 },
-        { title: 'Done', board_id: 15, position: 2 },
-      ]);
+      await updateUserBoard("user_123", 10, updateData);
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/boards/10",
+        expect.objectContaining({
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        }),
+      );
     });
 
-    it('should throw an error if columns insert fails', async () => {
-      mockSupabase.insert.mockResolvedValue({ error: { message: 'Columns error' } });
-      await expect(createDefaultColumns(15)).rejects.toThrow('Failed to create default columns.');
+    it("should throw specific error from API", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Not allowed to update" }),
+      });
+
+      await expect(updateUserBoard("user_123", 10, updateData)).rejects.toThrow(
+        "Not allowed to update",
+      );
+    });
+
+    it("should throw fallback error on API failure", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      await expect(updateUserBoard("user_123", 10, updateData)).rejects.toThrow(
+        "Failed to update project.",
+      );
+    });
+  });
+
+  describe("deleteUserBoard", () => {
+    it("should send correct DELETE request", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+
+      await deleteUserBoard(10, "user_123");
+      expect(global.fetch).toHaveBeenCalledWith("/api/boards/10", {
+        method: "DELETE",
+      });
+    });
+
+    it("should throw specific error from API", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Board not found" }),
+      });
+
+      await expect(deleteUserBoard(10, "user_123")).rejects.toThrow(
+        "Board not found",
+      );
+    });
+
+    it("should throw fallback error on API failure", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => {
+          throw new Error("Server dead");
+        },
+      });
+
+      await expect(deleteUserBoard(10, "user_123")).rejects.toThrow(
+        "Failed to delete project.",
+      );
     });
   });
 });

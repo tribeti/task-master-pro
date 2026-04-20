@@ -1,0 +1,46 @@
+# .dockerignore — loại trừ các file không cần copy vào Docker image
+# Đặt ở root của project (cùng cấp với Dockerfile)
+
+# Git
+.git
+.gitignore
+.github
+
+# Dependencies (sẽ được install lại trong container)
+src/node_modules
+
+# Build output (sẽ được build lại trong container)
+src/.next
+src/coverage
+
+# Dev/test artifacts
+src/.swc
+src/tsconfig.tsbuildinfo
+
+# Environment files (inject qua CI/CD secrets, không bake vào image)
+src/.env.local
+src/.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.suo
+*.user
+
+# Docker files (không cần copy vào image)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs
+README.md
+LICENSE
+acc.txt

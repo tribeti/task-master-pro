@@ -1,9 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Draggable, Droppable, DroppableProvided, DroppableStateSnapshot } from "@hello-pangea/dnd";
+import {
+  Draggable,
+  Droppable,
+  DroppableProvided,
+  DroppableStateSnapshot,
+} from "@hello-pangea/dnd";
 import { PlusIcon } from "@/components/icons";
-import { KanbanColumn as ColumnType, KanbanTask as KanbanTaskType, Label } from "@/types/project";
+import {
+  KanbanColumn as ColumnType,
+  KanbanTask as KanbanTaskType,
+  Label,
+} from "@/types/project";
 import { KanbanTask } from "./KanbanTask";
 import { toast } from "sonner";
 
@@ -11,7 +20,6 @@ interface KanbanColumnProps {
   column: ColumnType;
   colIndex: number;
   tasks: KanbanTaskType[];
-  isToDoColumn: boolean;
   onTaskClick: (task: KanbanTaskType) => void;
   onAddTask: (columnId: number) => void;
   onUpdateColumn: (columnId: number, newTitle: string) => void;
@@ -19,6 +27,9 @@ interface KanbanColumnProps {
   boardLabels?: Label[];
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
+  isDragDisabled?: boolean;
+  searchMatchedTaskIds?: Set<number> | null;
+  onToggleComplete?: (taskId: number, newValue: boolean) => void;
 }
 
 // All styles are visually distinct (no "plain/colorless" entry).
@@ -66,7 +77,6 @@ export function KanbanColumn({
   column,
   colIndex,
   tasks,
-  isToDoColumn,
   onTaskClick,
   onAddTask,
   onUpdateColumn,
@@ -74,6 +84,9 @@ export function KanbanColumn({
   boardLabels = [],
   onAddLabel,
   onRemoveLabel,
+  isDragDisabled = false,
+  searchMatchedTaskIds,
+  onToggleComplete,
 }: KanbanColumnProps) {
   // Prime multiplier spreads consecutive IDs across different colors.
   // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
@@ -104,7 +117,9 @@ export function KanbanColumn({
 
   const handleDeleteClick = () => {
     if (tasks.length > 0) {
-      toast.error("Không thể xóa cột khi vẫn còn công việc. Vui lòng di chuyển hoặc xóa hết công việc trước.");
+      toast.error(
+        "Không thể xóa cột khi vẫn còn công việc. Vui lòng di chuyển hoặc xóa hết công việc trước.",
+      );
       return;
     }
     onDeleteColumn(column.id);
@@ -116,7 +131,7 @@ export function KanbanColumn({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 ${snapshot.isDragging
+          className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 max-h-[calc(100vh-16rem)] ${snapshot.isDragging
             ? "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20"
             : "bg-slate-50/80"
             } ${st.border}`}
@@ -165,7 +180,17 @@ export function KanbanColumn({
                 className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
                 title="Rename column"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                   <path d="m15 5 4 4" />
                 </svg>
@@ -177,7 +202,17 @@ export function KanbanColumn({
                 className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
                 title="Delete column"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M3 6h18" />
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
@@ -186,23 +221,30 @@ export function KanbanColumn({
                 </svg>
               </button>
             </div>
-          </div>          {/* Tasks Droppable Zone */}
-          <Droppable droppableId={`column-${column.id}`} type="TASK">
-            {(droppableProvided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
+          </div>{" "}
+          {/* Tasks Droppable Zone */}
+          <Droppable droppableId={`column-${column.id}`} type="TASK" isDropDisabled={isDragDisabled}>
+            {(
+              droppableProvided: DroppableProvided,
+              droppableSnapshot: DroppableStateSnapshot,
+            ) => {
+              const visibleTasks = tasks;
+
+              return (
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
-                className={`flex flex-col gap-3 min-h-[60px] rounded-xl p-1 transition-colors duration-200 ${droppableSnapshot.isDraggingOver
+                className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 overflow-y-auto scroll-smooth kanban-scroll flex-1 ${droppableSnapshot.isDraggingOver
                   ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
                   : ""
                   }`}
               >
-                {tasks.length === 0 && !droppableSnapshot.isDraggingOver && (
+                {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
                   <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
                     Chưa có nhiệm vụ
                   </div>
                 )}
-                {tasks.map((task, taskIndex) => (
+                {visibleTasks.map((task, taskIndex) => (
                   <KanbanTask
                     key={task.id}
                     id={task.id}
@@ -218,21 +260,23 @@ export function KanbanColumn({
                     onAddLabel={onAddLabel}
                     onRemoveLabel={onRemoveLabel}
                     onClick={() => onTaskClick(task)}
+                    isDragDisabled={isDragDisabled}
+                    checklists={task.checklists}
+                    isCompleted={task.is_completed}
+                    onToggleComplete={onToggleComplete}
                   />
                 ))}
                 {droppableProvided.placeholder}
               </div>
             )}
+            }
           </Droppable>
-
-          {isToDoColumn && (
-            <button
-              onClick={() => onAddTask(column.id)}
-              className="w-full mt-1 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
-            >
-              <PlusIcon /> Thêm nhiệm vụ
-            </button>
-          )}
+          <button
+            onClick={() => onAddTask(column.id)}
+            className="w-full mt-1 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
+          >
+            <PlusIcon /> Thêm nhiệm vụ
+          </button>
         </div>
       )}
     </Draggable>
