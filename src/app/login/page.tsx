@@ -50,7 +50,7 @@ export default function TaskFlowAuth() {
     // Preserve redirectTo query param for the callback page
     const searchParams = new URLSearchParams(window.location.search);
     const redirectTo = searchParams.get("redirectTo");
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    const callbackUrl = new URL("/api/auth/callback", window.location.origin);
     if (redirectTo) {
       callbackUrl.searchParams.set("redirectTo", redirectTo);
     }
@@ -125,7 +125,10 @@ export default function TaskFlowAuth() {
       if (!res.ok) {
         setErrorMsg(data.error || "Đăng ký thất bại.");
       } else {
-        setSuccessMsg(data.message || "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+        setSuccessMsg(
+          data.message ||
+            "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.",
+        );
         setView("login");
       }
     } catch {
@@ -210,8 +213,9 @@ export default function TaskFlowAuth() {
               </span>
             </h1>
             <p className="text-slate-400 text-lg font-medium max-w-md">
-              Tham gia cùng hàng ngàn chuyên gia sử dụng gamification để chinh phục
-              mục tiêu hàng ngày và xây dựng chuỗi thành tích không thể phá vỡ.
+              Tham gia cùng hàng ngàn chuyên gia sử dụng gamification để chinh
+              phục mục tiêu hàng ngày và xây dựng chuỗi thành tích không thể phá
+              vỡ.
             </p>
 
             <div className="mt-12 bg-white/10 backdrop-blur-md border border-white/10 rounded-4xl p-6 max-w-sm flex items-center gap-5 shadow-2xl">
@@ -485,10 +489,11 @@ export default function TaskFlowAuth() {
                 <div className="space-y-1">
                   <div className="relative group">
                     <div
-                      className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${emailFormatError
-                        ? "text-red-400"
-                        : "text-slate-400 group-focus-within:text-[#FF8B5E]"
-                        }`}
+                      className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${
+                        emailFormatError
+                          ? "text-red-400"
+                          : "text-slate-400 group-focus-within:text-[#FF8B5E]"
+                      }`}
                     >
                       <MailIcon />
                     </div>
@@ -501,10 +506,11 @@ export default function TaskFlowAuth() {
                         if (emailFormatError) setEmailFormatError("");
                       }}
                       placeholder="Email address"
-                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${emailFormatError
-                        ? "border-red-300 focus:border-red-400"
-                        : "border-slate-200 focus:border-[#FF8B5E]"
-                        }`}
+                      className={`w-full pl-12 pr-4 py-4 bg-slate-50 border rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:bg-white transition-all placeholder:text-slate-400 ${
+                        emailFormatError
+                          ? "border-red-300 focus:border-red-400"
+                          : "border-slate-200 focus:border-[#FF8B5E]"
+                      }`}
                       aria-describedby="email-format-error"
                     />
                   </div>
