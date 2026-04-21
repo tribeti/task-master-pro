@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { isValidEmail } from "@/lib/auth/validators";
+import { headers } from "next/headers";
 
 export async function checkEmailExistsAction(
   email: string,
@@ -38,10 +39,13 @@ export async function requestPasswordResetAction(
 
   try {
     const supabase = await createClient();
-    const resetUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const headersList = await headers();
+    const host = headersList.get("host") ?? "localhost:3000";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const origin = `${protocol}://${host}`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${resetUrl}/auth/reset-password`,
+      redirectTo: `${origin}/api/auth/callback?redirectTo=/auth/reset-password`,
     });
 
     if (error) {
