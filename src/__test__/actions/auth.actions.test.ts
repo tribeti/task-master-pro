@@ -81,13 +81,23 @@ describe("Auth Actions (Server Actions)", () => {
   });
 
   describe("requestPasswordResetAction", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
     it("returns error for invalid email format", async () => {
       const result = await requestPasswordResetAction("bad-email");
       expect(result.error).toBe("Email không đúng định dạng.");
     });
 
-    it("returns success and calls resetPasswordForEmail with correct callback URL", async () => {
-      mockGet.mockReturnValue("my-app.vercel.app");
+    it("returns success and calls resetPasswordForEmail with NEXT_PUBLIC_APP_URL", async () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://my-app.vercel.app";
 
       const mockReset = jest.fn().mockResolvedValue({ error: null });
       (createClient as jest.Mock).mockResolvedValue({
@@ -100,19 +110,14 @@ describe("Auth Actions (Server Actions)", () => {
       expect(mockReset).toHaveBeenCalledWith(
         "user@example.com",
         expect.objectContaining({
-          redirectTo: expect.stringContaining("/api/auth/callback"),
-        }),
-      );
-      expect(mockReset).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.objectContaining({
-          redirectTo: expect.stringContaining("redirectTo=/auth/reset-password"),
+          redirectTo: "https://my-app.vercel.app/api/auth/callback?redirectTo=/auth/reset-password",
         }),
       );
     });
 
-    it("uses https for non-localhost host", async () => {
-      mockGet.mockReturnValue("my-app.vercel.app");
+    it("falls back to localhost:3000 when NEXT_PUBLIC_APP_URL is missing in development", async () => {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+      process.env.NODE_ENV = "development";
 
       const mockReset = jest.fn().mockResolvedValue({ error: null });
       (createClient as jest.Mock).mockResolvedValue({
@@ -124,27 +129,24 @@ describe("Auth Actions (Server Actions)", () => {
       expect(mockReset).toHaveBeenCalledWith(
         "user@example.com",
         expect.objectContaining({
-          redirectTo: expect.stringContaining("https://"),
+          redirectTo: "http://localhost:3000/api/auth/callback?redirectTo=/auth/reset-password",
         }),
       );
     });
 
-    it("uses http for localhost host", async () => {
-      mockGet.mockReturnValue("localhost:3000");
+    it("returns error if origin cannot be determined", async () => {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+      process.env.NODE_ENV = "production";
 
       const mockReset = jest.fn().mockResolvedValue({ error: null });
       (createClient as jest.Mock).mockResolvedValue({
         auth: { resetPasswordForEmail: mockReset },
       });
 
-      await requestPasswordResetAction("user@example.com");
+      const result = await requestPasswordResetAction("user@example.com");
 
-      expect(mockReset).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.objectContaining({
-          redirectTo: expect.stringContaining("http://"),
-        }),
-      );
+      expect(result.error).toBe("Lỗi cấu hình hệ thống: Thiếu URL.");
+      expect(mockReset).not.toHaveBeenCalled();
     });
 
     // --- BỔ SUNG TEST CHO CÁC NHÁNH LỖI ---

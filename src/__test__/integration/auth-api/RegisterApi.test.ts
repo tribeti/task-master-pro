@@ -136,7 +136,7 @@ describe("POST /api/auth/register", () => {
       password: "StrongPassword123!",
       options: {
         data: { full_name: "Test User" },
-        emailRedirectTo: "https://myapp.com/auth/callback", // Lấy từ Origin
+        emailRedirectTo: "https://myapp.com/api/auth/callback", // Lấy từ Origin
       },
     });
   });
@@ -164,7 +164,7 @@ describe("POST /api/auth/register", () => {
       expect.objectContaining({
         options: expect.objectContaining({
           emailRedirectTo:
-            "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard",
+            "http://localhost:3000/api/auth/callback?redirectTo=%2Fdashboard",
         }),
       }),
     );

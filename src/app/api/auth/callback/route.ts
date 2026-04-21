@@ -11,7 +11,22 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(new URL(redirectTo, origin));
+      let safeRedirectTo = "/";
+
+      if (redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+        safeRedirectTo = redirectTo;
+      } else {
+        try {
+          const url = new URL(redirectTo);
+          if (url.origin === origin) {
+            safeRedirectTo = redirectTo;
+          }
+        } catch (_) {
+          // Invalid URL format, use default safeRedirectTo
+        }
+      }
+
+      return NextResponse.redirect(new URL(safeRedirectTo, origin));
     }
   }
 
