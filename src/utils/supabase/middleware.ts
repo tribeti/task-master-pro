@@ -40,6 +40,7 @@ export async function updateSession(request: NextRequest) {
   const publicApiRoutes = [
     "/api/auth/register",
     "/api/auth/login",
+    "/api/auth/callback",
     "/api/cron",
   ];
   const isPublicApiRoute =
