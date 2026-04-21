@@ -151,7 +151,7 @@ describe("Auth Actions (Server Actions)", () => {
 
     // --- BỔ SUNG TEST CHO CÁC NHÁNH LỖI ---
     it("returns friendly error message if Supabase Auth API returns an error", async () => {
-      mockGet.mockReturnValue("localhost:3000");
+      process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
 
       const mockReset = jest
         .fn()
@@ -170,6 +170,8 @@ describe("Auth Actions (Server Actions)", () => {
     });
 
     it("returns friendly error message if an unexpected exception occurs (catch block)", async () => {
+      process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+      
       const error = new Error("Unexpected auth failure");
       (createClient as jest.Mock).mockRejectedValue(error);
 
