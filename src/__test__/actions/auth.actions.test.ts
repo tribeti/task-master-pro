@@ -8,6 +8,12 @@ jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn(),
 }));
 
+// Mock next/headers để tránh lỗi khi gọi headers() trong Server Action
+const mockGet = jest.fn();
+jest.mock("next/headers", () => ({
+  headers: jest.fn(() => Promise.resolve({ get: mockGet })),
+}));
+
 describe("Auth Actions (Server Actions)", () => {
   // Mock console.error để log không in ra làm rối terminal khi chạy test rẽ nhánh lỗi
   const originalConsoleError = console.error;
@@ -80,22 +86,71 @@ describe("Auth Actions (Server Actions)", () => {
       expect(result.error).toBe("Email không đúng định dạng.");
     });
 
-    it("returns success on valid email by calling Supabase Auth API", async () => {
+    it("returns success and calls resetPasswordForEmail with correct callback URL", async () => {
+      mockGet.mockReturnValue("my-app.vercel.app");
+
       const mockReset = jest.fn().mockResolvedValue({ error: null });
       (createClient as jest.Mock).mockResolvedValue({
         auth: { resetPasswordForEmail: mockReset },
       });
 
       const result = await requestPasswordResetAction("user@example.com");
+
       expect(result.success).toBe(true);
       expect(mockReset).toHaveBeenCalledWith(
         "user@example.com",
-        expect.any(Object),
+        expect.objectContaining({
+          redirectTo: expect.stringContaining("/api/auth/callback"),
+        }),
+      );
+      expect(mockReset).toHaveBeenCalledWith(
+        "user@example.com",
+        expect.objectContaining({
+          redirectTo: expect.stringContaining("redirectTo=/auth/reset-password"),
+        }),
+      );
+    });
+
+    it("uses https for non-localhost host", async () => {
+      mockGet.mockReturnValue("my-app.vercel.app");
+
+      const mockReset = jest.fn().mockResolvedValue({ error: null });
+      (createClient as jest.Mock).mockResolvedValue({
+        auth: { resetPasswordForEmail: mockReset },
+      });
+
+      await requestPasswordResetAction("user@example.com");
+
+      expect(mockReset).toHaveBeenCalledWith(
+        "user@example.com",
+        expect.objectContaining({
+          redirectTo: expect.stringContaining("https://"),
+        }),
+      );
+    });
+
+    it("uses http for localhost host", async () => {
+      mockGet.mockReturnValue("localhost:3000");
+
+      const mockReset = jest.fn().mockResolvedValue({ error: null });
+      (createClient as jest.Mock).mockResolvedValue({
+        auth: { resetPasswordForEmail: mockReset },
+      });
+
+      await requestPasswordResetAction("user@example.com");
+
+      expect(mockReset).toHaveBeenCalledWith(
+        "user@example.com",
+        expect.objectContaining({
+          redirectTo: expect.stringContaining("http://"),
+        }),
       );
     });
 
     // --- BỔ SUNG TEST CHO CÁC NHÁNH LỖI ---
     it("returns friendly error message if Supabase Auth API returns an error", async () => {
+      mockGet.mockReturnValue("localhost:3000");
+
       const mockReset = jest
         .fn()
         .mockResolvedValue({ error: new Error("Auth service down") });
