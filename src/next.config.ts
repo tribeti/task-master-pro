@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    middlewareRuntime: 'nodejs',
-  }
   // Bắt buộc để Dockerfile multi-stage hoạt động (copy .next/standalone)
   output: "standalone",
   images: {
