@@ -2,7 +2,6 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { isValidEmail } from "@/lib/auth/validators";
-import { headers } from "next/headers";
 
 export async function checkEmailExistsAction(
   email: string,
@@ -39,10 +38,15 @@ export async function requestPasswordResetAction(
 
   try {
     const supabase = await createClient();
-    const headersList = await headers();
-    const host = headersList.get("host") ?? "localhost:3000";
-    const protocol = host.startsWith("localhost") ? "http" : "https";
-    const origin = `${protocol}://${host}`;
+    let origin = process.env.NEXT_PUBLIC_APP_URL;
+    if (!origin && process.env.NODE_ENV === "development") {
+      origin = "http://localhost:3000";
+    }
+    
+    if (!origin) {
+      console.error("Missing NEXT_PUBLIC_APP_URL environment variable.");
+      return { error: "Lỗi cấu hình hệ thống: Thiếu URL." };
+    }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${origin}/api/auth/callback?redirectTo=/auth/reset-password`,

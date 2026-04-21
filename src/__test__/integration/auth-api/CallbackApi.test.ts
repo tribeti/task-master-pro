@@ -100,4 +100,40 @@ describe("GET /api/auth/callback", () => {
       "http://localhost:3000/auth/reset-password",
     );
   });
+
+  it("6. Redirect về an toàn (/) nếu redirectTo là URL ngoài origin (Open Redirect Protection)", async () => {
+    const mockExchange = jest.fn().mockResolvedValue({ error: null });
+    (createClient as jest.Mock).mockResolvedValue({
+      auth: { exchangeCodeForSession: mockExchange },
+    });
+
+    const req = createMockRequest({
+      code: "valid-auth-code",
+      redirectTo: "https://malicious.com/phishing",
+    });
+    const res = await GET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe(
+      "http://localhost:3000/",
+    );
+  });
+
+  it("7. Redirect về an toàn (/) nếu redirectTo là protocol-relative URL (Open Redirect Protection)", async () => {
+    const mockExchange = jest.fn().mockResolvedValue({ error: null });
+    (createClient as jest.Mock).mockResolvedValue({
+      auth: { exchangeCodeForSession: mockExchange },
+    });
+
+    const req = createMockRequest({
+      code: "valid-auth-code",
+      redirectTo: "//malicious.com/phishing",
+    });
+    const res = await GET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe(
+      "http://localhost:3000/",
+    );
+  });
 });

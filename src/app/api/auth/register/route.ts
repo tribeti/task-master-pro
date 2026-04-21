@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       request.headers.get("origin") ||
       process.env.NEXT_PUBLIC_APP_URL ||
       "http://localhost:3000";
-    const callbackUrl = new URL("/auth/callback", origin);
+    const callbackUrl = new URL("/api/auth/callback", origin);
     if (redirectTo) {
       callbackUrl.searchParams.set("redirectTo", redirectTo);
     }
