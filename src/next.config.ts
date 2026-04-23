@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["sonner", "recharts"],
   },
 
+  // 
   async headers() {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ?? "https://taskmasterpro.com";
