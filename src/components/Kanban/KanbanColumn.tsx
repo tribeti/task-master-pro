@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import {
   Draggable,
   Droppable,
@@ -73,7 +73,7 @@ const COLUMN_STYLES = [
   },
 ];
 
-export function KanbanColumn({
+export const KanbanColumn = memo(function KanbanColumn({
   column,
   colIndex,
   tasks,
@@ -281,4 +281,4 @@ export function KanbanColumn({
       )}
     </Draggable>
   );
-}
+});

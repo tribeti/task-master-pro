@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import isEqual from "fast-deep-equal";
 import {
   DragDropContext,
@@ -47,7 +47,7 @@ interface KanbanBoardProps {
   onTasksReordered?: (updates: Array<{id: number; column_id: number; position: number}>) => void;
 }
 
-export function KanbanBoard({
+export const KanbanBoard = memo(function KanbanBoard({
   projectId,
   columns,
   tasks,
@@ -936,4 +936,4 @@ export function KanbanBoard({
       </DragDropContext>
     </div>
   );
-}
+});

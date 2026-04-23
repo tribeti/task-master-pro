@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Label, TaskAssignee, ChecklistSummary } from "@/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -55,7 +55,7 @@ function getChecklistProgress(checklists?: ChecklistSummary[]) {
   return { total, completed };
 }
 
-export function KanbanTask({
+export const KanbanTask = memo(function KanbanTask({
   id,
   index,
   title,
@@ -463,4 +463,4 @@ export function KanbanTask({
       )}
     </Draggable>
   );
-}
+});
