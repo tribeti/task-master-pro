@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Bắt buộc để Dockerfile multi-stage hoạt động (copy .next/standalone)
-  output: "standalone",
+  // Chỉ dùng standalone khi build trong Docker, không dùng trên Vercel
+  ...(process.env.DOCKER_BUILD === "true" ? { output: "standalone" } : {}),
+
   images: {
     remotePatterns: [
       {
@@ -12,8 +13,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
   poweredByHeader: false,
+
+  // Tối ưu tree-shaking cho các package lớn (Experimental - sử dụng cẩn trọng)
+  experimental: {
+    optimizePackageImports: ["sonner", "recharts"],
+  },
+
+  // 
   async headers() {
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ?? "https://taskmasterpro.com";
+
     return [
       // Security headers — áp dụng toàn bộ routes
       {
@@ -39,7 +51,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: "https://taskmasterpro.com",
+            value: appUrl, // ← dùng env var thay vì hardcode
           },
           {
             key: "Access-Control-Allow-Methods",

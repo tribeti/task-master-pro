@@ -95,9 +95,13 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   const isDraggingRef = useRef(false);
 
   // Tracks the timestamp of our most recent local write operation.
-  // Realtime events arriving within 2s of a local write are suppressed
+  // Realtime events arriving within 3.5s of a local write are suppressed
   // because they're echoes of our OWN changes (not other users').
   const lastLocalWriteRef = useRef(0);
+
+  // Tracks tasks that have a pending toggle to avoid overwriting them 
+  // with stale data during fetchData (handles the race between API and Realtime)
+  const pendingTogglesRef = useRef<Set<number>>(new Set());
 
   // Wrapper: call this around any CRUD action to stamp the write time
   const markLocalWrite = () => {
@@ -115,7 +119,22 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       const data = await res.json();
 
       setColumns(data.columns || []);
-      setTasks(data.tasks || []);
+      setTasks((prev) => {
+        const fetchedTasks = data.tasks || [];
+        if (pendingTogglesRef.current.size === 0) return fetchedTasks;
+
+        // 🛡️ Merge: If a task has a pending toggle update, preserve its 
+        // local completion state instead of letting stale DB data overwrite it.
+        return fetchedTasks.map((ft: Task) => {
+          if (pendingTogglesRef.current.has(ft.id)) {
+            const localTask = prev.find((t) => t.id === ft.id);
+            if (localTask) {
+              return { ...ft, is_completed: localTask.is_completed };
+            }
+          }
+          return ft;
+        });
+      });
       setBoardLabels(data.labels || []);
     } catch (error) {
       console.error("Failed to fetch kanban data:", error);
@@ -179,7 +198,8 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       if (isDraggingRef.current) return;
 
       // 🛡️ Guard 2: If this is an echo of our own recent write, skip
-      if (Date.now() - lastLocalWriteRef.current < 2000) return;
+      // Increased to 3.5s to account for potentially slow Vercel cold starts/latency
+      if (Date.now() - lastLocalWriteRef.current < 3500) return;
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -713,14 +733,17 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     completionToggleSeqRef.current[taskId] = requestSeq;
 
     // Optimistic UI: update local state immediately
+    pendingTogglesRef.current.add(taskId);
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, is_completed: newValue } : t
       )
     );
 
-    // Fire API call in background
-    markLocalWrite();
+    // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
+    const now = Date.now();
+    lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
+
     fetch(`/api/kanban/tasks/${taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -728,10 +751,14 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     })
       .then(async (res) => {
         if (!res.ok) throw new Error();
+        // Refresh the protection window after success
+        lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
       })
       .catch(() => {
         // Rollback on failure
-        lastLocalWriteRef.current = 0;
+        if (lastLocalWriteRef.current === now) {
+          lastLocalWriteRef.current = 0;
+        }
         if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
         setTasks((prev) =>
           prev.map((t) =>
@@ -741,6 +768,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           )
         );
         toast.error("Cập nhật trạng thái thất bại");
+      })
+      .finally(() => {
+        pendingTogglesRef.current.delete(taskId);
       });
   };
 

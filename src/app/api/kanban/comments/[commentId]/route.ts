@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyTaskAccess } from "@/utils/board-access";
 
-export async function DELETE(request: Request, context: any) {
-  const params = await context.params;
-  const commentId = parseInt(params.commentId);
+type RouteContext = { params: Promise<{ commentId: string }> };
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const { commentId: commentIdStr } = await context.params;
+  const commentId = parseInt(commentIdStr, 10);
+
+  if (isNaN(commentId)) {
+    return NextResponse.json({ error: "Invalid comment ID." }, { status: 400 });
+  }
 
   try {
     const supabase = await createClient();
@@ -29,7 +35,8 @@ export async function DELETE(request: Request, context: any) {
     if (error) return NextResponse.json({ error: "Failed to delete comment." }, { status: 500 });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
