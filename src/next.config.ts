@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false,
 
-  // Tối ưu tree-shaking cho các package lớn
+  // Tối ưu tree-shaking cho các package lớn (Experimental - sử dụng cẩn trọng)
   experimental: {
     optimizePackageImports: ["sonner", "recharts"],
   },
