@@ -59,7 +59,7 @@ describe("/api/boards/[boardId]", () => {
     // Mặc định validateString trả về nguyên gốc
     (validateString as jest.Mock).mockImplementation((val) => val);
 
-    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => { });
   });
 
   afterAll(() => {

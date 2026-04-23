@@ -4,7 +4,6 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   verifyBoardAccess,
   verifyAllBoardsAccess,
-  validateString,
   AuthorizationError,
 } from "@/utils/board-access";
 

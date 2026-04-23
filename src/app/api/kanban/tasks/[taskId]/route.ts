@@ -72,7 +72,7 @@ export async function PUT(request: Request, context: any) {
           const adminSupabase = createAdminClient();
           const status = getDeadlineStatus(updatedTask.deadline);
           
-          let boardIdToUse = Array.isArray(updatedTask.column) ? updatedTask.column[0]?.board_id : updatedTask.column?.board_id;
+          const boardIdToUse = Array.isArray(updatedTask.column) ? updatedTask.column[0]?.board_id : updatedTask.column?.board_id;
 
           const { data: existingDeadlineNotif } = await adminSupabase
             .from("notifications")

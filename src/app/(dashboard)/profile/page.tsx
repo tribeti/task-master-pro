@@ -75,7 +75,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, supabase]);
 
   const [fanfareAlert, setFanfareAlert] = useState(true);
