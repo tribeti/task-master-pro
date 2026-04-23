@@ -719,8 +719,14 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       )
     );
 
-    // Fire API call in background
-    markLocalWrite();
+    // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
+    // If a drag API call is still in-flight (lastLocalWriteRef set recently),
+    // we must not reset it — we take the MAX so both windows are protected.
+    // This prevents the Realtime echo of the drag write from triggering a
+    // full fetchData() that would revert tasks to their pre-drag positions.
+    const now = Date.now();
+    lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
+
     fetch(`/api/kanban/tasks/${taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -728,10 +734,15 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     })
       .then(async (res) => {
         if (!res.ok) throw new Error();
+        // Refresh the protection window after success so its Realtime echo is also suppressed.
+        lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
       })
       .catch(() => {
-        // Rollback on failure
-        lastLocalWriteRef.current = 0;
+        // Rollback on failure — only clear the protection window if our write
+        // was the most recent one (no newer drag/write is in-flight).
+        if (lastLocalWriteRef.current === now) {
+          lastLocalWriteRef.current = 0;
+        }
         if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
         setTasks((prev) =>
           prev.map((t) =>
