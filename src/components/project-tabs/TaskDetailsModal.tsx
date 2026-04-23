@@ -55,7 +55,7 @@ interface TaskDetailsModalProps {
       description: string | null;
       priority: "Low" | "Medium" | "High";
       deadline: string | null;
-    }>
+    }>,
   ) => Promise<void>;
   onChecklistsUpdate?: (taskId: number, checklists: any[]) => void;
 }
@@ -144,7 +144,7 @@ export function TaskDetailsModal({
 
   const taskLabels = initialData?.labels || [];
   const availableLabels = boardLabels.filter(
-    (label) => !taskLabels.some((taskLabel) => taskLabel.id === label.id)
+    (label) => !taskLabels.some((taskLabel) => taskLabel.id === label.id),
   );
   const currentAssignees = initialData?.assignees || [];
 
@@ -170,7 +170,7 @@ export function TaskDetailsModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl w-full max-w-5xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[95vh] md:max-h-[90vh]"
+        className="bg-white rounded-4xl md:rounded-[2.5rem] shadow-2xl w-full max-w-5xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[95vh] md:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -267,14 +267,16 @@ export function TaskDetailsModal({
                             const original = initialData?.priority;
                             setPriority(p);
                             if (initialData?.id && p !== original) {
-                              const session = ++updateSessionsRef.current.priority;
+                              const session = ++updateSessionsRef.current
+                                .priority;
                               try {
                                 await onUpdateTask?.(initialData.id, {
                                   priority: p,
                                 });
                               } catch (error) {
                                 if (
-                                  session === updateSessionsRef.current.priority &&
+                                  session ===
+                                    updateSessionsRef.current.priority &&
                                   original
                                 ) {
                                   setPriority(original);
@@ -371,7 +373,9 @@ export function TaskDetailsModal({
                 <TaskChecklist
                   taskId={initialData.id}
                   isSubmitting={isSubmitting}
-                  onChecklistsUpdate={(data) => onChecklistsUpdate?.(initialData.id!, data)}
+                  onChecklistsUpdate={(data) =>
+                    onChecklistsUpdate?.(initialData.id!, data)
+                  }
                 />
               )}
             </div>

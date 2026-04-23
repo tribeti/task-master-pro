@@ -3,21 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { TASKS } from "@/lib/constants";
 import {
-  SunIcon,
   PlusIcon,
   CheckIcon,
-  MoreIcon,
-  PauseIcon,
-  EditIcon,
-  AlertIcon,
-  TrashIcon,
   XIcon,
   BriefcaseIcon,
   ZapIcon,
-  ChevronUp,
   UserIcon,
-  LinkIcon,
-  LockIcon,
 } from "@/components/icons";
 import CreateProjectModal from "@/components/CreateProjectModal";
 import { createClient } from "@/utils/supabase/client";
@@ -31,7 +22,6 @@ interface RealTask {
 
 const supabase = createClient();
 export default function CommandCenter() {
-
   // --- STATES ---
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isQueueExpanded, setIsQueueExpanded] = useState(false);
@@ -56,7 +46,10 @@ export default function CommandCenter() {
       }
 
       try {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authErr,
+        } = await supabase.auth.getUser();
         if (cancelled) return;
         if (authErr || !user) {
           if (!cancelled) setLoading(false);
@@ -70,7 +63,10 @@ export default function CommandCenter() {
         // Step 1: Get boards user has access to
         const [ownedRes, memberRes] = await Promise.all([
           supabase.from("boards").select("id").eq("owner_id", user.id),
-          supabase.from("board_members").select("board_id").eq("user_id", user.id),
+          supabase
+            .from("board_members")
+            .select("board_id")
+            .eq("user_id", user.id),
         ]);
 
         const { data: ownedBoards, error: ownedErr } = ownedRes;
@@ -102,15 +98,17 @@ export default function CommandCenter() {
         // Step 2: Get tasks for those boards within 6 days
         const { data: taskData, error: taskErr } = await supabase
           .from("tasks")
-          .select(`
-            id, 
-            title, 
+          .select(
+            `
+            id,
+            title,
             deadline,
             column:columns!inner (
               board_id,
               board:boards (title)
             )
-          `)
+          `,
+          )
           .in("column.board_id", accessibleBoardIds)
           .gte("deadline", today)
           .lte("deadline", windowEnd.toISOString())
@@ -130,7 +128,9 @@ export default function CommandCenter() {
           const formatted = taskData.map((t: any) => {
             // Xử lý cardinality: PostgREST có thể trả về object hoặc array tùy theo định nghĩa quan hệ
             const colInfo = Array.isArray(t.column) ? t.column[0] : t.column;
-            const boardInfo = Array.isArray(colInfo?.board) ? colInfo.board[0] : colInfo?.board;
+            const boardInfo = Array.isArray(colInfo?.board)
+              ? colInfo.board[0]
+              : colInfo?.board;
 
             return {
               id: t.id,
@@ -155,7 +155,6 @@ export default function CommandCenter() {
     };
   }, [supabase]);
 
-
   // Toggle Tag in Modal
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -179,8 +178,6 @@ export default function CommandCenter() {
             rất tốt!
           </p>
         </div>
-
-
       </header>
 
       {/* COMMAND TAB CONTENT */}
@@ -255,7 +252,9 @@ export default function CommandCenter() {
                 <div className="p-2.5 bg-gradient-to-tr from-[#34D399] to-[#28B8FA] rounded-full shadow-lg shadow-emerald-100 mb-2">
                   <CheckIcon className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Locked</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Locked
+                </span>
               </div>
             </div>
           </div>
@@ -371,12 +370,17 @@ export default function CommandCenter() {
               ) : upcomingTasks.length === 0 ? (
                 <div className="py-4 text-center">
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                    Tuyệt vời!<br />Không có deadline nào trong 6 ngày tới.
+                    Tuyệt vời!
+                    <br />
+                    Không có deadline nào trong 6 ngày tới.
                   </p>
                 </div>
               ) : (
                 upcomingTasks.map((task) => (
-                  <div key={task.id} className="flex items-stretch gap-2 group cursor-default">
+                  <div
+                    key={task.id}
+                    className="flex items-stretch gap-2 group cursor-default"
+                  >
                     <div className="w-1 bg-[#34D399] rounded-full shrink-0 group-hover:bg-[#28B8FA] transition-colors"></div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-slate-900 transition-colors">
@@ -389,8 +393,11 @@ export default function CommandCenter() {
                         <span className="text-[10px] text-slate-300">•</span>
                         <p className="text-[10px] font-bold text-slate-400">
                           {task.deadline
-                            ? new Date(task.deadline).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
-                            : '—'}
+                            ? new Date(task.deadline).toLocaleDateString(
+                                "vi-VN",
+                                { day: "numeric", month: "numeric" },
+                              )
+                            : "—"}
                         </p>
                       </div>
                     </div>
