@@ -25,8 +25,6 @@ export function ChatMessageBubble({
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // Re-sync editContent when message.content changes externally (e.g. after a realtime update)
-  // but only when the user is not currently editing to avoid overwriting their input.
   useEffect(() => {
     if (!isEditing) {
       setEditContent(message.content);
@@ -35,10 +33,10 @@ export function ChatMessageBubble({
 
   const avatarUrl =
     message.users?.avatar_url ||
-    "https://ui-avatars.com/api/?name=" + encodeURIComponent(message.users?.display_name || "U");
+    "https://ui-avatars.com/api/?name=" +
+      encodeURIComponent(message.users?.display_name || "U");
   const displayName = message.users?.display_name || "Thành viên";
 
-  // Format time (e.g. 10:30)
   const time = new Date(message.created_at).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -61,7 +59,9 @@ export function ChatMessageBubble({
     setShowMenu(true);
   };
 
-  const handleMenuTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+  const handleMenuTriggerKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       setShowMenu((prev) => !prev);
@@ -83,24 +83,35 @@ export function ChatMessageBubble({
     <div
       className={`flex w-full mt-0.5 mb-0.5 ${isMine ? "justify-end" : "justify-start"} ${showTime ? "mb-2" : ""}`}
     >
-      <div className={`flex max-w-[70%] gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+      <div
+        className={`flex max-w-[70%] gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+      >
         {/* Avatar */}
         <div className="w-8 shrink-0 flex flex-col justify-end pb-1">
           {showAvatar && !isMine && (
             <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-200">
-              <Image src={avatarUrl} alt={displayName} fill className="object-cover" />
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                fill
+                className="object-cover"
+              />
             </div>
           )}
         </div>
 
         {/* Bubble Area */}
-        <div className={`flex flex-col relative ${isMine ? "items-end" : "items-start"}`}>
+        <div
+          className={`flex flex-col relative ${isMine ? "items-end" : "items-start"}`}
+        >
           {showAvatar && !isMine && (
-            <span className="text-xs text-slate-400 mb-1 ml-1">{displayName}</span>
+            <span className="text-xs text-slate-400 mb-1 ml-1">
+              {displayName}
+            </span>
           )}
 
           {isEditing ? (
-            <div className="flex flex-col gap-2 w-full min-w-[200px]">
+            <div className="flex flex-col gap-2 w-full min-w-50">
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -136,10 +147,12 @@ export function ChatMessageBubble({
               </div>
             </div>
           ) : (
-            <div className={`flex items-center gap-1 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+            <div
+              className={`flex items-center group gap-1 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+            >
               <div
                 onContextMenu={handleContextMenu}
-                className={`px-4 py-2.5 rounded-2xl relative group cursor-pointer ${
+                className={`px-4 py-2.5 rounded-2xl relative  cursor-pointer ${
                   isMine
                     ? "bg-[#28B8FA] text-white rounded-br-sm"
                     : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm shadow-sm"
@@ -148,7 +161,9 @@ export function ChatMessageBubble({
                 <p className="text-[15px] whitespace-pre-wrap leading-relaxed">
                   {message.content}
                   {message.is_edited && (
-                    <span className="text-[10px] opacity-70 ml-2 italic">(đã chỉnh sửa)</span>
+                    <span className="text-[10px] opacity-70 ml-2 italic">
+                      (đã chỉnh sửa)
+                    </span>
                   )}
                 </p>
               </div>
@@ -165,7 +180,12 @@ export function ChatMessageBubble({
                     onKeyDown={handleMenuTriggerKeyDown}
                     className="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-4 h-4"
+                    >
                       <circle cx="12" cy="5" r="1.5" />
                       <circle cx="12" cy="12" r="1.5" />
                       <circle cx="12" cy="19" r="1.5" />
@@ -174,9 +194,7 @@ export function ChatMessageBubble({
 
                   {/* Context Menu */}
                   {showMenu && (
-                    <div
-                      className="absolute top-full right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50"
-                    >
+                    <div className="absolute top-full right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
                       <button
                         onClick={() => {
                           setIsEditing(true);
