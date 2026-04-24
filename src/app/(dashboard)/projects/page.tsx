@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PlusIcon } from "@/components/icons";
 import {
   TasksTab,
+  ChatTab,
   TimelineTab,
   FilesTab,
   TeamTab,
@@ -99,8 +100,8 @@ export default function ProjectsPage() {
 
   // --- STATES ---
   const [projectTab, setProjectTab] = useState<
-    "Tasks" | "Timeline" | "Files" | "Team"
-  >("Timeline");
+    "Tasks" | "Chat" | "Timeline" | "Files" | "Team"
+  >("Tasks");
   const [selectedProject, setSelectedProject] = useState<Board | null>(null);
   const selectedProjectRef = useRef<Board | null>(null);
 
@@ -119,6 +120,7 @@ export default function ProjectsPage() {
       setSelectedProject(foundProject);
       if (
         tab === "Tasks" ||
+        tab === "Chat" ||
         tab === "Timeline" ||
         tab === "Files" ||
         tab === "Team"
@@ -455,6 +457,7 @@ export default function ProjectsPage() {
             <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
               {[
                 { id: "Tasks", label: "Nhiệm vụ" },
+                { id: "Chat", label: "Trò chuyện" },
                 { id: "Timeline", label: "Lịch trình" },
                 { id: "Files", label: "Tệp tin" },
                 { id: "Team", label: "Nhóm" },
@@ -474,6 +477,9 @@ export default function ProjectsPage() {
             <div className="flex-1 px-10 flex flex-col overflow-hidden pb-10 min-h-0">
               {projectTab === "Tasks" && (
                 <TasksTab projectId={selectedProject.id} />
+              )}
+              {projectTab === "Chat" && (
+                <ChatTab projectId={selectedProject.id} />
               )}
               {projectTab === "Timeline" && (
                 <TimelineTab projectId={selectedProject.id} />
