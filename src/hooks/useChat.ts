@@ -171,8 +171,11 @@ export function useChat(boardId: number, currentUserId?: string) {
   const editMessage = async (messageId: string, newContent: string) => {
     if (!currentUserId || !newContent.trim()) return;
 
-    // Optimistic edit with rollback
-    const prevMessages = messages;
+    // Snapshot only the target message so a rollback never clobbers
+    // concurrent realtime updates to unrelated messages.
+    const prevMessage = messages.find((m) => m.id === messageId);
+    if (!prevMessage) return;
+
     setMessages((prev) =>
       prev.map((m) =>
         m.id === messageId
@@ -197,7 +200,10 @@ export function useChat(boardId: number, currentUserId?: string) {
 
     if (error) {
       console.error("Error editing message, rolling back:", error);
-      setMessages(prevMessages);
+      // Revert only the message that failed — leave all other messages intact.
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? prevMessage : m)),
+      );
     }
   };
 
