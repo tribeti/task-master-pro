@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useNotifications, resetCronTriggered } from "@/hooks/useNotifications";
+import { useNotifications, resetCronTriggered } from "@/lib/hooks/useNotifications";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { triggerDeadlineNotifications } from "@/app/actions/notification.actions";

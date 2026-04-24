@@ -5,8 +5,8 @@ import {
   createNewBoard,
   createDefaultColumns,
   updateUserBoard,
-} from "@/services/project.service";
-import { Board, JoinedBoard } from "@/types/project";
+} from "@/lib/services/project.service";
+import { Board, JoinedBoard } from "@/lib/types/project";
 import { toast } from "sonner";
 
 export const useProjects = (userId?: string) => {

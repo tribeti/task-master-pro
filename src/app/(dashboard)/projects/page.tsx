@@ -14,8 +14,8 @@ import DeleteConfirmModal from "@/components/projects/DeleteConfirmModal";
 import CreateProjectModal from "@/components/CreateProjectModal";
 import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
 import { useDashboardUser } from "../provider";
-import { useProjects } from "@/hooks/useProjects";
-import { Board } from "@/types/project";
+import { useProjects } from "@/lib/hooks/useProjects";
+import { Board } from "@/lib/types/project";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -44,7 +44,7 @@ function ProjectUrlHandler({
   useEffect(() => {
     if (!boardsLoading && urlProjectId) {
       const currentKey = `${urlProjectId}-${urlTab || ""}`;
-      
+
       // If we just applied this exact URL state, skip to prevent reopening if user manually closed it
       if (lastAppliedRef.current === currentKey) {
         return;
@@ -289,20 +289,20 @@ export default function ProjectsPage() {
         {boardsLoading
           ? renderSkeletonCards()
           : ownedBoards.map((proj, index) => (
-              <ProjectCard
-                key={proj.id}
-                proj={proj}
-                index={index}
-                openMenuProjectId={openMenuProjectId}
-                setOpenMenuProjectId={setOpenMenuProjectId}
-                menuRef={menuRef}
-                handleUpdateProject={handleUpdateProject}
-                handleDeleteProject={handleDeleteProject}
-                setSelectedProject={setSelectedProject}
-                currentUserId={userId}
-                memberRole="Owner"
-              />
-            ))}
+            <ProjectCard
+              key={proj.id}
+              proj={proj}
+              index={index}
+              openMenuProjectId={openMenuProjectId}
+              setOpenMenuProjectId={setOpenMenuProjectId}
+              menuRef={menuRef}
+              handleUpdateProject={handleUpdateProject}
+              handleDeleteProject={handleDeleteProject}
+              setSelectedProject={setSelectedProject}
+              currentUserId={userId}
+              memberRole="Owner"
+            />
+          ))}
 
         {/* Create New Project Card */}
         <div

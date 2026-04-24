@@ -4,7 +4,7 @@ import {
   createDefaultColumns,
   updateUserBoard,
   deleteUserBoard,
-} from "@/services/project.service";
+} from "@/lib/services/project.service";
 
 describe("Project Service", () => {
   // Lưu lại fetch gốc

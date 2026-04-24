@@ -2,9 +2,9 @@
 
 import React from "react";
 import { useDashboardUser } from "../provider";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 import { AlertIcon, BriefcaseIcon, CheckCircleIcon } from "@/components/icons";
-import { Notification } from "@/types/project";
+import { Notification } from "@/lib/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { formatRelativeTime } from "@/utils/time";
 import { useRouter } from "next/navigation";

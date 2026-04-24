@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
-import { Label } from "@/types/project";
+import { Label } from "@/lib/types/project";
 
 interface ManageLabelsModalProps {
   isOpen: boolean;
@@ -120,11 +120,10 @@ export function ManageLabelsModal({
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
                 disabled={isCreating}
-                className={`w-full bg-white text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${
-                  nameError
+                className={`w-full bg-white text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError
                     ? "border-red-400 focus:border-red-400"
                     : "border-slate-200 focus:border-[#28B8FA]"
-                }`}
+                  }`}
               />
               {nameError && (
                 <p className="text-xs text-red-400 font-medium mt-1 ml-1">{nameError}</p>
@@ -145,11 +144,10 @@ export function ManageLabelsModal({
                       setSelectedColor(color);
                       setCustomColor(color);
                     }}
-                    className={`w-7 h-7 rounded-full transition-all hover:scale-110 ${
-                      selectedColor === color
+                    className={`w-7 h-7 rounded-full transition-all hover:scale-110 ${selectedColor === color
                         ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
                         : ""
-                    }`}
+                      }`}
                     style={{ backgroundColor: color }}
                     title={color}
                   />
@@ -157,11 +155,10 @@ export function ManageLabelsModal({
 
                 {/* Custom color picker */}
                 <label
-                  className={`w-7 h-7 rounded-full cursor-pointer flex items-center justify-center border-2 border-dashed transition-all hover:scale-110 ${
-                    !PRESET_COLORS.includes(selectedColor)
+                  className={`w-7 h-7 rounded-full cursor-pointer flex items-center justify-center border-2 border-dashed transition-all hover:scale-110 ${!PRESET_COLORS.includes(selectedColor)
                       ? "ring-2 ring-offset-2 ring-slate-400 scale-110 border-transparent"
                       : "border-slate-300"
-                  }`}
+                    }`}
                   style={{
                     backgroundColor: !PRESET_COLORS.includes(selectedColor)
                       ? selectedColor

@@ -1,4 +1,4 @@
-import { KanbanTask as Task } from "@/types/project";
+import { KanbanTask as Task } from "@/lib/types/project";
 
 export type TimelineTask = Task & { created_at?: string };
 

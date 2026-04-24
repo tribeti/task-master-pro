@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { Task } from "@/types/project";
+import { Task } from "@/lib/types/project";
 
 interface InsightsTask extends Task {
   columns: { title: string } | { title: string }[];

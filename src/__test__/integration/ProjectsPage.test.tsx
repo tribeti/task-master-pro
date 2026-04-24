@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ProjectsPage from '@/app/(dashboard)/projects/page';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects } from '@/lib/hooks/useProjects';
 
 // ===== MOCKING DEPENDENCIES =====
 jest.mock('next/navigation', () => ({
@@ -53,10 +53,10 @@ describe('ProjectsPage Integration', () => {
     });
 
     const { rerender } = render(<ProjectsPage />);
-    
+
     // Title is present
     expect(screen.getByText('Dự án hoạt động')).toBeInTheDocument();
-    
+
     // 2. Success State: Data Fetched Update
     mockedUseProjects.mockReturnValue({
       ownedBoards: [
@@ -98,7 +98,7 @@ describe('ProjectsPage Integration', () => {
 
     // The modal should now be integrated and visible
     expect(screen.getByText('Tạo dự án mới')).toBeInTheDocument();
-    
+
     const input = screen.getByPlaceholderText('e.g. Dự án mới');
     expect(input).toBeInTheDocument();
 

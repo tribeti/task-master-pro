@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Label, TaskAssignee, ChecklistSummary } from "@/types/project";
+import { Label, TaskAssignee, ChecklistSummary } from "@/lib/types/project";
 import { getDeadlineStatus } from "@/utils/deadline";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
