@@ -24,11 +24,19 @@ export function ChatTab({ projectId }: { projectId: number }) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Track the id of the last message so we only scroll when a new one is appended
+  const prevLastMessageIdRef = useRef<string | undefined>(undefined);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom only when a new message is appended at the end.
+  // Skips scrolling when loadMore() prepends older messages at the top.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const lastMessage = messages[messages.length - 1];
+    const lastId = lastMessage?.id;
+    if (lastId && lastId !== prevLastMessageIdRef.current) {
+      prevLastMessageIdRef.current = lastId;
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   // Handle scroll to top for pagination
   const handleScroll = () => {

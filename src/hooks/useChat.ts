@@ -18,6 +18,9 @@ export function useChat(boardId: number, currentUserId?: string) {
   // Load initial messages
   const loadMessages = useCallback(async () => {
     if (!boardId) return;
+    // Clear stale UI state before fetching the new board's messages
+    setMessages([]);
+    setHasMore(false);
     setLoading(true);
     
     const { data, error } = await supabase
@@ -109,20 +112,22 @@ export function useChat(boardId: number, currentUserId?: string) {
   const deleteMessage = async (messageId: string) => {
     if (!currentUserId) return;
     
-    // Optimistic delete
+    // Optimistic delete with rollback
+    const prevMessages = messages;
     setMessages(prev => prev.filter(m => m.id !== messageId));
     
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
     if (error) {
-      console.error("Error deleting message:", error);
-      // Ideally we would rollback here, but for simplicity we assume success or let realtime resync
+      console.error("Error deleting message, rolling back:", error);
+      setMessages(prevMessages);
     }
   };
 
   const editMessage = async (messageId: string, newContent: string) => {
     if (!currentUserId || !newContent.trim()) return;
 
-    // Optimistic edit
+    // Optimistic edit with rollback
+    const prevMessages = messages;
     setMessages(prev => prev.map(m => 
       m.id === messageId ? { ...m, content: newContent.trim(), is_edited: true, updated_at: new Date().toISOString() } : m
     ));
@@ -134,14 +139,17 @@ export function useChat(boardId: number, currentUserId?: string) {
     }).eq("id", messageId);
 
     if (error) {
-      console.error("Error editing message:", error);
+      console.error("Error editing message, rolling back:", error);
+      setMessages(prevMessages);
     }
   };
 
   const updateTypingStatus = async (isTyping: boolean) => {
     if (!channelRef.current || !currentUserId) return;
+    const currentUserPresence = onlineUsers[currentUserId];
     await channelRef.current.track({
       user_id: currentUserId,
+      display_name: currentUserPresence?.display_name ?? null,
       is_typing: isTyping,
       last_typed: new Date().toISOString()
     });

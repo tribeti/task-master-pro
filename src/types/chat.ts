@@ -9,7 +9,7 @@ export interface ChatMessage {
   users?: {
     display_name: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export interface PresenceState {

@@ -23,6 +23,15 @@ export function ChatMessageBubble({
   const [editContent, setEditContent] = useState(message.content);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Re-sync editContent when message.content changes externally (e.g. after a realtime update)
+  // but only when the user is not currently editing to avoid overwriting their input.
+  useEffect(() => {
+    if (!isEditing) {
+      setEditContent(message.content);
+    }
+  }, [message.id, message.content, isEditing]);
 
   const avatarUrl =
     message.users?.avatar_url ||
@@ -50,6 +59,15 @@ export function ChatMessageBubble({
     if (!isMine) return;
     e.preventDefault();
     setShowMenu(true);
+  };
+
+  const handleMenuTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setShowMenu((prev) => !prev);
+    } else if (e.key === "Escape") {
+      setShowMenu(false);
+    }
   };
 
   const submitEdit = () => {
@@ -118,45 +136,73 @@ export function ChatMessageBubble({
               </div>
             </div>
           ) : (
-            <div
-              onContextMenu={handleContextMenu}
-              className={`px-4 py-2.5 rounded-2xl relative group cursor-pointer ${
-                isMine
-                  ? "bg-[#28B8FA] text-white rounded-br-sm"
-                  : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm shadow-sm"
-              }`}
-            >
-              <p className="text-[15px] whitespace-pre-wrap leading-relaxed">
-                {message.content}
-                {message.is_edited && (
-                  <span className="text-[10px] opacity-70 ml-2 italic">(đã chỉnh sửa)</span>
-                )}
-              </p>
+            <div className={`flex items-center gap-1 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+              <div
+                onContextMenu={handleContextMenu}
+                className={`px-4 py-2.5 rounded-2xl relative group cursor-pointer ${
+                  isMine
+                    ? "bg-[#28B8FA] text-white rounded-br-sm"
+                    : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm shadow-sm"
+                }`}
+              >
+                <p className="text-[15px] whitespace-pre-wrap leading-relaxed">
+                  {message.content}
+                  {message.is_edited && (
+                    <span className="text-[10px] opacity-70 ml-2 italic">(đã chỉnh sửa)</span>
+                  )}
+                </p>
+              </div>
 
-              {/* Context Menu */}
-              {showMenu && isMine && (
-                <div
-                  ref={menuRef}
-                  className="absolute top-full right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50"
-                >
+              {/* Visible accessible menu trigger — shown only for own messages */}
+              {isMine && (
+                <div className="relative" ref={menuRef}>
                   <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    ref={menuTriggerRef}
+                    aria-haspopup="true"
+                    aria-expanded={showMenu}
+                    aria-label="Tùy chọn tin nhắn"
+                    onClick={() => setShowMenu((prev) => !prev)}
+                    onKeyDown={handleMenuTriggerKeyDown}
+                    className="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                   >
-                    Chỉnh sửa
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                      <circle cx="12" cy="5" r="1.5" />
+                      <circle cx="12" cy="12" r="1.5" />
+                      <circle cx="12" cy="19" r="1.5" />
+                    </svg>
                   </button>
-                  <button
-                    onClick={() => {
-                      onDelete?.(message.id);
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    Xóa
-                  </button>
+
+                  {/* Context Menu */}
+                  {showMenu && (
+                    <div
+                      className="absolute top-full right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50"
+                    >
+                      <button
+                        onClick={() => {
+                          setIsEditing(true);
+                          setShowMenu(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        Chỉnh sửa
+                      </button>
+                      <button
+                        onClick={() => {
+                          onDelete?.(message.id);
+                          setShowMenu(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

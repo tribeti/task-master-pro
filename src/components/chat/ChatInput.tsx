@@ -9,6 +9,7 @@ export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
 
   // Auto-resize logic
   useEffect(() => {
@@ -21,11 +22,15 @@ export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
 
-    // Typing indicator logic
-    onTyping(true);
+    // Typing indicator: only emit start when transitioning from not-typing → typing
+    if (!isTypingRef.current) {
+      onTyping(true);
+      isTypingRef.current = true;
+    }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       onTyping(false);
+      isTypingRef.current = false;
     }, 2000); // stop typing after 2 seconds of inactivity
   };
 
@@ -40,8 +45,11 @@ export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
     if (text.trim()) {
       onSendMessage(text);
       setText("");
-      onTyping(false);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        onTyping(false);
+        isTypingRef.current = false;
+      }
     }
   };
 

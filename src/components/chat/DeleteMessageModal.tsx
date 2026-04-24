@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 interface DeleteMessageModalProps {
   isOpen: boolean;
@@ -7,11 +7,39 @@ interface DeleteMessageModalProps {
 }
 
 export function DeleteMessageModal({ isOpen, onClose, onConfirm }: DeleteMessageModalProps) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Save the currently focused element so we can restore it on close
+    previousFocusRef.current = document.activeElement;
+
+    // Move focus into the modal
+    cancelButtonRef.current?.focus();
+
+    // Close on Escape
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      // Restore focus to the element that was focused before the modal opened
+      (previousFocusRef.current as HTMLElement | null)?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-modal-title"
         className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
@@ -24,13 +52,14 @@ export function DeleteMessageModal({ isOpen, onClose, onConfirm }: DeleteMessage
               <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-slate-900 text-center mb-2">Thu hồi tin nhắn?</h3>
+          <h3 id="delete-modal-title" className="text-lg font-bold text-slate-900 text-center mb-2">Thu hồi tin nhắn?</h3>
           <p className="text-sm text-slate-500 text-center">
             Bạn có chắc chắn muốn xóa tin nhắn này không? Hành động này sẽ xóa ở cả hai phía và không thể hoàn tác.
           </p>
         </div>
         <div className="flex border-t border-slate-100 bg-slate-50/50">
           <button
+            ref={cancelButtonRef}
             onClick={onClose}
             className="flex-1 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
           >
