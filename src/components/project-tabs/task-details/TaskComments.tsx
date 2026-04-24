@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Comment, BoardMember } from "@/types/project";
+import { Comment, BoardMember } from "@/lib/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
 
 const COMMENT_DATE_FORMATTER = new Intl.DateTimeFormat("vi-VN", {

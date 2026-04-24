@@ -1,6 +1,6 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { useProjects } from "@/hooks/useProjects";
-import * as projectService from "@/services/project.service";
+import { useProjects } from "@/lib/hooks/useProjects";
+import * as projectService from "@/lib/services/project.service";
 
 jest.mock("@/services/project.service");
 jest.mock("sonner", () => ({

@@ -16,11 +16,9 @@ import {
   KanbanTask,
   Label,
   BoardMember,
-} from "@/types/project";
+} from "@/lib/types/project";
 import { UserAvatar } from "@/components/UserAvatar";
-
-import { createClient } from "@/utils/supabase/client";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 interface KanbanBoardProps {
   projectId: number;
@@ -44,7 +42,7 @@ interface KanbanBoardProps {
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   onToggleComplete?: (taskId: number, newValue: boolean) => void;
-  onTasksReordered?: (updates: Array<{id: number; column_id: number; position: number}>) => void;
+  onTasksReordered?: (updates: Array<{ id: number; column_id: number; position: number }>) => void;
 }
 
 export function KanbanBoard({
@@ -583,8 +581,8 @@ export function KanbanBoard({
                   )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterUserId === currentUserId
-                    ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                  ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
+                  : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                   }`}
                 title="Chỉ hiện nhiệm vụ của tôi"
               >
@@ -618,8 +616,8 @@ export function KanbanBoard({
                     }
                     title={`Lọc theo: ${member.display_name}`}
                     className={`relative rounded-full transition-all focus:outline-none ${isActive
-                        ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
-                        : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
+                      ? "ring-3 ring-[#28B8FA] ring-offset-2 scale-110"
+                      : "ring-2 ring-transparent hover:ring-[#28B8FA]/40 hover:ring-offset-1 hover:scale-105"
                       }`}
                   >
                     <UserAvatar
@@ -665,8 +663,8 @@ export function KanbanBoard({
               <button
                 onClick={() => setShowLabelFilterPopover((v) => !v)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${filterLabelIds.length > 0 || showLabelFilterPopover
-                    ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                  ? "bg-[#28B8FA] border-[#28B8FA] text-white shadow-md shadow-cyan-200"
+                  : "bg-white border-slate-200 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
                   }`}
                 title="Lọc theo nhãn"
               >

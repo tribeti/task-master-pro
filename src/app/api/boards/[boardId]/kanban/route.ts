@@ -7,7 +7,7 @@ import {
   KanbanColumn,
   KanbanTask,
   TaskAssignee,
-} from "@/types/project";
+} from "@/lib/types/project";
 
 type TaskAssigneeRow = {
   id: number;

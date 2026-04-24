@@ -14,7 +14,7 @@ import {
   LogOutIcon,
   BellIcon,
 } from "@/components/icons";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 
 const NAV_ITEMS = [
   { href: "/command", label: "Bảng điều khiển", icon: GridIcon },
@@ -97,11 +97,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${isActive
                     ? "bg-[#EAF7FF] text-[#28B8FA]"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <Icon /> {item.label}
               </Link>
@@ -114,11 +113,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
       <div className="px-4 pb-6 flex flex-col gap-2 border-t border-slate-100 pt-5">
         <Link
           href="/notifications"
-          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors relative ${
-            pathname === "/notifications"
+          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors relative ${pathname === "/notifications"
               ? "bg-[#EAF7FF] text-[#28B8FA]"
               : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
-          }`}
+            }`}
         >
           <div className="relative">
             <BellIcon />
@@ -133,11 +131,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
         <Link
           href="/profile"
-          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${
-            pathname === "/profile"
+          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${pathname === "/profile"
               ? "bg-[#EAF7FF] text-[#28B8FA]"
               : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
-          }`}
+            }`}
         >
           <SettingsIcon /> Cài đặt
         </Link>

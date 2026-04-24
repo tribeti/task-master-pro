@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { BoardMember, TaskAssignee } from "@/types/project";
+import { BoardMember, TaskAssignee } from "@/lib/types/project";
 
 interface TaskAssigneesProps {
   boardId: number;

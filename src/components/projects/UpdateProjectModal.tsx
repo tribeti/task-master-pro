@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { XIcon } from "@/components/icons";
-import { Board } from "@/types/project";
+import { Board } from "@/lib/types/project";
 
 const TAG_PRESETS = ["Core", "Marketing", "Design", "Dev", "QA"];
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { MoreIcon } from "@/components/icons";
-import { Board } from "@/types/project";
+import { Board } from "@/lib/types/project";
 
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
@@ -49,11 +49,10 @@ export default function ProjectCard({
           </span>
           {memberRole && (
             <span
-              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${
-                memberRole === "Owner"
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${memberRole === "Owner"
                   ? "bg-emerald-100 text-emerald-700"
                   : "bg-sky-100 text-sky-700"
-              }`}
+                }`}
             >
               {memberRole === "Owner" ? "Chủ sở hữu" : "Thành viên"}
             </span>
