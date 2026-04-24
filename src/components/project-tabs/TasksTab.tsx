@@ -264,30 +264,37 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   }, []);
 
-  const openCreateModal = (columnId: number) => {
+  const handleOpenCreateModal = useCallback((columnId: number) => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(null);
     setSelectedColumnId(columnId);
     setTaskComments([]);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const openEditModal = async (task: Task) => {
+  const handleOpenEditModal = useCallback(async (task: Task) => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
     await fetchComments(task.id);
-  };
+  }, [fetchComments]);
+
+  const handleColumnAdded = useCallback((col: any) => {
+    setColumns((prev) => {
+      if (prev.some((c) => c.id === col.id)) return prev;
+      return [...prev, col].sort((a, b) => a.position - b.position);
+    });
+  }, []);
 
   const handleTaskFoundFromUrl = useCallback(
     (taskToOpen: Task) => {
       // Avoid re-triggering if the modal is already open for this task
       if (editingTask?.id !== taskToOpen.id) {
-        openEditModal(taskToOpen);
+        handleOpenEditModal(taskToOpen);
       }
     },
-    [editingTask?.id, openEditModal],
+    [editingTask?.id, handleOpenEditModal],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -603,7 +610,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleAddAssignee = async (taskId: number, assigneeId: string) => {
+  const handleAddAssignee = useCallback(async (taskId: number, assigneeId: string) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}/assignees`, {
@@ -622,9 +629,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       toast.error("Thêm người thực hiện thất bại");
       throw error;
     }
-  };
+  }, [fetchData]);
 
-  const handleRemoveAssignee = async (taskId: number, assigneeId: string) => {
+  const handleRemoveAssignee = useCallback(async (taskId: number, assigneeId: string) => {
     markLocalWrite();
     try {
       const res = await fetch(
@@ -642,9 +649,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       toast.error("xóa người thực hiện thất bại");
       throw error;
     }
-  };
+  }, [fetchData]);
 
-  const handleRemoveAllAssignees = async (taskId: number) => {
+  const handleRemoveAllAssignees = useCallback(async (taskId: number) => {
     markLocalWrite();
     try {
       const res = await fetch(
@@ -662,9 +669,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       toast.error("xóa tất cả người thực hiện thất bại");
       throw error;
     }
-  };
+  }, [fetchData]);
 
-  const handleUpdateColumn = async (columnId: number, newTitle: string) => {
+  const handleUpdateColumn = useCallback(async (columnId: number, newTitle: string) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/columns/${columnId}`, {
@@ -682,9 +689,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       console.error("Failed to update column:", error);
       toast.error("Cập nhật cột thất bại");
     }
-  };
+  }, [fetchData]);
 
-  const handleDeleteColumn = async (columnId: number) => {
+  const handleDeleteColumn = useCallback(async (columnId: number) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/columns/${columnId}`, {
@@ -700,7 +707,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       console.error("Failed to delete column:", error);
       toast.error("Xóa cột thất bại");
     }
-  };
+  }, [fetchData]);
 
   const handleUpdateTaskField = async (taskId: number, updates: Partial<Task>) => {
     markLocalWrite();
@@ -727,52 +734,56 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleToggleComplete = (taskId: number, newValue: boolean) => {
-    const previousValue = tasks.find((t) => t.id === taskId)?.is_completed;
-    const requestSeq = (completionToggleSeqRef.current[taskId] ?? 0) + 1;
-    completionToggleSeqRef.current[taskId] = requestSeq;
+  const handleToggleComplete = useCallback((taskId: number, newValue: boolean) => {
+    // We need the previous value for rollback, but we want to avoid 
+    // re-creating this callback on every task update if possible.
+    // However, since we're using functional updates for state, 
+    // we only need the initial capture for the catch block.
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === taskId);
+      const previousValue = task?.is_completed;
+      
+      const requestSeq = (completionToggleSeqRef.current[taskId] ?? 0) + 1;
+      completionToggleSeqRef.current[taskId] = requestSeq;
 
-    // Optimistic UI: update local state immediately
-    pendingTogglesRef.current.add(taskId);
-    setTasks((prev) =>
-      prev.map((t) =>
+      // Optimistic UI: update local state immediately
+      pendingTogglesRef.current.add(taskId);
+      
+      const now = Date.now();
+      lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
+
+      fetch(`/api/kanban/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_completed: newValue }),
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error();
+          lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
+        })
+        .catch(() => {
+          if (lastLocalWriteRef.current === now) {
+            lastLocalWriteRef.current = 0;
+          }
+          if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
+          setTasks((p) =>
+            p.map((t) =>
+              t.id === taskId && previousValue !== undefined
+                ? { ...t, is_completed: previousValue }
+                : t
+            )
+          );
+          toast.error("Cập nhật trạng thái thất bại");
+        })
+        .finally(() => {
+          pendingTogglesRef.current.delete(taskId);
+        });
+
+      return prev.map((t) =>
         t.id === taskId ? { ...t, is_completed: newValue } : t
-      )
-    );
-
-    // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
-    const now = Date.now();
-    lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
-
-    fetch(`/api/kanban/tasks/${taskId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_completed: newValue }),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        // Refresh the protection window after success
-        lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
-      })
-      .catch(() => {
-        // Rollback on failure
-        if (lastLocalWriteRef.current === now) {
-          lastLocalWriteRef.current = 0;
-        }
-        if (completionToggleSeqRef.current[taskId] !== requestSeq) return;
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId && previousValue !== undefined
-              ? { ...t, is_completed: previousValue }
-              : t
-          )
-        );
-        toast.error("Cập nhật trạng thái thất bại");
-      })
-      .finally(() => {
-        pendingTogglesRef.current.delete(taskId);
-      });
-  };
+      );
+    });
+  }, []);
 
   const handleChecklistsUpdate = useCallback((taskId: number, newChecklists: any[]) => {
     // Map full checklists to the Summary type used by KanbanTask
@@ -840,15 +851,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         currentUserId={user?.id || ""}
         isDraggingRef={isDraggingRef}
         markLocalWrite={markLocalWrite}
-        onColumnAdded={(col) =>
-          setColumns((prev) => {
-            if (prev.some((c) => c.id === col.id)) return prev;
-            return [...prev, col].sort((a, b) => a.position - b.position);
-          })
-        }
+        onColumnAdded={handleColumnAdded}
         onDataChange={fetchData}
-        onTaskClick={openEditModal}
-        onAddTask={openCreateModal}
+        onTaskClick={handleOpenEditModal}
+        onAddTask={handleOpenCreateModal}
         onUpdateColumn={handleUpdateColumn}
         onDeleteColumn={handleDeleteColumn}
         onAddLabel={handleAddLabel}

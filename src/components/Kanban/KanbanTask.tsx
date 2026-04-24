@@ -55,7 +55,7 @@ function getChecklistProgress(checklists?: ChecklistSummary[]) {
   return { total, completed };
 }
 
-export function KanbanTask({
+export const KanbanTask = memo(function KanbanTask({
   id,
   index,
   title,
@@ -463,4 +463,4 @@ export function KanbanTask({
       )}
     </Draggable>
   );
-}
+});
