@@ -40,14 +40,21 @@ export function ChatTab({ projectId }: { projectId: number }) {
 
   // Handle scroll to top for pagination
   const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      if (
-        scrollContainerRef.current.scrollTop === 0 &&
-        hasMore &&
-        !loadingMore
-      ) {
-        loadMore();
-      }
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (container.scrollTop === 0 && hasMore && !loadingMore) {
+      // Capture the current scrollHeight before loadMore prepends messages
+      const prevScrollHeight = container.scrollHeight;
+
+      loadMore().then(() => {
+        // After React re-renders with the prepended messages, restore the
+        // reading position so the viewport doesn't jump to the top.
+        requestAnimationFrame(() => {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop = newScrollHeight - prevScrollHeight;
+        });
+      });
     }
   };
 

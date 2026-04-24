@@ -112,14 +112,28 @@ export function useChat(boardId: number, currentUserId?: string) {
   const deleteMessage = async (messageId: string) => {
     if (!currentUserId) return;
     
-    // Optimistic delete with rollback
-    const prevMessages = messages;
-    setMessages(prev => prev.filter(m => m.id !== messageId));
+    // Optimistic delete: find the message first so we can re-insert on failure
+    let deletedMsg: ChatMessage | undefined;
+    setMessages(prev => {
+      deletedMsg = prev.find(m => m.id === messageId);
+      return prev.filter(m => m.id !== messageId);
+    });
     
     const { error } = await supabase.from("messages").delete().eq("id", messageId);
     if (error) {
-      console.error("Error deleting message, rolling back:", error);
-      setMessages(prevMessages);
+      console.error("Error deleting message, re-inserting locally:", error);
+      // Targeted inverse patch: re-insert only the deleted message in sorted
+      // position by created_at so we don't overwrite any realtime updates.
+      if (deletedMsg) {
+        const msg = deletedMsg;
+        setMessages(prev => {
+          const insertIdx = prev.findIndex(m => m.created_at > msg.created_at);
+          if (insertIdx === -1) return [...prev, msg];
+          const next = [...prev];
+          next.splice(insertIdx, 0, msg);
+          return next;
+        });
+      }
     }
   };
 

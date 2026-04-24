@@ -35,7 +35,7 @@ export function ChatMessageBubble({
 
   const avatarUrl =
     message.users?.avatar_url ||
-    "https://ui-avatars.com/api/?name=" + (message.users?.display_name || "U");
+    "https://ui-avatars.com/api/?name=" + encodeURIComponent(message.users?.display_name || "U");
   const displayName = message.users?.display_name || "Thành viên";
 
   // Format time (e.g. 10:30)
