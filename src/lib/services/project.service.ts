@@ -1,4 +1,4 @@
-import { Board, JoinedBoard } from "@/types/project";
+import { Board, JoinedBoard } from "@/lib/types/project";
 
 // ── Fetch all boards (owned + joined) ──
 export async function fetchUserBoards(): Promise<{

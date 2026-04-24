@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Notification } from "@/types/project";
+import { Notification } from "@/lib/types/project";
 import { toast } from "sonner";
 import { triggerDeadlineNotifications } from "@/app/actions/notification.actions";
 
@@ -48,7 +48,7 @@ export function useNotifications(userId: string | undefined) {
 
   const hideAllNotifications = async () => {
     const toHide = notifications.filter(n => !n.content.startsWith("[DELETED]"));
-    
+
     const previousNotifications = [...notifications];
     const previousUnreadCount = unreadCount;
 

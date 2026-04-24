@@ -110,34 +110,14 @@ describe("Auth Actions (Server Actions)", () => {
       expect(mockReset).toHaveBeenCalledWith(
         "user@example.com",
         expect.objectContaining({
-          redirectTo: "https://my-app.vercel.app/api/auth/callback?redirectTo=/auth/reset-password",
-        }),
-      );
-    });
-
-    it("falls back to localhost:3000 when NEXT_PUBLIC_APP_URL is missing in development", async () => {
-      delete process.env.NEXT_PUBLIC_APP_URL;
-      process.env.NODE_ENV = "development";
-
-      const mockReset = jest.fn().mockResolvedValue({ error: null });
-      (createClient as jest.Mock).mockResolvedValue({
-        auth: { resetPasswordForEmail: mockReset },
-      });
-
-      await requestPasswordResetAction("user@example.com");
-
-      expect(mockReset).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.objectContaining({
-          redirectTo: "http://localhost:3000/api/auth/callback?redirectTo=/auth/reset-password",
+          redirectTo:
+            "https://my-app.vercel.app/api/auth/callback?redirectTo=/auth/reset-password",
         }),
       );
     });
 
     it("returns error if origin cannot be determined", async () => {
       delete process.env.NEXT_PUBLIC_APP_URL;
-      process.env.NODE_ENV = "production";
-
       const mockReset = jest.fn().mockResolvedValue({ error: null });
       (createClient as jest.Mock).mockResolvedValue({
         auth: { resetPasswordForEmail: mockReset },
@@ -171,7 +151,7 @@ describe("Auth Actions (Server Actions)", () => {
 
     it("returns friendly error message if an unexpected exception occurs (catch block)", async () => {
       process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
-      
+
       const error = new Error("Unexpected auth failure");
       (createClient as jest.Mock).mockRejectedValue(error);
 

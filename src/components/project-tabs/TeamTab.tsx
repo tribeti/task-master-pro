@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
-import { BoardMember } from "@/types/project";
+import { BoardMember } from "@/lib/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
@@ -250,103 +250,102 @@ export function TeamTab({ boardId }: TeamTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
         {loading
           ? // Skeleton loading cards
-            Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
-              >
-                <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-                <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-                <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-                <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
-              </div>
-            ))
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
+            >
+              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
+              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
+              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
+              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+            </div>
+          ))
           : filteredMembers.map((member, index) => {
-              const colors = getAvatarColor(index);
-              return (
-                <div
-                  key={member.user_id}
-                  className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
-                >
-                  {isCurrentUserOwner && member.role !== "Owner" && (
-                    <button
-                      onClick={() => setMemberToRemove(member)}
-                      title="Xóa thành viên"
-                      className="absolute top-6 right-6 text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors rounded-full p-2"
+            const colors = getAvatarColor(index);
+            return (
+              <div
+                key={member.user_id}
+                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+              >
+                {isCurrentUserOwner && member.role !== "Owner" && (
+                  <button
+                    onClick={() => setMemberToRemove(member)}
+                    title="Xóa thành viên"
+                    className="absolute top-6 right-6 text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors rounded-full p-2"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
+                )}
+
+                {/* Avatar */}
+                <div className="relative mb-4">
+                  <TeamMemberAvatar
+                    avatarUrl={member.avatar_url}
+                    displayName={member.display_name}
+                    colors={colors}
+                    className="w-24 h-24"
+                  />
+                </div>
+                {/* Name & Role */}
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  {member.display_name}
+                  {member.role === "Owner" && (
+                    <span
+                      title="Chủ dự án"
+                      className="inline-flex items-center"
                     >
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
+                        className="w-5 h-5 text-amber-500"
                         viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        fill="currentColor"
                       >
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                        <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
                       </svg>
-                    </button>
+                    </span>
                   )}
-
-                  {/* Avatar */}
-                  <div className="relative mb-4">
-                    <TeamMemberAvatar
-                      avatarUrl={member.avatar_url}
-                      displayName={member.display_name}
-                      colors={colors}
-                      className="w-24 h-24"
-                    />
-                  </div>
-                  {/* Name & Role */}
-                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                    {member.display_name}
-                    {member.role === "Owner" && (
-                      <span
-                        title="Chủ dự án"
-                        className="inline-flex items-center"
-                      >
-                        <svg
-                          className="w-5 h-5 text-amber-500"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
-                        </svg>
-                      </span>
-                    )}
-                  </h3>
-                  <p
-                    className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${
-                      member.role === "Owner"
-                        ? "text-amber-500"
-                        : "text-slate-400"
+                </h3>
+                <p
+                  className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${member.role === "Owner"
+                      ? "text-amber-500"
+                      : "text-slate-400"
                     }`}
-                  >
-                    {member.role === "Owner" ? "Chủ dự án" : member.role}
-                  </p>
+                >
+                  {member.role === "Owner" ? "Chủ dự án" : member.role}
+                </p>
 
-                  {/* Joined date */}
-                  <div className="w-full mb-6">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-400">Joined</span>
-                      <span className="text-slate-600">
-                        {new Date(member.joined_at).toLocaleDateString("vi-VN")}
-                      </span>
-                    </div>
+                {/* Joined date */}
+                <div className="w-full mb-6">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-400">Joined</span>
+                    <span className="text-slate-600">
+                      {new Date(member.joined_at).toLocaleDateString("vi-VN")}
+                    </span>
                   </div>
-
-                  <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
-                    View Profile
-                  </button>
                 </div>
-              );
-            })}
+
+                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                  View Profile
+                </button>
+              </div>
+            );
+          })}
 
         {/* Add Member Card */}
         <div

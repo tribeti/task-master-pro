@@ -22,7 +22,7 @@ import {
   KanbanColumn as Column,
   KanbanTask as Task,
   BoardMember,
-} from "@/types/project";
+} from "@/lib/types/project";
 
 function TaskUrlHandler({
   tasks,

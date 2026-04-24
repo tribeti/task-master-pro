@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { Comment } from "@/types/project";
+import { Comment } from "@/lib/types/project";
 
 // ────────────────────────────────────────────────
 // GET /api/tasks/[taskId]/comments
@@ -155,7 +155,7 @@ export async function POST(
     // Resolve task → column → board to verify access (Reuse GET logic or use verifyTaskAccess)
     // For consistency with this file's pattern, we inline the access check or import a helper.
     // The previous POST used verifyTaskAccess helper. Let's stick to the inline pattern here for consistency with GET.
-    
+
     // Check owner or member access via task
     const { data: task, error: taskErr } = await supabase
       .from("tasks")

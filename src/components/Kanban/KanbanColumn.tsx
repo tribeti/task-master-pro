@@ -12,7 +12,7 @@ import {
   KanbanColumn as ColumnType,
   KanbanTask as KanbanTaskType,
   Label,
-} from "@/types/project";
+} from "@/lib/types/project";
 import { KanbanTask } from "./KanbanTask";
 import { toast } from "sonner";
 
@@ -231,44 +231,45 @@ export const KanbanColumn = memo(function KanbanColumn({
               const visibleTasks = tasks;
 
               return (
-              <div
-                ref={droppableProvided.innerRef}
-                {...droppableProvided.droppableProps}
-                className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 overflow-y-auto scroll-smooth kanban-scroll flex-1 ${droppableSnapshot.isDraggingOver
-                  ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
-                  : ""
-                  }`}
-              >
-                {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
-                  <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
-                    Chưa có nhiệm vụ
-                  </div>
-                )}
-                {visibleTasks.map((task, taskIndex) => (
-                  <KanbanTask
-                    key={task.id}
-                    id={task.id}
-                    index={taskIndex}
-                    title={task.title}
-                    priority={task.priority}
-                    description={task.description || undefined}
-                    labels={task.labels}
-                    deadline={task.deadline}
-                    assignee={task.assignee}
-                    assignees={task.assignees}
-                    boardLabels={boardLabels}
-                    onAddLabel={onAddLabel}
-                    onRemoveLabel={onRemoveLabel}
-                    onClick={() => onTaskClick(task)}
-                    isDragDisabled={isDragDisabled}
-                    checklists={task.checklists}
-                    isCompleted={task.is_completed}
-                    onToggleComplete={onToggleComplete}
-                  />
-                ))}
-                {droppableProvided.placeholder}
-              </div>
-            )}
+                <div
+                  ref={droppableProvided.innerRef}
+                  {...droppableProvided.droppableProps}
+                  className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 overflow-y-auto scroll-smooth kanban-scroll flex-1 ${droppableSnapshot.isDraggingOver
+                    ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
+                    : ""
+                    }`}
+                >
+                  {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
+                    <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
+                      Chưa có nhiệm vụ
+                    </div>
+                  )}
+                  {visibleTasks.map((task, taskIndex) => (
+                    <KanbanTask
+                      key={task.id}
+                      id={task.id}
+                      index={taskIndex}
+                      title={task.title}
+                      priority={task.priority}
+                      description={task.description || undefined}
+                      labels={task.labels}
+                      deadline={task.deadline}
+                      assignee={task.assignee}
+                      assignees={task.assignees}
+                      boardLabels={boardLabels}
+                      onAddLabel={onAddLabel}
+                      onRemoveLabel={onRemoveLabel}
+                      onClick={() => onTaskClick(task)}
+                      isDragDisabled={isDragDisabled}
+                      checklists={task.checklists}
+                      isCompleted={task.is_completed}
+                      onToggleComplete={onToggleComplete}
+                    />
+                  ))}
+                  {droppableProvided.placeholder}
+                </div>
+              )
+            }
             }
           </Droppable>
           <button

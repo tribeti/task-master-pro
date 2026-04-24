@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { XIcon } from "@/components/icons";
-import { Label, Comment, TaskAssignee, BoardMember } from "@/types/project";
+import { Label, Comment, TaskAssignee, BoardMember } from "@/lib/types/project";
 import { TaskLabels } from "./task-details/TaskLabels";
 import { TaskChecklist } from "./task-details/TaskChecklist";
 import { TaskAssignees } from "./task-details/TaskAssignees";
@@ -230,11 +230,10 @@ export function TaskDetailsModal({
                       }
                     }
                   }}
-                  className={`w-full bg-white text-slate-900 px-4 py-2.5 border rounded-xl text-sm font-semibold placeholder-slate-400 focus:outline-none transition-colors ${
-                    nameError
+                  className={`w-full bg-white text-slate-900 px-4 py-2.5 border rounded-xl text-sm font-semibold placeholder-slate-400 focus:outline-none transition-colors ${nameError
                       ? "border-red-400 focus:border-red-400"
                       : "border-slate-200 focus:border-[#28B8FA]"
-                  }`}
+                    }`}
                   required
                   maxLength={29}
                   autoFocus
@@ -276,7 +275,7 @@ export function TaskDetailsModal({
                               } catch (error) {
                                 if (
                                   session ===
-                                    updateSessionsRef.current.priority &&
+                                  updateSessionsRef.current.priority &&
                                   original
                                 ) {
                                   setPriority(original);
@@ -285,11 +284,10 @@ export function TaskDetailsModal({
                             }
                           }}
                           disabled={isSubmitting}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            priority === p
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${priority === p
                               ? colors[p]
                               : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                          }`}
+                            }`}
                         >
                           {p}
                         </button>
