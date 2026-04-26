@@ -13,7 +13,6 @@ export function TaskPreviewModal({
   onClose,
 }: {
   task: TimelineTask;
-  task: TimelineTask;
   onClose: () => void;
 }) {
   const { profile } = useDashboardUser();
@@ -50,7 +49,9 @@ export function TaskPreviewModal({
         <button
           onClick={onClose}
           className={`absolute top-6 right-6 transition-colors z-10 p-1 rounded-full backdrop-blur-md ${
-            isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-white/80"
+            isCozy
+              ? "bg-slate-800 text-slate-500 hover:text-white"
+              : "text-slate-400 hover:text-slate-600 bg-white/80"
           }`}
         >
           <XIcon />
@@ -82,7 +83,9 @@ export function TaskPreviewModal({
                   </span>
                 )}
             </div>
-            <h2 className={`text-2xl font-bold mt-3 ${isCozy ? "text-white" : "text-slate-900"}`}>
+            <h2
+              className={`text-2xl font-bold mt-3 ${isCozy ? "text-white" : "text-slate-900"}`}
+            >
               {task.title}
             </h2>
           </div>
@@ -93,9 +96,13 @@ export function TaskPreviewModal({
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
                 Mô tả
               </label>
-              <p className={`text-sm leading-relaxed rounded-2xl p-4 border ${
-                isCozy ? "bg-slate-900 border-slate-800 text-slate-400" : "bg-slate-50 text-slate-600 border-slate-100"
-              }`}>
+              <p
+                className={`text-sm leading-relaxed rounded-2xl p-4 border ${
+                  isCozy
+                    ? "bg-slate-900 border-slate-800 text-slate-400"
+                    : "bg-slate-50 text-slate-600 border-slate-100"
+                }`}
+              >
                 {task.description}
               </p>
             </div>
@@ -103,11 +110,15 @@ export function TaskPreviewModal({
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
-            <div className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}>
+            <div
+              className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}
+            >
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
                 Ngày tạo
               </label>
-              <p className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}>
+              <p
+                className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}
+              >
                 {task.created_at
                   ? new Date(task.created_at).toLocaleDateString("vi-VN", {
                       day: "2-digit",
@@ -117,7 +128,9 @@ export function TaskPreviewModal({
                   : "—"}
               </p>
             </div>
-            <div className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}>
+            <div
+              className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}
+            >
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
                 Hạn chót
               </label>
@@ -127,7 +140,9 @@ export function TaskPreviewModal({
                     ? "text-red-500"
                     : daysLeft !== null && daysLeft <= 3
                       ? "text-amber-500"
-                      : (isCozy ? "text-slate-300" : "text-slate-700")
+                      : isCozy
+                        ? "text-slate-300"
+                        : "text-slate-700"
                 }`}
               >
                 {hasDeadline
@@ -177,16 +192,24 @@ export function TaskPreviewModal({
                   <div
                     key={a.user_id}
                     className={`flex items-center gap-2 rounded-full pr-4 pl-1 py-1 border transition-colors ${
-                      isCozy ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-100"
+                      isCozy
+                        ? "bg-slate-900 border-slate-800"
+                        : "bg-slate-50 border-slate-100"
                     }`}
                   >
                     <UserAvatar
                       avatarUrl={a.avatar_url}
                       displayName={a.display_name}
                       className="w-8 h-8"
-                      fallbackClassName={isCozy ? "bg-slate-800 text-slate-400" : "bg-[#EAF7FF] text-[#0284C7]"}
+                      fallbackClassName={
+                        isCozy
+                          ? "bg-slate-800 text-slate-400"
+                          : "bg-[#EAF7FF] text-[#0284C7]"
+                      }
                     />
-                    <span className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}>
+                    <span
+                      className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}
+                    >
                       {a.display_name}
                     </span>
                   </div>
