@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { BoardMember, TaskAssignee } from "@/lib/types/project";
 
 interface TaskAssigneesProps {
@@ -25,6 +26,8 @@ export function TaskAssignees({
   onRemoveAllAssignees,
   boardMembers,
 }: TaskAssigneesProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [assigneeSubmitting, setAssigneeSubmitting] = useState(false);
   const [assigneeError, setAssigneeError] = useState("");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
@@ -91,7 +94,7 @@ export function TaskAssignees({
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">
+      <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 mt-1 ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
         Người thực hiện
       </h3>
 
@@ -100,7 +103,9 @@ export function TaskAssignees({
           {currentAssignees.map((taskAssignee) => (
             <div
               key={taskAssignee.user_id}
-              className="inline-flex items-center justify-between w-full gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+              className={`inline-flex items-center justify-between w-full gap-2 rounded-xl border px-3 py-2 shadow-sm transition-colors ${
+                isCozy ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+              }`}
             >
               <div className="flex flex-1 items-center gap-2 overflow-hidden">
                 <UserAvatar
@@ -108,7 +113,7 @@ export function TaskAssignees({
                   displayName={taskAssignee.display_name}
                   className="w-6 h-6 flex-shrink-0"
                 />
-                <span className="text-sm font-semibold text-slate-700 truncate">
+                <span className={`text-sm font-semibold truncate ${isCozy ? "text-slate-300" : "text-slate-700"}`}>
                   {taskAssignee.display_name}
                 </span>
               </div>
@@ -116,7 +121,7 @@ export function TaskAssignees({
                 type="button"
                 onClick={() => handleRemoveAssigneeClick(taskAssignee.user_id)}
                 disabled={assigneeSubmitting || isSubmitting}
-                className="text-slate-400 hover:text-red-500 transition-colors px-1"
+                className={`transition-colors px-1 ${isCozy ? "text-slate-600 hover:text-red-400" : "text-slate-400 hover:text-red-500"}`}
               >
                 ×
               </button>
@@ -139,7 +144,11 @@ export function TaskAssignees({
           value={selectedAssigneeId}
           onChange={(e) => setSelectedAssigneeId(e.target.value)}
           disabled={assigneeSubmitting || isSubmitting}
-          className="w-full appearance-none rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors disabled:opacity-50"
+          className={`w-full appearance-none rounded-xl cursor-pointer px-4 py-2.5 text-sm font-semibold outline-none transition-colors disabled:opacity-50 ${
+            isCozy 
+              ? "bg-slate-900 hover:bg-slate-800 text-slate-300" 
+              : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+          }`}
         >
           <option value="">Gán thành viên...</option>
           {availableAssigneeOptions.map((member) => (
@@ -164,7 +173,11 @@ export function TaskAssignees({
           type="button"
           onClick={handleAddAssigneeClick}
           disabled={assigneeSubmitting || isSubmitting}
-          className="w-full mt-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          className={`w-full mt-1 font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 ${
+            isCozy 
+              ? "bg-[#FF8B5E] hover:bg-orange-600 text-white" 
+              : "bg-slate-900 hover:bg-slate-800 text-white"
+          }`}
         >
           {assigneeSubmitting ? "Đang lưu..." : "Xác nhận thêm"}
         </button>

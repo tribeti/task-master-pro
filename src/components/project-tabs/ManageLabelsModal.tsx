@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { Label } from "@/lib/types/project";
 
 interface ManageLabelsModalProps {
@@ -35,6 +36,8 @@ export function ManageLabelsModal({
   onCreateLabel,
   onDeleteLabel,
 }: ManageLabelsModalProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [labelName, setLabelName] = useState("");
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
   const [customColor, setCustomColor] = useState(PRESET_COLORS[0]);
@@ -78,17 +81,23 @@ export function ManageLabelsModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200"
+      className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200 ${
+        isCozy ? "bg-slate-950/60" : "bg-slate-900/40"
+      }`}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className={`rounded-[2.5rem] shadow-2xl w-full max-w-lg relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh] transition-colors duration-500 ${
+          isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
+          className={`absolute top-6 right-6 transition-colors z-10 p-1 rounded-full backdrop-blur-md ${
+            isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-white/80"
+          }`}
         >
           <XIcon />
         </button>
@@ -96,15 +105,15 @@ export function ManageLabelsModal({
         <div className="p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Header */}
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Manage Labels</h2>
-            <p className="text-sm text-slate-400 font-medium mt-1">
+            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>Manage Labels</h2>
+            <p className={`text-sm font-medium mt-1 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
               Tạo và quản lý nhãn màu cho board này.
             </p>
           </div>
 
           {/* ── Create new label ── */}
-          <div className="bg-slate-50 rounded-2xl p-5 flex flex-col gap-4">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <div className={`rounded-2xl p-5 flex flex-col gap-4 transition-colors ${isCozy ? "bg-slate-900/40" : "bg-slate-50"}`}>
+            <p className={`text-xs font-black uppercase tracking-widest ${isCozy ? "text-slate-600" : "text-slate-500"}`}>
               Tạo nhãn mới
             </p>
 
@@ -120,9 +129,10 @@ export function ManageLabelsModal({
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
                 disabled={isCreating}
-                className={`w-full bg-white text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError
-                    ? "border-red-400 focus:border-red-400"
-                    : "border-slate-200 focus:border-[#28B8FA]"
+                className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${
+                  isCozy 
+                    ? (nameError ? "border-red-500 bg-slate-900 text-white" : "bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]")
+                    : (nameError ? "border-red-400 focus:border-red-400" : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]")
                   }`}
               />
               {nameError && (
@@ -208,7 +218,7 @@ export function ManageLabelsModal({
                 >
                   {labelName || "Preview"}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">{selectedColor}</span>
+                <span className={`text-xs font-mono ${isCozy ? "text-slate-600" : "text-slate-400"}`}>{selectedColor}</span>
               </div>
             </div>
 
@@ -217,7 +227,11 @@ export function ManageLabelsModal({
               type="button"
               onClick={handleCreate}
               disabled={isCreating || !labelName.trim()}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className={`w-full py-3 rounded-2xl text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                isCozy 
+                  ? "bg-[#FF8B5E] text-white hover:bg-orange-600" 
+                  : "bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white"
+              }`}
             >
               {isCreating ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -235,7 +249,7 @@ export function ManageLabelsModal({
 
           {/* ── Existing labels list ── */}
           <div>
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+            <p className={`text-xs font-black uppercase tracking-widest mb-3 ${isCozy ? "text-slate-600" : "text-slate-500"}`}>
               Nhãn hiện có ({boardLabels.length})
             </p>
 
@@ -248,7 +262,9 @@ export function ManageLabelsModal({
                 {boardLabels.map((label) => (
                   <div
                     key={label.id}
-                    className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-2xl"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors ${
+                      isCozy ? "bg-slate-900/60" : "bg-slate-50"
+                    }`}
                   >
                     {/* Color stripe preview */}
                     <div
@@ -263,7 +279,7 @@ export function ManageLabelsModal({
                       {label.name}
                     </span>
                     {/* Hex code */}
-                    <span className="text-xs text-slate-400 font-mono flex-1">
+                    <span className={`text-xs font-mono flex-1 ${isCozy ? "text-slate-600" : "text-slate-400"}`}>
                       {label.color_hex}
                     </span>
                     {/* Delete button */}
@@ -271,7 +287,9 @@ export function ManageLabelsModal({
                       type="button"
                       onClick={() => handleDelete(label.id)}
                       disabled={deletingId === label.id}
-                      className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
+                      className={`p-2 rounded-xl transition-all disabled:opacity-50 ${
+                        isCozy ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      }`}
                       title="Xóa nhãn"
                     >
                       {deletingId === label.id ? (

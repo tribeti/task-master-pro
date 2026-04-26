@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Label } from "@/lib/types/project";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 const INLINE_LABEL_PRESET_COLORS = [
   "#FF8B5E",
@@ -35,6 +36,8 @@ export function TaskLabels({
   onRemoveLabel,
   onCreateAndAssignLabel,
 }: TaskLabelsProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [selectedLabelId, setSelectedLabelId] = useState<number | "">("");
   const [labelSubmitting, setLabelSubmitting] = useState(false);
   const [showCreateLabelForm, setShowCreateLabelForm] = useState(false);
@@ -110,19 +113,21 @@ export function TaskLabels({
 
   return (
     <div>
-      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+      <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
         Nhãn
       </label>
 
       <div className="flex flex-wrap gap-2 mb-3 min-h-[1.75rem]">
         {taskLabels.length === 0 ? (
-          <span className="text-sm text-slate-400 italic">Chưa có nhãn</span>
+          <span className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}>Chưa có nhãn</span>
         ) : (
           taskLabels.map((label) => (
             <div
               key={label.id}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-slate-900 shadow-sm"
-              style={{ backgroundColor: label.color_hex || "#E2E8F0" }}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+                isCozy ? "text-slate-900" : "text-slate-900"
+              }`}
+              style={{ backgroundColor: label.color_hex || (isCozy ? "#334155" : "#E2E8F0") }}
             >
               <span>{label.name}</span>
               <button
@@ -146,7 +151,11 @@ export function TaskLabels({
               setSelectedLabelId(e.target.value ? Number(e.target.value) : "")
             }
             disabled={labelSubmitting || isSubmitting}
-            className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm font-semibold text-slate-700 shadow-sm outline-none transition-all focus:border-[#28B8FA] cursor-pointer disabled:opacity-50"
+            className={`w-full appearance-none rounded-xl border px-4 py-2.5 pr-11 text-sm font-semibold shadow-sm outline-none transition-all cursor-pointer disabled:opacity-50 ${
+              isCozy 
+                ? "bg-slate-900 border-slate-800 text-slate-300 focus:border-[#FF8B5E]" 
+                : "bg-white border-slate-200 text-slate-700 focus:border-[#28B8FA]"
+            }`}
           >
             <option value="">Chọn nhãn có sẵn...</option>
             {availableLabels.map((label) => (
@@ -175,16 +184,22 @@ export function TaskLabels({
           type="button"
           onClick={handleAddLabelClick}
           disabled={!selectedLabelId || labelSubmitting || isSubmitting}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-sm hover:bg-slate-800 transition-all disabled:opacity-50"
+          className={`px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-50 ${
+            isCozy 
+              ? "bg-[#FF8B5E] text-white hover:bg-orange-600" 
+              : "bg-slate-900 text-white hover:bg-slate-800"
+          }`}
         >
           {labelSubmitting ? "..." : "Thêm"}
         </button>
       </div>
 
-      <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+      <div className={`mt-3 rounded-xl border border-dashed p-4 transition-colors ${
+        isCozy ? "border-slate-800 bg-slate-900/40" : "border-slate-200 bg-slate-50/80"
+      }`}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-slate-800">Tạo nhãn mới</p>
+            <p className={`text-sm font-bold ${isCozy ? "text-slate-300" : "text-slate-800"}`}>Tạo nhãn mới</p>
           </div>
           <button
             type="button"
@@ -193,7 +208,11 @@ export function TaskLabels({
               setCustomLabelError("");
             }}
             disabled={labelSubmitting || isSubmitting}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#28B8FA] hover:text-[#28B8FA] transition-all disabled:opacity-50"
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all disabled:opacity-50 ${
+              isCozy 
+                ? "bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-[#FF8B5E]" 
+                : "bg-white border-slate-200 text-slate-600 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+            }`}
           >
             {showCreateLabelForm ? "Ẩn" : "Tùy chỉnh"}
           </button>
@@ -213,9 +232,10 @@ export function TaskLabels({
                 }}
                 placeholder="e.g. Bug, Backend, QA"
                 disabled={labelSubmitting || isSubmitting}
-                className={`w-full rounded-xl border bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition-colors ${customLabelError
-                    ? "border-red-400 focus:border-red-400"
-                    : "border-slate-200 focus:border-[#28B8FA]"
+                className={`w-full rounded-xl border px-3 py-2 text-sm font-medium outline-none transition-colors ${
+                  isCozy 
+                    ? (customLabelError ? "bg-slate-900 border-red-500 text-white" : "bg-slate-900 border-slate-700 text-white focus:border-[#FF8B5E]")
+                    : (customLabelError ? "bg-white border-red-400 focus:border-red-400" : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]")
                   }`}
               />
               {customLabelError && (
@@ -242,7 +262,9 @@ export function TaskLabels({
               ))}
 
               <label
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-50"
+                className={`flex items-center gap-2 rounded-lg border px-2 py-1 text-xs font-bold cursor-pointer transition-colors ${
+                  isCozy ? "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
                 title="Chọn màu tùy chỉnh"
               >
                 <input
@@ -270,7 +292,9 @@ export function TaskLabels({
                 disabled={
                   labelSubmitting || isSubmitting || !customLabelName.trim()
                 }
-                className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-sm hover:bg-slate-800 transition-all disabled:opacity-50"
+                className={`w-full py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-50 ${
+                  isCozy ? "bg-[#FF8B5E] text-white hover:bg-orange-600" : "bg-slate-900 text-white hover:bg-slate-800"
+                }`}
               >
                 {labelSubmitting ? "Đang tạo..." : "Tạo và gán nhãn"}
               </button>

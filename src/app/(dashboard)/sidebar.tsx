@@ -15,6 +15,7 @@ import {
   BellIcon,
 } from "@/components/icons";
 import { useNotifications } from "@/lib/hooks/useNotifications";
+import { useDashboardUser } from "./provider";
 
 const NAV_ITEMS = [
   { href: "/command", label: "Bảng điều khiển", icon: GridIcon },
@@ -23,6 +24,8 @@ const NAV_ITEMS = [
 ];
 
 export default function DashboardSidebar({ user }: { user: User }) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -68,21 +71,29 @@ export default function DashboardSidebar({ user }: { user: User }) {
   };
 
   return (
-    <aside className="w-auto bg-white border-r border-slate-100 flex flex-col justify-between md:flex z-10">
+    <aside className={`w-auto flex flex-col justify-between md:flex z-10 transition-colors duration-500 border-r ${
+      isCozy 
+        ? "bg-[#0F172A] border-slate-800" 
+        : "bg-white border-slate-100"
+    }`}>
       <div>
         {/* Logo */}
         <Link
           href="/command"
           className="w-full h-24 flex items-center px-8 gap-3 cursor-pointer"
         >
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-[#28B8FA] flex items-center justify-center shadow-md shadow-cyan-200">
+          <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center shadow-md transition-colors ${
+            isCozy ? "bg-[#FF8B5E] shadow-orange-900/20" : "bg-[#28B8FA] shadow-cyan-200"
+          }`}>
             <BoltIcon />
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-xl tracking-tight text-slate-900 italic">
+            <span className={`font-bold text-xl tracking-tight italic transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
               TASKMASTER
             </span>
-            <span className="font-bold text-black italic text-[10px] tracking-widest bg-linear-to-br from-cyan-400 to-cyan-600 px-1.5 py-0.5 rounded-md">
+            <span className={`font-bold italic text-[10px] tracking-widest px-1.5 py-0.5 rounded-md transition-colors ${
+              isCozy ? "bg-[#FF8B5E] text-white" : "bg-linear-to-br from-cyan-400 to-cyan-600 text-black"
+            }`}>
               PRO
             </span>
           </div>
@@ -98,8 +109,8 @@ export default function DashboardSidebar({ user }: { user: User }) {
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${isActive
-                    ? "bg-[#EAF7FF] text-[#28B8FA]"
-                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                    ? (isCozy ? "bg-slate-800 text-[#FF8B5E]" : "bg-[#EAF7FF] text-[#28B8FA]")
+                    : (isCozy ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50")
                   }`}
               >
                 <Icon /> {item.label}
@@ -114,8 +125,8 @@ export default function DashboardSidebar({ user }: { user: User }) {
         <Link
           href="/notifications"
           className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors relative ${pathname === "/notifications"
-              ? "bg-[#EAF7FF] text-[#28B8FA]"
-              : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
+              ? (isCozy ? "bg-slate-800 text-[#FF8B5E]" : "bg-[#EAF7FF] text-[#28B8FA]")
+              : (isCozy ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800" : "text-slate-400 hover:text-slate-800 hover:bg-slate-50")
             }`}
         >
           <div className="relative">
@@ -132,8 +143,8 @@ export default function DashboardSidebar({ user }: { user: User }) {
         <Link
           href="/profile"
           className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${pathname === "/profile"
-              ? "bg-[#EAF7FF] text-[#28B8FA]"
-              : "text-slate-400 hover:text-slate-800 hover:bg-slate-50"
+              ? (isCozy ? "bg-slate-800 text-[#FF8B5E]" : "bg-[#EAF7FF] text-[#28B8FA]")
+              : (isCozy ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800" : "text-slate-400 hover:text-slate-800 hover:bg-slate-50")
             }`}
         >
           <SettingsIcon /> Cài đặt
@@ -141,13 +152,17 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors text-slate-400 hover:text-red-500 hover:bg-red-50"
+          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-[15px] transition-colors ${
+            isCozy 
+              ? "text-slate-500 hover:text-red-400 hover:bg-red-900/10" 
+              : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+          }`}
         >
           <LogOutIcon /> Đăng xuất
         </button>
 
         {/* User Info */}
-        <div className="flex items-center gap-3 px-4 pt-4 mt-2 border-t border-slate-100">
+        <div className={`flex items-center gap-3 px-4 pt-4 mt-2 border-t transition-colors ${isCozy ? "border-slate-800" : "border-slate-100"}`}>
           <img
             src={sidebarAvatar}
             onError={(e) => {
@@ -157,10 +172,10 @@ export default function DashboardSidebar({ user }: { user: User }) {
             className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white shadow-sm object-cover"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800 truncate">
+            <p className={`text-sm font-bold truncate transition-colors ${isCozy ? "text-white" : "text-slate-800"}`}>
               {sidebarName}
             </p>
-            <p className="text-[10px] font-bold text-[#34D399] uppercase tracking-widest">
+            <p className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"}`}>
               Peak Flow
             </p>
           </div>

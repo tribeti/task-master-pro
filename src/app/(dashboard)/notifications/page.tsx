@@ -10,7 +10,8 @@ import { formatRelativeTime } from "@/utils/time";
 import { useRouter } from "next/navigation";
 
 export default function NotificationsPage() {
-  const { user } = useDashboardUser();
+  const { user, profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const router = useRouter();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, hideNotification, hideAllNotifications } =
     useNotifications(user?.id);
@@ -31,13 +32,13 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-10 pt-10 pb-20 bg-[#F8FAFC]">
+    <div className={`flex-1 overflow-y-auto px-10 pt-10 pb-20 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-[2.5rem] font-black text-slate-900 tracking-tight leading-none mb-2">
+          <h1 className={`text-[2.5rem] font-black tracking-tight leading-none mb-2 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
             Thông báo
           </h1>
-          <p className="text-slate-500 font-medium text-base">
+          <p className={`font-medium text-base transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
             Cập nhật các hạn chót và thông báo mới nhất về dự án của bạn.
           </p>
         </div>
@@ -45,7 +46,9 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF] transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
+              className={`transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0 ${
+                isCozy ? "bg-[#FF8B5E]/20 text-[#FF8B5E] hover:bg-[#FF8B5E]/30" : "bg-[#EAF7FF] text-[#28B8FA] hover:bg-[#D5EFFF]"
+              }`}
             >
               {unreadCount} CHƯA ĐỌC
             </button>
@@ -53,7 +56,9 @@ export default function NotificationsPage() {
           {notifications.length > 0 && (
             <button
               onClick={hideAllNotifications}
-              className="bg-red-50 text-red-500 hover:bg-red-100 transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0"
+              className={`transition-colors px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest self-start md:self-auto shrink-0 ${
+                isCozy ? "bg-red-900/20 text-red-400 hover:bg-red-900/30" : "bg-red-50 text-red-500 hover:bg-red-100"
+              }`}
             >
               Xóa tất cả
             </button>
@@ -66,16 +71,20 @@ export default function NotificationsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse bg-white rounded-3xl h-32 w-full border border-slate-100"
+              className={`animate-pulse rounded-3xl h-32 w-full border ${
+                isCozy ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100"
+              }`}
             ></div>
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm text-center">
-          <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-4">
+        <div className={`flex flex-col items-center justify-center p-20 rounded-[2.5rem] border shadow-sm text-center ${
+          isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+        }`}>
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${isCozy ? "bg-slate-800 text-slate-500" : "bg-slate-50 text-slate-300"}`}>
             <CheckCircleIcon />
           </div>
-          <h3 className="font-bold text-slate-800 text-lg">
+          <h3 className={`font-bold text-lg ${isCozy ? "text-white" : "text-slate-800"}`}>
             Tuyệt vời! Bạn không có thông báo mới.
           </h3>
           <p className="text-slate-500 text-sm mt-1">
@@ -156,15 +165,20 @@ export default function NotificationsPage() {
                     router.push(`/projects?projectId=${pid}`);
                   }
                 }}
-                className={`block relative group bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr
-                  }`}
+                className={`block relative group rounded-3xl p-6 md:p-8 border shadow-sm transition-all hover:shadow-md cursor-pointer border-l-[6px] ${
+                  isCozy 
+                    ? `bg-[#0F172A] ${isRead ? "border-slate-800 opacity-60 border-l-slate-700" : "border-slate-700 " + borderLeftColorStr}` 
+                    : `bg-white border-slate-100 ${isRead ? "border-l-slate-200 opacity-60" : borderLeftColorStr}`
+                }`}
               >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     hideNotification(notification.id);
                   }}
-                  className="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 rounded"
+                  className={`absolute top-6 right-6 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 rounded ${
+                    isCozy ? "text-slate-500 hover:text-red-400" : "text-slate-300 hover:text-red-500"
+                  }`}
                   aria-label="Xóa thông báo"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -182,7 +196,11 @@ export default function NotificationsPage() {
 
                 <div className="flex items-start gap-4">
                   <div
-                    className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center ${isRead ? "bg-slate-100 text-slate-400" : iconBgStr}`}
+                    className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center ${
+                      isRead 
+                        ? (isCozy ? "bg-slate-800 text-slate-500" : "bg-slate-100 text-slate-400") 
+                        : iconBgStr
+                    }`}
                   >
                     <Icon className="w-5 h-5" />
                   </div>
@@ -193,7 +211,7 @@ export default function NotificationsPage() {
                       {projectSubject}
                     </p>
                     <h3
-                      className={`text-lg transition-colors truncate ${isRead ? "font-semibold text-slate-600" : "font-extrabold text-slate-900"}`}
+                      className={`text-lg transition-colors truncate ${isRead ? "font-semibold text-slate-600" : `font-extrabold ${isCozy ? "text-white" : "text-slate-900"}`}`}
                     >
                       {taskTitle}
                     </h3>

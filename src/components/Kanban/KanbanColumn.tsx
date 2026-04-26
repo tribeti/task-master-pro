@@ -12,6 +12,7 @@ import {
   KanbanColumn as ColumnType,
   KanbanTask as KanbanTaskType,
   Label,
+  BoardMember,
 } from "@/lib/types/project";
 import { KanbanTask } from "./KanbanTask";
 import { toast } from "sonner";
@@ -30,6 +31,8 @@ interface KanbanColumnProps {
   isDragDisabled?: boolean;
   searchMatchedTaskIds?: Set<number> | null;
   onToggleComplete?: (taskId: number, newValue: boolean) => void;
+  boardMembers?: BoardMember[];
+  isCozy?: boolean;
 }
 
 // All styles are visually distinct (no "plain/colorless" entry).
@@ -72,7 +75,6 @@ const COLUMN_STYLES = [
     dot: "bg-[#EF4444]",
   },
 ];
-
 export function KanbanColumn({
   column,
   colIndex,
@@ -81,12 +83,13 @@ export function KanbanColumn({
   onAddTask,
   onUpdateColumn,
   onDeleteColumn,
-  boardLabels = [],
+  boardLabels,
   onAddLabel,
   onRemoveLabel,
-  isDragDisabled = false,
+  isDragDisabled,
   searchMatchedTaskIds,
   onToggleComplete,
+  isCozy = false,
 }: KanbanColumnProps) {
   // Prime multiplier spreads consecutive IDs across different colors.
   // e.g. id=10→4, id=11→1, id=12→4... wait, let's verify:
@@ -132,8 +135,8 @@ export function KanbanColumn({
           ref={provided.innerRef}
           {...provided.draggableProps}
           className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl transition-shadow duration-200 max-h-[calc(100vh-16rem)] ${snapshot.isDragging
-            ? "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20"
-            : "bg-slate-50/80"
+            ? (isCozy ? "bg-slate-800 shadow-2xl ring-2 ring-[#FF8B5E]/20" : "bg-white/90 shadow-xl ring-2 ring-[#28B8FA]/20")
+            : (isCozy ? "bg-slate-800/40" : "bg-slate-50/80")
             } ${st.border}`}
         >
           {/* Column Header */}
@@ -155,7 +158,10 @@ export function KanbanColumn({
                     setIsEditing(false);
                   }
                 }}
-                className="bg-white/80 border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-[#28B8FA] w-full mr-2"
+                className={`border rounded-lg px-2 py-1 text-sm font-bold uppercase tracking-widest focus:outline-none w-full mr-2 transition-colors ${isCozy
+                    ? "bg-slate-900 border-slate-700 text-white focus:border-[#FF8B5E]"
+                    : "bg-white/80 border-slate-200 focus:border-[#28B8FA]"
+                  }`}
               />
             ) : (
               <span
@@ -177,7 +183,8 @@ export function KanbanColumn({
               {/* Edit button */}
               <button
                 onClick={() => setIsEditing(true)}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
+                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all ${isCozy ? "hover:bg-slate-700 text-slate-500 hover:text-slate-300" : "hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                  }`}
                 title="Rename column"
               >
                 <svg
@@ -199,7 +206,8 @@ export function KanbanColumn({
               {/* Delete button */}
               <button
                 onClick={handleDeleteClick}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
+                className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all ${isCozy ? "hover:bg-red-900/30 text-slate-500 hover:text-red-400" : "hover:bg-red-50 text-slate-400 hover:text-red-500"
+                  }`}
                 title="Delete column"
               >
                 <svg
@@ -235,12 +243,13 @@ export function KanbanColumn({
                   ref={droppableProvided.innerRef}
                   {...droppableProvided.droppableProps}
                   className={`flex flex-col gap-3 min-h-15 rounded-xl p-1 transition-colors duration-200 overflow-y-auto scroll-smooth kanban-scroll flex-1 ${droppableSnapshot.isDraggingOver
-                    ? "bg-blue-50/60 ring-1 ring-[#28B8FA]/20"
+                    ? (isCozy ? "bg-slate-800/60 ring-1 ring-[#FF8B5E]/20" : "bg-blue-50/60 ring-1 ring-[#28B8FA]/20")
                     : ""
                     }`}
                 >
                   {visibleTasks.length === 0 && !droppableSnapshot.isDraggingOver && (
-                    <div className="bg-white p-5 rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
+                    <div className={`p-5 rounded-2xl border border-dashed text-sm ${isCozy ? "bg-slate-800/40 border-slate-700 text-slate-500" : "bg-white border-slate-200 text-slate-400"
+                      }`}>
                       Chưa có nhiệm vụ
                     </div>
                   )}
@@ -264,17 +273,20 @@ export function KanbanColumn({
                       checklists={task.checklists}
                       isCompleted={task.is_completed}
                       onToggleComplete={onToggleComplete}
+                      isCozy={isCozy}
                     />
                   ))}
                   {droppableProvided.placeholder}
                 </div>
               )
-            }
-            }
+            }}
           </Droppable>
           <button
             onClick={() => onAddTask(column.id)}
-            className="w-full mt-1 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:bg-slate-50 hover:text-slate-600 transition-all flex items-center justify-center gap-2"
+            className={`w-full mt-1 py-3 border-2 border-dashed rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${isCozy
+                ? "border-slate-700 text-slate-500 hover:bg-slate-800/60 hover:text-slate-400"
+                : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              }`}
           >
             <PlusIcon /> Thêm nhiệm vụ
           </button>

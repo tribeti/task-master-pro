@@ -24,15 +24,24 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // Fetch public profile for theme and other settings
+  const { data: profile } = await supabase
+    .from("users")
+    .select("display_name, avatar_url, theme")
+    .eq("id", user.id)
+    .single();
+
+  const isCozy = profile?.theme === "cozy";
+
   return (
-    <DashboardProvider initialUser={user}>
-      <div className="flex h-screen w-full bg-[#F8FAFC] font-sans overflow-hidden">
+    <DashboardProvider initialUser={user} initialProfile={profile}>
+      <div className={`flex h-screen w-full font-sans overflow-hidden transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
         {/* ========== SIDEBAR (Client Component for interactive routing & logout) ========== */}
         <DashboardSidebar user={user} />
 
         {/* ========== MAIN CONTENT ========== */}
         <main className="flex-1 flex flex-col relative overflow-y-auto w-full max-w-full">
-          <div className="h-1.5 w-full bg-linear-to-r from-[#28B8FA] via-[#34D399] to-transparent absolute top-0 left-0 z-20"></div>
+          <div className={`h-1.5 w-full absolute top-0 left-0 z-20 transition-all duration-500 ${isCozy ? "bg-[#FF8B5E]" : "bg-linear-to-r from-[#28B8FA] via-[#34D399] to-transparent"}`}></div>
           {children}
         </main>
       </div>

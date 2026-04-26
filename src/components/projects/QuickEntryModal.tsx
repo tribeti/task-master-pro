@@ -6,6 +6,7 @@ import {
   ZapIcon,
   CheckIcon,
 } from "@/components/icons";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 interface QuickEntryModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ interface QuickEntryModalProps {
 }
 
 export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const toggleTag = (tag: string) => {
@@ -29,11 +32,17 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200">
+    <div className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200 ${
+      isCozy ? "bg-slate-950/60" : "bg-slate-900/40"
+    }`}>
+      <div className={`rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200 transition-colors duration-500 ${
+        isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
+      }`}>
         <button
           onClick={handleClose}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
+          className={`absolute top-6 right-6 transition-colors p-1 rounded-full ${
+            isCozy ? "text-slate-500 hover:text-white bg-slate-800" : "text-slate-400 hover:text-slate-600"
+          }`}
         >
           <XIcon />
         </button>
@@ -41,7 +50,9 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
           <input
             type="text"
             placeholder="Bạn đang nghĩ gì?"
-            className="text-3xl md:text-4xl font-extrabold text-slate-800 placeholder-slate-300 bg-transparent border-none outline-none w-[90%]"
+            className={`text-3xl md:text-4xl font-extrabold placeholder-slate-300 bg-transparent border-none outline-none w-[90%] ${
+              isCozy ? "text-white" : "text-slate-800"
+            }`}
             autoFocus
             required
             maxLength={200}
@@ -57,25 +68,25 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
                 {
                   label: "Công việc",
                   icon: <BriefcaseIcon />,
-                  active: "bg-[#EAF7FF] text-[#28B8FA]",
+                  active: isCozy ? "bg-cyan-950/40 text-[#28B8FA] border-[#28B8FA]/30" : "bg-[#EAF7FF] text-[#28B8FA]",
                 },
                 {
                   label: "Cá nhân",
                   icon: <UserIcon />,
-                  active: "bg-[#D1FAE5] text-[#34D399]",
+                  active: isCozy ? "bg-emerald-950/40 text-[#34D399] border-[#34D399]/30" : "bg-[#D1FAE5] text-[#34D399]",
                 },
                 {
                   label: "Khẩn cấp",
                   icon: <ZapIcon />,
-                  active: "bg-[#FFF2DE] text-[#FF8B5E]",
+                  active: isCozy ? "bg-orange-950/40 text-[#FF8B5E] border-[#FF8B5E]/30" : "bg-[#FFF2DE] text-[#FF8B5E]",
                 },
               ].map(({ label, icon, active }) => (
                 <button
                   key={label}
                   onClick={() => toggleTag(label)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedTags.includes(label)
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${selectedTags.includes(label)
                     ? active
-                    : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                    : (isCozy ? "bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700" : "bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100")
                     }`}
                 >
                   {icon} {label}
@@ -84,14 +95,18 @@ export default function QuickEntryModal({ isOpen, onClose }: QuickEntryModalProp
             </div>
             <div className="ml-auto">
               {selectedTags.length === 0 ? (
-                <button className="bg-[#34D399] hover:bg-emerald-500 transition-colors text-white font-bold rounded-4xl w-32 h-32 flex flex-col items-center justify-center gap-2 shadow-lg shadow-emerald-200">
+                <button className={`hover:bg-emerald-500 transition-colors text-white font-bold rounded-4xl w-32 h-32 flex flex-col items-center justify-center gap-2 shadow-lg ${
+                  isCozy ? "bg-emerald-600 shadow-emerald-950/40" : "bg-[#34D399] shadow-emerald-200"
+                }`}>
                   <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
                     <CheckIcon />
                   </div>
                   Tạo nhiệm vụ
                 </button>
               ) : (
-                <button className="bg-[#FF8B5E] hover:bg-orange-500 transition-all text-white font-bold rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-lg shadow-orange-200 animate-in slide-in-from-right-4">
+                <button className={`hover:bg-orange-500 transition-all text-white font-bold rounded-2xl px-6 py-4 flex items-center justify-center gap-3 shadow-lg animate-in slide-in-from-right-4 ${
+                  isCozy ? "bg-[#FF8B5E] shadow-orange-950/40" : "bg-[#FF8B5E] shadow-orange-200"
+                }`}>
                   Thêm nhiệm vụ{" "}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

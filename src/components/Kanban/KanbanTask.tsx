@@ -30,6 +30,7 @@ interface KanbanTaskProps {
   /* ── New: Quick complete ── */
   isCompleted?: boolean;
   onToggleComplete?: (taskId: number, newValue: boolean) => void;
+  isCozy?: boolean;
 }
 
 const PRIORITY_BADGE: Record<
@@ -72,6 +73,7 @@ export function KanbanTask({
   checklists,
   isCompleted = false,
   onToggleComplete,
+  isCozy = false,
 }: KanbanTaskProps) {
   /* ── Optimistic completed state ── */
   const [localCompleted, setLocalCompleted] = useState(isCompleted);
@@ -109,18 +111,18 @@ export function KanbanTask({
       leftStripeColor = "border-l-orange-400";
       deadlineBadge = {
         label: status.urgencyStr,
-        color: "text-orange-600 bg-orange-50",
+        color: isCozy ? "text-orange-400 bg-orange-950/40" : "text-orange-600 bg-orange-50",
       };
     } else if (status.color === "yellow") {
       leftStripeColor = "border-l-yellow-400";
       deadlineBadge = {
         label: status.urgencyStr,
-        color: "text-yellow-700 bg-yellow-50",
+        color: isCozy ? "text-yellow-400 bg-yellow-950/40" : "text-yellow-700 bg-yellow-50",
       };
     } else {
       deadlineBadge = {
         label: status.urgencyStr,
-        color: "text-slate-500 bg-slate-50",
+        color: isCozy ? "text-slate-400 bg-slate-800" : "text-slate-500 bg-slate-50",
       };
     }
   }
@@ -190,11 +192,18 @@ export function KanbanTask({
           {...provided.dragHandleProps}
           onClick={onClick}
           className={`
-            rounded-xl bg-white border border-slate-100
-            cursor-grab hover:shadow-md transition-all
+            rounded-xl border transition-all
+            cursor-grab hover:shadow-md
             group/card
+            ${isCozy 
+              ? "bg-[#0F172A] border-slate-700/50 hover:border-slate-600" 
+              : "bg-white border-slate-100 hover:shadow-md"
+            }
             ${leftStripeColor ? `border-l-[3px] ${leftStripeColor}` : ""}
-            ${snapshot.isDragging ? "opacity-80 ring-2 ring-sky-300/50 scale-[1.02] rotate-1 z-50 shadow-lg" : "shadow-sm"}
+            ${snapshot.isDragging 
+              ? (isCozy ? "ring-2 ring-orange-500/50 scale-[1.02] rotate-1 z-50 shadow-2xl" : "ring-2 ring-sky-300/50 scale-[1.02] rotate-1 z-50 shadow-lg") 
+              : "shadow-sm"
+            }
             ${localCompleted ? "opacity-60" : ""}
           `}
         >
@@ -209,8 +218,8 @@ export function KanbanTask({
                 aria-pressed={localCompleted}
                 aria-label={localCompleted ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
                 className={`mt-0.5 shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-200 ${localCompleted
-                  ? "bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200"
-                  : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50"
+                  ? (isCozy ? "bg-[#FF8B5E] border-[#FF8B5E] shadow-sm shadow-orange-950" : "bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200")
+                  : (isCozy ? "border-slate-600 hover:border-[#FF8B5E] hover:bg-orange-950/20" : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50")
                   }`}
                 title={localCompleted ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
               >
@@ -231,15 +240,19 @@ export function KanbanTask({
               </button>
 
               <span
-                className={`text-[10px] font-black leading-none px-1.5 py-0.5 rounded mt-0.5 shrink-0 uppercase ${PRIORITY_BADGE[priority]?.text || "text-slate-500"} ${PRIORITY_BADGE[priority]?.bg || "bg-slate-50"}`}
+                className={`text-[10px] font-black leading-none px-1.5 py-0.5 rounded mt-0.5 shrink-0 uppercase ${
+                  isCozy 
+                    ? "text-slate-400 bg-slate-800" 
+                    : (PRIORITY_BADGE[priority]?.text || "text-slate-500") + " " + (PRIORITY_BADGE[priority]?.bg || "bg-slate-50")
+                }`}
                 title={priority}
               >
                 {PRIORITY_BADGE[priority]?.label || "?"}
               </span>
               <h4
                 className={`text-sm font-semibold leading-snug line-clamp-2 transition-all ${localCompleted
-                  ? "line-through text-slate-400"
-                  : "text-slate-800"
+                  ? (isCozy ? "line-through text-slate-600" : "line-through text-slate-400")
+                  : (isCozy ? "text-slate-200 group-hover/card:text-white" : "text-slate-800")
                   }`}
               >
                 {title}
@@ -277,8 +290,10 @@ export function KanbanTask({
                           }}
                           className={`w-4 h-4 rounded-full flex items-center justify-center transition-all
                           ${showLabelPopover
-                              ? "bg-sky-500 text-white"
-                              : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500"
+                              ? (isCozy ? "bg-[#FF8B5E] text-white" : "bg-sky-500 text-white")
+                              : (isCozy 
+                                  ? "bg-slate-800 text-slate-500 opacity-0 group-hover/card:opacity-100 hover:bg-orange-950/40 hover:text-[#FF8B5E]" 
+                                  : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500")
                             }`}
                           title="Nhãn"
                           disabled={labelLoading}
@@ -301,7 +316,9 @@ export function KanbanTask({
                         {/* Popover dropdown */}
                         {showLabelPopover && (
                           <div
-                            className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-35"
+                            className={`absolute bottom-full left-0 mb-2 z-50 rounded-xl shadow-xl border p-1.5 min-w-35 ${
+                              isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+                            }`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-2 pb-1">
@@ -320,7 +337,7 @@ export function KanbanTask({
                                   disabled={labelLoading || isDisabled}
                                   className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${isDisabled
                                     ? "opacity-40 cursor-not-allowed"
-                                    : "hover:bg-slate-50"
+                                    : (isCozy ? "hover:bg-slate-800" : "hover:bg-slate-50")
                                     } disabled:opacity-50`}
                                   title={
                                     isDisabled
@@ -337,7 +354,9 @@ export function KanbanTask({
                                         label.color_hex || "#E2E8F0",
                                     }}
                                   />
-                                  <span className="text-[11px] font-medium text-slate-700 flex-1 text-left truncate">
+                                  <span className={`text-[11px] font-medium flex-1 text-left truncate ${
+                                    isCozy ? "text-slate-300" : "text-slate-700"
+                                  }`}>
                                     {label.name}
                                   </span>
                                   {isAssigned && (
@@ -346,7 +365,7 @@ export function KanbanTask({
                                       height="10"
                                       viewBox="0 0 24 24"
                                       fill="none"
-                                      stroke="#0ea5e9"
+                                      stroke={isCozy ? "#FF8B5E" : "#0ea5e9"}
                                       strokeWidth="3"
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
@@ -434,8 +453,8 @@ export function KanbanTask({
               <div className="flex items-center pl-4">
                 <span
                   className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${allChecklistDone
-                    ? "bg-emerald-500 text-white"
-                    : "bg-slate-100 text-slate-500"
+                    ? (isCozy ? "bg-[#FF8B5E] text-white" : "bg-emerald-500 text-white")
+                    : (isCozy ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     }`}
                 >
                   <svg

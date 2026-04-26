@@ -4,6 +4,8 @@ import { Board } from "@/lib/types/project";
 
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
+import { useDashboardUser } from "@/app/(dashboard)/provider";
+
 interface ProjectCardProps {
   proj: Board;
   index: number;
@@ -29,6 +31,8 @@ export default function ProjectCard({
   currentUserId,
   memberRole,
 }: ProjectCardProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projProgress = proj.progress ?? 0;
   const projTag = proj.tag || "Dự án";
@@ -37,7 +41,11 @@ export default function ProjectCard({
   return (
     <div
       onClick={() => setSelectedProject(proj)}
-      className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1"
+      className={`rounded-4xl p-6 shadow-sm border transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1 ${
+        isCozy 
+          ? "bg-[#0F172A] border-slate-700 hover:shadow-orange-900/10 hover:border-slate-600" 
+          : "bg-white border-slate-100 hover:shadow-lg"
+      }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -49,9 +57,10 @@ export default function ProjectCard({
           </span>
           {memberRole && (
             <span
-              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${memberRole === "Owner"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-sky-100 text-sky-700"
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full uppercase ${
+                memberRole === "Owner"
+                  ? (isCozy ? "bg-emerald-900/30 text-emerald-400" : "bg-emerald-100 text-emerald-700")
+                  : (isCozy ? "bg-sky-900/30 text-sky-400" : "bg-sky-100 text-sky-700")
                 }`}
             >
               {memberRole === "Owner" ? "Chủ sở hữu" : "Thành viên"}
@@ -74,19 +83,29 @@ export default function ProjectCard({
                   openMenuProjectId === proj.id ? null : proj.id,
                 );
               }}
-              className="text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF] rounded-full p-2 transition-colors"
+              className={`rounded-full p-2 transition-colors ${
+                isCozy 
+                  ? "text-slate-500 hover:text-[#FF8B5E] bg-slate-800 hover:bg-slate-700" 
+                  : "text-slate-300 hover:text-[#28B8FA] bg-slate-50 hover:bg-[#EAF7FF]"
+              }`}
             >
               <MoreIcon />
             </button>
           )}
           {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
-            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg border border-slate-100 py-2 z-50">
+            <div className={`absolute right-0 top-full mt-2 w-40 rounded-2xl shadow-lg border py-2 z-50 ${
+              isCozy ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-100"
+            }`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleUpdateProject(proj);
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-[#EAF7FF] hover:text-[#28B8FA] transition-colors"
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  isCozy 
+                    ? "text-slate-300 hover:bg-slate-800 hover:text-[#FF8B5E]" 
+                    : "text-slate-600 hover:bg-[#EAF7FF] hover:text-[#28B8FA]"
+                }`}
               >
                 <svg
                   width="16"
@@ -108,7 +127,11 @@ export default function ProjectCard({
                   e.stopPropagation();
                   handleDeleteProject(proj.id, proj.title);
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  isCozy 
+                    ? "text-red-400 hover:bg-red-900/20 hover:text-red-500" 
+                    : "text-red-500 hover:bg-red-50 hover:text-red-600"
+                }`}
               >
                 <svg
                   width="16"
@@ -132,17 +155,25 @@ export default function ProjectCard({
         </div>
       </div>
 
-      <h3 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-[#28B8FA] transition-colors tracking-tight">
+      <h3 className={`text-2xl font-black mb-3 transition-colors tracking-tight ${
+        isCozy 
+          ? "text-white group-hover:text-[#FF8B5E]" 
+          : "text-slate-800 group-hover:text-[#28B8FA]"
+      }`}>
         {proj.title}
       </h3>
-      <p className="text-sm text-slate-500 font-medium mb-8 flex-1 leading-relaxed">
+      <p className={`text-sm font-medium mb-8 flex-1 leading-relaxed ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
         {proj.description ||
           "A comprehensive sub-project focusing on delivering specific objectives for the next sprint iteration."}
       </p>
 
-      <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+      <div className={`flex items-center justify-between border-t pt-6 ${isCozy ? "border-slate-800" : "border-slate-100"}`}>
         <div className="flex -space-x-2"></div>
-        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#28B8FA] group-hover:text-white transition-colors shadow-sm">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+          isCozy 
+            ? "bg-slate-800 text-slate-500 group-hover:bg-[#FF8B5E] group-hover:text-white" 
+            : "bg-slate-50 text-slate-400 group-hover:bg-[#28B8FA] group-hover:text-white"
+        }`}>
           <svg
             width="20"
             height="20"
