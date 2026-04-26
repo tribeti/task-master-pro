@@ -115,7 +115,8 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { user } = useDashboardUser();
+  const { user, profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
 
   // Add member modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -241,7 +242,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
             placeholder="Find teammate..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-full py-2 pl-10 pr-4 text-sm font-medium focus:outline-none focus:border-[#28B8FA] shadow-sm"
+            className={`w-full border rounded-full py-2 pl-10 pr-4 text-sm font-medium focus:outline-none transition-all shadow-sm ${
+              isCozy 
+                ? "bg-slate-900 border-slate-800 text-white placeholder-slate-700 focus:border-[#FF8B5E]" 
+                : "bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#28B8FA]"
+            }`}
           />
         </div>
       </div>
@@ -253,12 +258,14 @@ export function TeamTab({ boardId }: TeamTabProps) {
           Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center animate-pulse"
+              className={`rounded-4xl p-6 border shadow-sm flex flex-col items-center animate-pulse ${
+                isCozy ? "bg-slate-900/50 border-slate-800" : "bg-white border-slate-100"
+              }`}
             >
-              <div className="w-24 h-24 rounded-full bg-slate-200 mb-4"></div>
-              <div className="h-5 w-32 bg-slate-200 rounded mb-2"></div>
-              <div className="h-3 w-20 bg-slate-100 rounded mb-6"></div>
-              <div className="h-10 w-full bg-slate-100 rounded-xl"></div>
+              <div className={`w-24 h-24 rounded-full mb-4 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}></div>
+              <div className={`h-5 w-32 rounded mb-2 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}></div>
+              <div className={`h-3 w-20 rounded mb-6 ${isCozy ? "bg-slate-700" : "bg-slate-100"}`}></div>
+              <div className={`h-10 w-full rounded-xl ${isCozy ? "bg-slate-800" : "bg-slate-100"}`}></div>
             </div>
           ))
           : filteredMembers.map((member, index) => {
@@ -266,13 +273,17 @@ export function TeamTab({ boardId }: TeamTabProps) {
             return (
               <div
                 key={member.user_id}
-                className="bg-white rounded-4xl p-6 border border-slate-100 shadow-sm flex flex-col items-center relative hover:shadow-md transition-shadow"
+                className={`rounded-4xl p-6 border shadow-sm flex flex-col items-center relative hover:shadow-md transition-all ${
+                  isCozy ? "bg-[#0F172A] border-slate-800 hover:border-slate-700" : "bg-white border-slate-100"
+                }`}
               >
                 {isCurrentUserOwner && member.role !== "Owner" && (
                   <button
                     onClick={() => setMemberToRemove(member)}
                     title="Xóa thành viên"
-                    className="absolute top-6 right-6 text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors rounded-full p-2"
+                    className={`absolute top-6 right-6 transition-colors rounded-full p-2 ${
+                      isCozy ? "text-rose-500 hover:text-rose-400 bg-rose-950/20" : "text-rose-400 hover:text-rose-600 bg-rose-50 hover:bg-rose-100"
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -300,11 +311,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
                     avatarUrl={member.avatar_url}
                     displayName={member.display_name}
                     colors={colors}
-                    className="w-24 h-24"
+                    className={`w-24 h-24 ${isCozy ? "border-slate-800" : "border-white"}`}
                   />
                 </div>
                 {/* Name & Role */}
-                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <h3 className={`text-xl font-bold flex items-center gap-2 ${isCozy ? "text-white" : "text-slate-900"}`}>
                   {member.display_name}
                   {member.role === "Owner" && (
                     <span
@@ -324,7 +335,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 <p
                   className={`text-[10px] font-bold tracking-widest uppercase mt-1 mb-6 ${member.role === "Owner"
                       ? "text-amber-500"
-                      : "text-slate-400"
+                      : (isCozy ? "text-slate-600" : "text-slate-400")
                     }`}
                 >
                   {member.role === "Owner" ? "Chủ dự án" : member.role}
@@ -333,14 +344,18 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 {/* Joined date */}
                 <div className="w-full mb-6">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-400">Joined</span>
-                    <span className="text-slate-600">
+                    <span className={isCozy ? "text-slate-600" : "text-slate-400"}>Joined</span>
+                    <span className={isCozy ? "text-slate-400" : "text-slate-600"}>
                       {new Date(member.joined_at).toLocaleDateString("vi-VN")}
                     </span>
                   </div>
                 </div>
 
-                <button className="w-full py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:border-[#28B8FA] hover:text-[#28B8FA] transition-colors">
+                <button className={`w-full py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
+                  isCozy 
+                    ? "border-slate-800 text-slate-600 hover:border-[#FF8B5E] hover:text-[#FF8B5E]" 
+                    : "border-slate-100 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                }`}>
                   View Profile
                 </button>
               </div>
@@ -355,12 +370,16 @@ export function TeamTab({ boardId }: TeamTabProps) {
             setSuccessMsg(null);
             setEmail("");
           }}
-          className="bg-transparent rounded-4xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-100"
+          className={`rounded-4xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all h-full min-h-100 ${
+            isCozy ? "bg-transparent border-slate-800 hover:bg-slate-900/50" : "bg-transparent border-slate-200 hover:bg-slate-50"
+          }`}
         >
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4">
+          <div className={`w-16 h-16 rounded-full border flex items-center justify-center shadow-sm mb-4 ${
+            isCozy ? "bg-slate-900 border-slate-800 text-[#FF8B5E]" : "bg-white border-slate-100 text-[#28B8FA]"
+          }`}>
             <PlusIcon />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
+          <h3 className={`text-xl font-bold mb-2 ${isCozy ? "text-white" : "text-slate-800"}`}>
             Mời thành viên
           </h3>
           <p className="text-sm text-slate-400 font-medium px-4">
@@ -374,13 +393,15 @@ export function TeamTab({ boardId }: TeamTabProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Overlay */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className={`absolute inset-0 backdrop-blur-sm ${isCozy ? "bg-slate-950/60" : "bg-black/40"}`}
             onClick={() => setIsAddOpen(false)}
           ></div>
 
           {/* Modal */}
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+          <div className={`relative rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 transition-colors duration-500 border ${
+            isCozy ? "bg-[#0F172A] border-slate-800" : "bg-white border-transparent"
+          }`}>
+            <h2 className={`text-2xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}>
               Gửi lời mời
             </h2>
             <p className="text-sm text-slate-400 mb-6">
@@ -403,7 +424,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
                     setErrorMsg(null);
                     setSuccessMsg(null);
                   }}
-                  className="w-full bg-slate-50 text-black border border-slate-200 rounded-xl py-3 px-4 text-sm font-medium focus:outline-none focus:border-[#28B8FA] focus:ring-2 focus:ring-[#28B8FA]/20 transition-all"
+                  className={`w-full border rounded-xl py-3 px-4 text-sm font-medium focus:outline-none transition-all ${
+                    isCozy 
+                      ? "bg-slate-900 text-white border-slate-800 focus:border-[#FF8B5E]" 
+                      : "bg-slate-50 text-black border-slate-200 focus:border-[#28B8FA] focus:ring-2 focus:ring-[#28B8FA]/20"
+                  }`}
                   autoFocus
                 />
               </div>
@@ -441,7 +466,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
-                  <span className="text-sm font-semibold text-emerald-600">
+                  <span className={`text-sm font-semibold ${isCozy ? "text-emerald-400" : "text-emerald-600"}`}>
                     {successMsg}
                   </span>
                 </div>
@@ -452,14 +477,22 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="flex-1 py-3 rounded-xl border-2 border-slate-100 text-slate-500 font-bold text-sm hover:bg-slate-50 transition-colors"
+                  className={`flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
+                    isCozy 
+                      ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800" 
+                      : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+                  }`}
                 >
                   Huỷ
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !email.trim()}
-                  className="flex-1 py-3 rounded-xl bg-[#28B8FA] text-white font-bold text-sm hover:bg-[#1DA1E0] transition-colors shadow-md shadow-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${
+                    isCozy 
+                      ? "bg-[#FF8B5E] text-white hover:bg-orange-600 shadow-orange-950/20" 
+                      : "bg-[#28B8FA] text-white hover:bg-[#1DA1E0] shadow-cyan-200"
+                  }`}
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -495,16 +528,18 @@ export function TeamTab({ boardId }: TeamTabProps) {
       {memberToRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className={`absolute inset-0 backdrop-blur-sm ${isCozy ? "bg-slate-950/60" : "bg-black/40"}`}
             onClick={() => !isRemoving && setMemberToRemove(null)}
           ></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-extrabold text-slate-900 mb-2">
+          <div className={`relative rounded-3xl shadow-2xl w-full max-w-sm p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 border ${
+            isCozy ? "bg-[#0F172A] border-slate-800" : "bg-white border-transparent"
+          }`}>
+            <h2 className={`text-xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}>
               Xóa thành viên
             </h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            <p className={`text-sm mb-6 leading-relaxed ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
               Bạn có chắc chắn muốn xóa{" "}
-              <strong className="text-slate-800">
+              <strong className={isCozy ? "text-white" : "text-slate-800"}>
                 {memberToRemove.display_name}
               </strong>{" "}
               khỏi dự án này? Người dùng sẽ ngay lập tức mất quyền truy cập và
@@ -515,7 +550,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 type="button"
                 onClick={() => setMemberToRemove(null)}
                 disabled={isRemoving}
-                className="flex-[1] py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+                className={`flex-[1] py-2.5 rounded-xl border font-bold text-sm transition-colors disabled:opacity-50 ${
+                  isCozy 
+                    ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800" 
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                }`}
               >
                 Huỷ
               </button>
@@ -523,7 +562,9 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 type="button"
                 onClick={executeRemoveMember}
                 disabled={isRemoving}
-                className="flex-[1] py-2.5 rounded-xl bg-rose-500 text-white font-bold text-sm hover:bg-rose-600 shadow-md shadow-rose-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className={`flex-[1] py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md ${
+                  isCozy ? "bg-rose-600 hover:bg-rose-700 shadow-rose-950/40" : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"
+                }`}
               >
                 {isRemoving ? (
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">

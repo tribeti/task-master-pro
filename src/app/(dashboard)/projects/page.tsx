@@ -84,7 +84,8 @@ function ProjectUrlHandler({
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { user } = useDashboardUser();
+  const { user, profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const userId = user?.id;
 
   const {
@@ -249,24 +250,26 @@ export default function ProjectsPage() {
     Array.from({ length: 3 }).map((_, i) => (
       <div
         key={i}
-        className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col h-full animate-pulse"
+        className={`rounded-4xl p-6 shadow-sm border flex flex-col h-full animate-pulse ${
+          isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+        }`}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
-          <div className="h-8 w-8 bg-slate-100 rounded-full"></div>
+          <div className={`h-6 w-16 rounded-full ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}></div>
+          <div className={`h-8 w-8 rounded-full ${isCozy ? "bg-slate-800" : "bg-slate-100"}`}></div>
         </div>
-        <div className="h-8 w-3/4 bg-slate-200 rounded-lg mb-3"></div>
-        <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
-        <div className="h-4 w-2/3 bg-slate-100 rounded mb-8"></div>
+        <div className={`h-8 w-3/4 rounded-lg mb-3 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}></div>
+        <div className={`h-4 w-full rounded mb-2 ${isCozy ? "bg-slate-700" : "bg-slate-100"}`}></div>
+        <div className={`h-4 w-2/3 rounded mb-8 ${isCozy ? "bg-slate-700" : "bg-slate-100"}`}></div>
         <div className="w-full mb-8">
-          <div className="h-2.5 bg-slate-100 rounded-full"></div>
+          <div className={`h-2.5 rounded-full ${isCozy ? "bg-slate-800" : "bg-slate-100"}`}></div>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+        <div className={`flex items-center justify-between border-t pt-6 ${isCozy ? "border-slate-800" : "border-slate-100"}`}>
           <div className="flex -space-x-2">
             {Array.from({ length: 3 }).map((_, j) => (
               <div
                 key={j}
-                className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white"
+                className={`w-10 h-10 rounded-full border-2 ${isCozy ? "bg-slate-800 border-[#0F172A]" : "bg-slate-200 border-white"}`}
               ></div>
             ))}
           </div>
@@ -279,8 +282,8 @@ export default function ProjectsPage() {
     <div className="flex-1 px-10 pb-20 overflow-y-auto mt-6">
       {/* ── My Projects ── */}
       <div className="mb-4">
-        <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+        <h2 className={`text-lg font-extrabold tracking-tight flex items-center gap-2 ${isCozy ? "text-slate-200" : "text-slate-700"}`}>
+          <span className={`w-2 h-2 rounded-full inline-block ${isCozy ? "bg-[#FF8B5E]" : "bg-emerald-400"}`}></span>
           Dự án của tôi
           <span className="text-sm font-semibold text-slate-400 ml-1">
             ({ownedBoards.length})
@@ -309,12 +312,20 @@ export default function ProjectsPage() {
         {/* Create New Project Card */}
         <div
           onClick={() => setIsCreateProjectOpen(true)}
-          className="bg-transparent rounded-4xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-75 group h-full"
+          className={`rounded-4xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-75 group h-full ${
+            isCozy 
+              ? "border-slate-700 hover:bg-slate-800/50" 
+              : "border-slate-200 hover:bg-slate-50"
+          }`}
         >
-          <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center text-[#28B8FA] shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <div className={`w-16 h-16 rounded-full border flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform ${
+            isCozy 
+              ? "bg-slate-800 border-slate-700 text-[#FF8B5E]" 
+              : "bg-white border-slate-100 text-[#28B8FA]"
+          }`}>
             <PlusIcon />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Dự án mới</h3>
+          <h3 className={`text-xl font-bold mb-2 ${isCozy ? "text-white" : "text-slate-800"}`}>Dự án mới</h3>
           <p className="text-sm text-slate-400 font-medium px-4">
             Bắt đầu theo dõi một sáng kiến mới.
           </p>
@@ -325,8 +336,8 @@ export default function ProjectsPage() {
       {!boardsLoading && joinedBoards.length > 0 && (
         <>
           <div className="mt-12 mb-4">
-            <h2 className="text-lg font-extrabold text-slate-700 tracking-tight flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+            <h2 className={`text-lg font-extrabold tracking-tight flex items-center gap-2 ${isCozy ? "text-slate-200" : "text-slate-700"}`}>
+              <span className={`w-2 h-2 rounded-full inline-block ${isCozy ? "bg-sky-500" : "bg-sky-400"}`}></span>
               Dự án đã tham gia
               <span className="text-sm font-semibold text-slate-400 ml-1">
                 ({joinedBoards.length})
@@ -371,14 +382,18 @@ export default function ProjectsPage() {
           onProjectFound={handleProjectFoundFromUrl}
         />
       </Suspense>
-      <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
+      <header className={`px-10 flex items-end justify-between shrink-0 z-10 pt-10 pb-6 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
         <div>
           {selectedProject ? (
             <>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <h1 className={`text-3xl font-extrabold tracking-tight flex items-center gap-3 ${isCozy ? "text-white" : "text-slate-900"}`}>
                 <button
                   onClick={handleCloseProject}
-                  className="p-1.5 rounded-xl text-slate-300 hover:text-slate-700 bg-white shadow-sm border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center -ml-1 mr-1"
+                  className={`p-1.5 rounded-xl shadow-sm border transition-all flex items-center justify-center -ml-1 mr-1 ${
+                    isCozy 
+                      ? "text-slate-400 hover:text-white bg-slate-800 border-slate-700 hover:bg-slate-700" 
+                      : "text-slate-300 hover:text-slate-700 bg-white border-slate-100 hover:bg-slate-50"
+                  }`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -400,12 +415,12 @@ export default function ProjectsPage() {
             </>
           ) : (
             <>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className={`text-3xl font-extrabold tracking-tight ${isCozy ? "text-white" : "text-slate-900"}`}>
                 Dự án hoạt động
               </h1>
-              <p className="text-sm text-slate-500 font-medium mt-1">
+              <p className={`text-sm font-medium mt-1 ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                 Bạn đang có{" "}
-                <span className="text-[#34D399] font-bold">
+                <span className={`${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"} font-bold`}>
                   {totalProjects} dự án
                 </span>{" "}
                 đang được triển khai.
@@ -437,7 +452,11 @@ export default function ProjectsPage() {
           ) : (
             <button
               onClick={() => setIsCreateProjectOpen(true)}
-              className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-slate-300 hover:scale-105"
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg hover:scale-105 ${
+                isCozy 
+                  ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-orange-900/20" 
+                  : "bg-[#1E293B] hover:bg-slate-800 text-white shadow-slate-300"
+              }`}
             >
               <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
                 <PlusIcon />
@@ -454,7 +473,7 @@ export default function ProjectsPage() {
           renderAllProjects()
         ) : (
           <>
-            <div className="px-10 border-b border-slate-200 flex gap-8 shrink-0">
+            <div className={`px-10 border-b flex gap-8 shrink-0 transition-colors duration-500 ${isCozy ? "border-slate-700" : "border-slate-200"}`}>
               {[
                 { id: "Tasks", label: "Nhiệm vụ" },
                 { id: "Chat", label: "Trò chuyện" },
@@ -465,11 +484,15 @@ export default function ProjectsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setProjectTab(tab.id as any)}
-                  className={`pb-4 font-bold text-sm transition-colors relative ${projectTab === tab.id ? "text-[#28B8FA]" : "text-slate-400 hover:text-slate-600"}`}
+                  className={`pb-4 font-bold text-sm transition-colors relative ${
+                    projectTab === tab.id 
+                      ? (isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]") 
+                      : (isCozy ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600")
+                  }`}
                 >
                   {tab.label}
                   {projectTab === tab.id && (
-                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#28B8FA] rounded-t-full"></div>
+                    <div className={`absolute bottom-0 left-0 w-full h-0.5 rounded-t-full ${isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]"}`}></div>
                   )}
                 </button>
               ))}

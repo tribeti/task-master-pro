@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { FilterIcon, CalendarIcon } from "@/components/icons";
 import { UserAvatar } from "@/components/UserAvatar";
 import { toast } from "sonner";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { TaskPreviewModal } from "../timeline/TaskPreviewModal";
 import {
   getBarColor,
@@ -18,6 +19,8 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
   const [tasks, setTasks] = useState<TimelineTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewTask, setPreviewTask] = useState<TimelineTask | null>(null);
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
 
   // 14-day window starting from current week's Monday
   const [startDate, setStartDate] = useState(() => {
@@ -100,9 +103,11 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
   const totalMs = 14 * 24 * 60 * 60 * 1000;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-4xl border border-slate-100 shadow-sm mt-4">
+    <div className={`flex-1 flex flex-col overflow-hidden rounded-4xl border shadow-sm mt-4 transition-colors duration-500 ${
+      isCozy ? "bg-[#0F172A] border-slate-700/50" : "bg-white border-slate-100"
+    }`}>
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between p-6 border-b border-slate-100">
+      <div className={`flex items-center justify-between p-6 border-b ${isCozy ? "border-slate-800" : "border-slate-100"}`}>
         <div className="flex items-center gap-6">
           <div className="flex -space-x-2">
             {(() => {
@@ -116,44 +121,46 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
                 }
               }
               return unique.map((assignee) => (
-                <div
-                  key={assignee.user_id}
-                  className="ring-2 ring-white rounded-full"
-                >
-                  <UserAvatar
-                    avatarUrl={assignee.avatar_url}
-                    displayName={assignee.display_name}
-                    className="w-8 h-8"
-                    fallbackClassName="bg-slate-200 text-slate-600"
-                  />
-                </div>
+                  <div
+                    key={assignee.user_id}
+                    className={`ring-2 rounded-full ${isCozy ? "ring-slate-900" : "ring-white"}`}
+                  >
+                    <UserAvatar
+                      avatarUrl={assignee.avatar_url}
+                      displayName={assignee.display_name}
+                      className="w-8 h-8"
+                      fallbackClassName={isCozy ? "bg-slate-800 text-slate-400" : "bg-slate-200 text-slate-600"}
+                    />
+                  </div>
               ));
             })()}
           </div>
-          <div className="w-px h-6 bg-slate-200"></div>
-          <button className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800">
+          <div className={`w-px h-6 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}></div>
+          <button className={`flex items-center gap-2 text-sm font-bold transition-colors ${isCozy ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-800"}`}>
             <FilterIcon /> Lọc
           </button>
           <button
             onClick={goToToday}
-            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800"
+            className={`flex items-center gap-2 text-sm font-bold transition-colors ${isCozy ? "text-slate-400 hover:text-[#FF8B5E]" : "text-slate-500 hover:text-slate-800"}`}
           >
             <CalendarIcon /> Hôm nay
           </button>
         </div>
-        <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+        <div className={`flex items-center gap-4 px-4 py-2 rounded-full border ${
+          isCozy ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-100"
+        }`}>
           <button
             onClick={() => shiftDays(-7)}
-            className="text-slate-400 hover:text-slate-800 p-1"
+            className={`p-1 transition-colors ${isCozy ? "text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-800"}`}
           >
             &lt;
           </button>
-          <span className="font-bold text-sm text-slate-800 capitalize min-w-30 text-center">
+          <span className={`font-bold text-sm capitalize min-w-30 text-center transition-colors ${isCozy ? "text-slate-300" : "text-slate-800"}`}>
             {monthLabel}
           </span>
           <button
             onClick={() => shiftDays(7)}
-            className="text-slate-400 hover:text-slate-800 p-1"
+            className={`p-1 transition-colors ${isCozy ? "text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-800"}`}
           >
             &gt;
           </button>
@@ -163,33 +170,43 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
       {/* ─── Body ─── */}
       <div className="flex-1 overflow-auto flex relative">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-50">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#28B8FA] rounded-full animate-spin"></div>
+          <div className={`absolute inset-0 flex items-center justify-center z-50 ${isCozy ? "bg-[#0F172A]/50" : "bg-white/50"}`}>
+            <div className={`w-8 h-8 border-4 rounded-full animate-spin ${
+              isCozy ? "border-slate-800 border-t-[#FF8B5E]" : "border-slate-200 border-t-[#28B8FA]"
+            }`}></div>
           </div>
         )}
 
         {/* ─── Left sidebar: task list ─── */}
-        <div className="w-64 shrink-0 border-r border-slate-100 bg-white z-20 sticky left-0 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]">
-          <div className="h-14 flex items-center px-6 text-[10px] font-bold text-slate-400 tracking-widest uppercase border-b border-slate-100 bg-white">
+        <div className={`w-64 shrink-0 z-20 sticky left-0 shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)] border-r ${
+          isCozy ? "border-slate-800 bg-[#0F172A]" : "border-slate-100 bg-white"
+        }`}>
+          <div className={`h-14 flex items-center px-6 text-[10px] font-bold tracking-widest uppercase border-b ${
+            isCozy ? "bg-[#0F172A] border-slate-800 text-slate-500" : "bg-white border-slate-100 text-slate-400"
+          }`}>
             Nhiệm Vụ ({tasks.length})
           </div>
           <div className="flex flex-col pb-10">
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="h-20 flex flex-col justify-center px-6 border-b border-slate-50 relative bg-white cursor-pointer hover:bg-slate-50/50 transition-colors"
+                className={`h-20 flex flex-col justify-center px-6 border-b relative cursor-pointer transition-colors ${
+                  isCozy 
+                    ? "border-slate-800/50 bg-[#0F172A] hover:bg-slate-800/40" 
+                    : "border-slate-50 bg-white hover:bg-slate-50/50"
+                }`}
                 onClick={() => setPreviewTask(task)}
               >
                 <div
                   className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-full ${getPriorityBarColor(task.priority)}`}
                 ></div>
                 <h4
-                  className={`font-bold text-sm truncate ${getPriorityColor(task.priority)}`}
+                  className={`font-bold text-sm truncate ${isCozy ? "text-slate-300" : getPriorityColor(task.priority)}`}
                   title={task.title}
                 >
                   {task.title}
                 </h4>
-                <p className="text-xs text-slate-400 truncate">
+                <p className={`text-xs truncate ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
                   {getPriorityLabel(task.priority)}
                   {task.deadline &&
                     ` · Hạn: ${new Date(task.deadline).toLocaleDateString("vi-VN")}`}
@@ -197,7 +214,7 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
               </div>
             ))}
             {tasks.length === 0 && !loading && (
-              <div className="p-6 text-sm text-slate-500 text-center">
+              <div className={`p-6 text-sm text-center ${isCozy ? "text-slate-600" : "text-slate-500"}`}>
                 Không có nhiệm vụ nào
               </div>
             )}
@@ -205,23 +222,31 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
         </div>
 
         {/* ─── Right: Gantt area ─── */}
-        <div className="flex-1 min-w-200 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] relative">
+        <div className={`flex-1 min-w-200 relative ${
+          isCozy 
+            ? "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFmMjkzNyIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] bg-slate-900/50" 
+            : "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] bg-white"
+        }`}>
           {/* Day headers */}
-          <div className="h-14 flex border-b border-slate-100 bg-white/90 backdrop-blur-sm sticky top-0 z-30">
+          <div className={`h-14 flex border-b sticky top-0 z-30 backdrop-blur-sm ${
+            isCozy ? "bg-slate-900/90 border-slate-800" : "bg-white/90 border-slate-100"
+          }`}>
             {days.map((day, i) => {
               const isToday = day.getTime() === today.getTime();
               return (
                 <div
                   key={i}
-                  className={`flex-1 flex flex-col items-center justify-center border-r border-slate-100 ${isToday ? "bg-[#28B8FA]/10" : ""}`}
+                  className={`flex-1 flex flex-col items-center justify-center border-r transition-colors ${
+                    isCozy ? "border-slate-800" : "border-slate-100"
+                  } ${isToday ? (isCozy ? "bg-orange-500/10" : "bg-[#28B8FA]/10") : ""}`}
                 >
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-[#28B8FA]" : "text-slate-400"}`}
+                    className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? (isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]") : "text-slate-400"}`}
                   >
                     {getDayName(day)}
                   </span>
                   <span
-                    className={`text-sm font-black ${isToday ? "text-[#28B8FA]" : "text-slate-800"}`}
+                    className={`text-sm font-black ${isToday ? (isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]") : (isCozy ? "text-slate-300" : "text-slate-800")}`}
                   >
                     {getDayLabel(day)}
                   </span>
@@ -238,12 +263,12 @@ export function TimelineTab({ projectId }: { projectId?: number }) {
             {/* Today marker */}
             {today >= startDate && today <= timelineWindowEnd && (
               <div
-                className="absolute top-0 bottom-0 w-0.5 bg-[#28B8FA]/50 z-10 pointer-events-none"
+                className={`absolute top-0 bottom-0 w-0.5 z-10 pointer-events-none ${isCozy ? "bg-[#FF8B5E]/50" : "bg-[#28B8FA]/50"}`}
                 style={{
                   left: `calc(${((today.getTime() - startDate.getTime()) / totalMs) * 100}% + (100% / 28))`,
                 }}
               >
-                <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full absolute -top-1 -left-1"></div>
+                <div className={`w-2.5 h-2.5 rounded-full absolute -top-1 -left-1 ${isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]"}`}></div>
               </div>
             )}
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 export interface ChecklistItem {
   id: string;
@@ -28,6 +29,8 @@ interface TaskChecklistProps {
 }
 
 export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: TaskChecklistProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [checklistsLoading, setChecklistsLoading] = useState(false);
   const [checklistsError, setChecklistsError] = useState<string | null>(null);
@@ -385,7 +388,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     <div>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <label className={`text-xs font-bold uppercase tracking-wider ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
             Hệ thống Checklist
           </label>
           {!isAddingChecklist && (
@@ -396,17 +399,23 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                 setNewChecklistTitle("Việc cần làm");
               }}
               disabled={isSubmitting}
-              className="text-[10px] font-bold text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF] px-2 py-1 rounded-lg transition-colors flex items-center gap-1 uppercase"
+              className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors flex items-center gap-1 uppercase ${
+                isCozy ? "text-slate-400 hover:text-[#FF8B5E] bg-slate-800 hover:bg-orange-950/20" : "text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF]"
+              }`}
             >
               + Thêm Checklist
             </button>
           )}
         </div>
         {isAddingChecklist && (
-          <div className="flex items-center gap-2 relative z-10 bg-white p-1.5 rounded-xl shadow-sm border border-slate-200">
+          <div className={`flex items-center gap-2 relative z-10 p-1.5 rounded-xl shadow-sm border transition-colors ${
+            isCozy ? "bg-slate-900 border-slate-700" : "bg-white border-slate-200"
+          }`}>
             <input
               type="text"
-              className="text-xs text-slate-900 font-semibold border border-[#28B8FA] rounded-lg px-3 py-1.5 outline-none bg-white min-w-[150px]"
+              className={`text-xs font-semibold border rounded-lg px-3 py-1.5 outline-none min-w-[150px] transition-colors ${
+                isCozy ? "bg-slate-800 border-slate-700 text-white focus:border-[#FF8B5E]" : "bg-white border-[#28B8FA] text-slate-900"
+              }`}
               value={newChecklistTitle}
               onChange={(e) => setNewChecklistTitle(e.target.value)}
               autoFocus
@@ -425,7 +434,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                 handleAddChecklist(newChecklistTitle);
                 setIsAddingChecklist(false);
               }}
-              className="text-xs font-bold text-white bg-[#28B8FA] px-3 py-1.5 rounded-lg hover:bg-[#0EA5E9] transition-colors"
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                isCozy ? "bg-[#FF8B5E] text-white hover:bg-orange-600" : "bg-[#28B8FA] text-white hover:bg-[#0EA5E9]"
+              }`}
             >
               Thêm
             </button>
@@ -460,9 +471,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       )}
 
       {checklistsLoading ? (
-        <div className="text-sm text-slate-400 italic">Đang tải checklist...</div>
+        <div className={`text-sm italic ${isCozy ? "text-slate-500" : "text-slate-400"}`}>Đang tải checklist...</div>
       ) : checklists.length === 0 ? (
-        <div className="text-sm text-slate-400 italic">
+        <div className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}>
           Chưa có checklist nào. Thêm một checklist từ bảng thao tác.
         </div>
       ) : (
@@ -480,7 +491,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
             return (
               <div
                 key={checklist.id}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-4 relative overflow-hidden group/checklist"
+                className={`rounded-xl border p-4 relative overflow-hidden group/checklist transition-colors ${
+                  isCozy ? "bg-slate-900/30 border-slate-800" : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <div className="flex justify-between items-center mb-3">
                   {editingChecklistId === checklist.id ? (
@@ -508,13 +521,15 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                           setEditingChecklistId(null);
                         }
                       }}
-                      className="text-sm font-bold text-slate-800 bg-white border border-[#28B8FA] rounded px-2 py-1 outline-none flex-1 mr-4"
+                      className={`text-sm font-bold bg-white border rounded px-2 py-1 outline-none flex-1 mr-4 ${
+                        isCozy ? "bg-slate-800 border-[#FF8B5E] text-white" : "bg-white border-[#28B8FA] text-slate-800"
+                      }`}
                     />
                   ) : (
                     <h3
                       className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 -ml-2 ${checklist.isPending
-                        ? "text-slate-400 cursor-not-allowed"
-                        : "text-slate-800 hover:bg-slate-200/50 cursor-pointer"
+                        ? "text-slate-500 cursor-not-allowed"
+                        : (isCozy ? "text-slate-300 hover:bg-slate-800" : "text-slate-800 hover:bg-slate-200/50 cursor-pointer")
                         }`}
                       onClick={() => {
                         if (checklist.isPending) return;
@@ -534,7 +549,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                     type="button"
                     onClick={() => handleDeleteChecklist(checklist.id)}
                     disabled={checklist.isPending}
-                    className="text-[10px] font-bold px-2 py-1 rounded transition-colors disabled:opacity-50 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                    className={`text-[10px] font-bold px-2 py-1 rounded transition-colors disabled:opacity-50 ${
+                      isCozy ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                    }`}
                   >
                     XÓA NHÓM
                   </button>
@@ -542,12 +559,12 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
 
                 <div className="flex flex-col gap-2 mb-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-500 min-w-[32px]">
+                    <span className={`text-xs font-bold min-w-[32px] ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                       {progress}%
                     </span>
-                    <div className="h-1.5 flex-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div className={`h-1.5 flex-1 rounded-full overflow-hidden ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}>
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : "bg-[#28B8FA]"
+                        className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : (isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]")
                           }`}
                         style={{ width: `${progress}%` }}
                       />
@@ -569,12 +586,14 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                         onChange={(e) =>
                           handleToggleItem(checklist.id, item.id, e.target.checked)
                         }
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#28B8FA] focus:ring-[#28B8FA] transition-colors cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+                        className={`mt-0.5 w-4 h-4 rounded border-slate-300 focus:ring-opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed flex-shrink-0 ${
+                          isCozy ? "text-[#FF8B5E] focus:ring-[#FF8B5E] bg-slate-900 border-slate-700" : "text-[#28B8FA] focus:ring-[#28B8FA]"
+                        }`}
                       />
                       <span
                         className={`text-sm font-medium flex-1 break-words transition-all duration-300 ${item.is_completed
-                          ? "line-through text-slate-400 opacity-60"
-                          : "text-slate-700"
+                          ? (isCozy ? "line-through text-slate-600" : "line-through text-slate-400 opacity-60")
+                          : (isCozy ? "text-slate-300" : "text-slate-700")
                           }`}
                       >
                         {item.content}
@@ -583,7 +602,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                         type="button"
                         onClick={() => handleDeleteItem(checklist.id, item.id)}
                         disabled={item.isPending || checklist.isPending}
-                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all ml-2 p-1 disabled:cursor-not-allowed"
+                        className={`opacity-0 group-hover:opacity-100 transition-all ml-2 p-1 disabled:cursor-not-allowed ${
+                          isCozy ? "text-slate-600 hover:text-red-400" : "text-slate-400 hover:text-red-500"
+                        }`}
                         title="Xóa mục này"
                       >
                         {item.isPending ? "..." : "✕"}
@@ -599,7 +620,11 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                       checklist.isPending ? "Vui lòng đợi..." : "Thêm mục..."
                     }
                     disabled={checklist.isPending}
-                    className="w-full text-sm font-medium text-slate-900 bg-white border border-slate-200 rounded-xl px-4 py-2 outline-none focus:border-[#28B8FA] transition-colors placeholder:text-slate-400 shadow-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    className={`w-full text-sm font-medium border rounded-xl px-4 py-2 outline-none transition-colors shadow-sm disabled:cursor-not-allowed ${
+                      isCozy 
+                        ? "bg-slate-900 border-slate-800 text-white placeholder:text-slate-700 focus:border-[#FF8B5E] disabled:bg-slate-950" 
+                        : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#28B8FA] disabled:bg-slate-100"
+                    }`}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && e.currentTarget.value.trim()) {
                         e.preventDefault();

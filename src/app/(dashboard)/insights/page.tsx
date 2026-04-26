@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useDashboardUser } from "../provider";
 import { createClient } from "@/utils/supabase/client";
 import {
   PieChart,
@@ -30,6 +31,8 @@ const PIE_COLORS = [
 ];
 
 export default function InsightsPage() {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [data, setData] = useState<InsightsTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,17 +89,17 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="px-10 pt-10 pb-20 animate-pulse">
-        <div className="h-8 bg-slate-200 rounded w-1/4 mb-2" />
-        <div className="h-4 bg-slate-200 rounded w-1/3 mb-10" />
+      <div className={`px-10 pt-10 pb-20 animate-pulse ${isCozy ? "bg-[#0F172A]" : ""}`}>
+        <div className={`h-8 rounded w-1/4 mb-2 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`} />
+        <div className={`h-4 rounded w-1/3 mb-10 ${isCozy ? "bg-slate-800" : "bg-slate-200"}`} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-slate-100 rounded-xl" />
+            <div key={i} className={`h-32 rounded-xl ${isCozy ? "bg-slate-900/50" : "bg-slate-100"}`} />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-100 bg-slate-100 rounded-xl" />
-          <div className="h-100 bg-slate-100 rounded-xl" />
+          <div className={`h-100 rounded-xl ${isCozy ? "bg-slate-900/50" : "bg-slate-100"}`} />
+          <div className={`h-100 rounded-xl ${isCozy ? "bg-slate-900/50" : "bg-slate-100"}`} />
         </div>
       </div>
     );
@@ -195,15 +198,15 @@ export default function InsightsPage() {
   return (
     <>
       {/* HEADER */}
-      <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
+      <header className={`px-10 flex items-end justify-between shrink-0 z-10 pt-10 pb-6 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
         <div>
-          <p className="text-[10px] font-bold text-[#28B8FA] uppercase tracking-widest mb-2">
+          <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 transition-colors ${isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]"}`}>
             Tổng quan Phân tích
           </p>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className={`text-3xl font-extrabold tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
             Phân tích Dự án
           </h1>
-          <p className="text-slate-500 text-sm mt-1.5 font-medium">
+          <p className={`text-sm mt-1.5 font-medium transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
             Chỉ số theo thời gian thực và phân tích phân bổ công việc.
           </p>
         </div>
@@ -214,12 +217,16 @@ export default function InsightsPage() {
         {/* 1. KPI CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Tasks Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all">
+          <div className={`rounded-xl p-6 shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+              <h3 className={`text-sm font-bold uppercase tracking-wide ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                 Tổng số công việc
               </h3>
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isCozy ? "bg-slate-800 text-slate-400" : "bg-blue-50 text-blue-500"
+              }`}>
                 <svg
                   width="20"
                   height="20"
@@ -234,16 +241,20 @@ export default function InsightsPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-4xl font-black text-slate-800">{totalTasks}</p>
+            <p className={`text-4xl font-black ${isCozy ? "text-white" : "text-slate-800"}`}>{totalTasks}</p>
           </div>
 
           {/* Completed Tasks Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all">
+          <div className={`rounded-xl p-6 shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+              <h3 className={`text-sm font-bold uppercase tracking-wide ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                 Hoàn thành
               </h3>
-              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isCozy ? "bg-emerald-900/20 text-emerald-400" : "bg-emerald-50 text-emerald-500"
+              }`}>
                 <svg
                   width="20"
                   height="20"
@@ -259,18 +270,22 @@ export default function InsightsPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-4xl font-black text-slate-800">
+            <p className={`text-4xl font-black ${isCozy ? "text-white" : "text-slate-800"}`}>
               {completedTasks}
             </p>
           </div>
 
           {/* Completion Rate Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all">
+          <div className={`rounded-xl p-6 shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+              <h3 className={`text-sm font-bold uppercase tracking-wide ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                 Tỷ lệ hoàn thành
               </h3>
-              <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isCozy ? "bg-purple-900/20 text-purple-400" : "bg-purple-50 text-purple-500"
+              }`}>
                 <svg
                   width="20"
                   height="20"
@@ -288,7 +303,7 @@ export default function InsightsPage() {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <p className="text-4xl font-black text-slate-800">
+              <p className={`text-4xl font-black ${isCozy ? "text-white" : "text-slate-800"}`}>
                 {completionRate}
                 <span className="text-2xl text-slate-400">%</span>
               </p>
@@ -296,12 +311,16 @@ export default function InsightsPage() {
           </div>
 
           {/* Overdue Tasks Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all">
+          <div className={`rounded-xl p-6 shadow-sm border hover:shadow-md hover:-translate-y-1 transition-all ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+              <h3 className={`text-sm font-bold uppercase tracking-wide ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
                 Quá hạn
               </h3>
-              <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isCozy ? "bg-red-900/20 text-red-400" : "bg-red-50 text-red-500"
+              }`}>
                 <svg
                   width="20"
                   height="20"
@@ -317,15 +336,17 @@ export default function InsightsPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-4xl font-black text-slate-800">{overdueTasks}</p>
+            <p className={`text-4xl font-black ${isCozy ? "text-white" : "text-slate-800"}`}>{overdueTasks}</p>
           </div>
         </div>
 
         {/* 2. CHARTS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
           {/* Pie Chart: Status Distribution */}
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow min-w-0">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
+          <div className={`rounded-xl p-8 shadow-sm border hover:shadow-md transition-shadow min-w-0 ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
+            <h2 className={`text-lg font-bold mb-6 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
               Phân bố Trạng thái Công việc
             </h2>
             <div className="w-full h-75">
@@ -378,8 +399,10 @@ export default function InsightsPage() {
           </div>
 
           {/* Bar Chart: Priority Analysis */}
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow min-w-0">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
+          <div className={`rounded-xl p-8 shadow-sm border hover:shadow-md transition-shadow min-w-0 ${
+            isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+          }`}>
+            <h2 className={`text-lg font-bold mb-6 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
               Phân tích Mức độ Ưu tiên
             </h2>
             <div className="w-full h-75">
@@ -408,10 +431,12 @@ export default function InsightsPage() {
                       tick={{ fill: "#64748b", fontSize: 13 }}
                     />
                     <Tooltip
-                      cursor={{ fill: "#f1f5f9" }}
+                      cursor={{ fill: isCozy ? "#1e293b" : "#f1f5f9" }}
                       contentStyle={{
+                        backgroundColor: isCozy ? "#1e293b" : "#ffffff",
+                        color: isCozy ? "#ffffff" : "#0f172a",
                         borderRadius: "12px",
-                        border: "none",
+                        border: isCozy ? "1px solid #334155" : "none",
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
                     />

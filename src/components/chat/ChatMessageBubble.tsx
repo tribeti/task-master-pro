@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "@/types/chat";
-import Image from "next/image";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
+import { UserAvatar } from "@/components/UserAvatar";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
@@ -19,6 +20,8 @@ export function ChatMessageBubble({
   onDelete,
   onEdit,
 }: ChatMessageBubbleProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showMenu, setShowMenu] = useState(false);
@@ -31,10 +34,6 @@ export function ChatMessageBubble({
     }
   }, [message.id, message.content, isEditing]);
 
-  const avatarUrl =
-    message.users?.avatar_url ||
-    "https://ui-avatars.com/api/?name=" +
-      encodeURIComponent(message.users?.display_name || "U");
   const displayName = message.users?.display_name || "Thành viên";
 
   const time = new Date(message.created_at).toLocaleTimeString([], {
@@ -89,14 +88,12 @@ export function ChatMessageBubble({
         {/* Avatar */}
         <div className="w-8 shrink-0 flex flex-col justify-end pb-1">
           {showAvatar && !isMine && (
-            <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-200">
-              <Image
-                src={avatarUrl}
-                alt={displayName}
-                fill
-                className="object-cover"
-              />
-            </div>
+            <UserAvatar
+              avatarUrl={message.users?.avatar_url || null}
+              displayName={displayName}
+              className="w-8 h-8"
+              fallbackClassName={isCozy ? "bg-slate-800 text-slate-400" : "bg-slate-200 text-slate-700"}
+            />
           )}
         </div>
 
@@ -105,7 +102,7 @@ export function ChatMessageBubble({
           className={`flex flex-col relative ${isMine ? "items-end" : "items-start"}`}
         >
           {showAvatar && !isMine && (
-            <span className="text-xs text-slate-400 mb-1 ml-1">
+            <span className={`text-xs mb-1 ml-1 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
               {displayName}
             </span>
           )}
@@ -124,7 +121,11 @@ export function ChatMessageBubble({
                     setEditContent(message.content);
                   }
                 }}
-                className="w-full text-[15px] p-2 rounded-xl border border-slate-300 focus:outline-none focus:border-[#28B8FA] bg-white resize-none"
+                className={`w-full text-[15px] p-2 rounded-xl border focus:outline-none resize-none transition-colors ${
+                  isCozy 
+                    ? "bg-slate-800 border-slate-700 text-white focus:border-[#FF8B5E]" 
+                    : "bg-white border-slate-300 focus:border-[#28B8FA]"
+                }`}
                 rows={2}
                 autoFocus
               />
@@ -140,7 +141,9 @@ export function ChatMessageBubble({
                 </button>
                 <button
                   onClick={submitEdit}
-                  className="text-xs text-white bg-[#28B8FA] px-2 py-1 rounded hover:bg-[#0EA5E9]"
+                  className={`text-xs text-white px-2 py-1 rounded transition-colors ${
+                    isCozy ? "bg-[#FF8B5E] hover:bg-orange-600" : "bg-[#28B8FA] hover:bg-[#0EA5E9]"
+                  }`}
                 >
                   Lưu
                 </button>
@@ -152,10 +155,10 @@ export function ChatMessageBubble({
             >
               <div
                 onContextMenu={handleContextMenu}
-                className={`px-4 py-2.5 rounded-2xl relative  cursor-pointer ${
+                className={`px-4 py-2.5 rounded-2xl relative cursor-pointer ${
                   isMine
-                    ? "bg-[#28B8FA] text-white rounded-br-sm"
-                    : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm shadow-sm"
+                    ? (isCozy ? "bg-[#FF8B5E] text-white rounded-br-sm shadow-md shadow-orange-950/20" : "bg-[#28B8FA] text-white rounded-br-sm")
+                    : (isCozy ? "bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-sm" : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm shadow-sm")
                 }`}
               >
                 <p className="text-[15px] whitespace-pre-wrap leading-relaxed">
@@ -178,7 +181,9 @@ export function ChatMessageBubble({
                     aria-label="Tùy chọn tin nhắn"
                     onClick={() => setShowMenu((prev) => !prev)}
                     onKeyDown={handleMenuTriggerKeyDown}
-                    className="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    className={`w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all ${
+                      isCozy ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -194,7 +199,9 @@ export function ChatMessageBubble({
 
                   {/* Context Menu */}
                   {showMenu && (
-                    <div className="absolute top-full right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
+                    <div className={`absolute top-full right-0 mt-1 w-32 rounded-xl shadow-lg border py-1 z-50 transition-colors ${
+                      isCozy ? "bg-slate-900 border-slate-700" : "bg-white border-slate-100"
+                    }`}>
                       <button
                         onClick={() => {
                           setIsEditing(true);
@@ -203,7 +210,9 @@ export function ChatMessageBubble({
                         onKeyDown={(e) => {
                           if (e.key === "Escape") setShowMenu(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          isCozy ? "text-slate-300 hover:bg-slate-800" : "text-slate-700 hover:bg-slate-50"
+                        }`}
                       >
                         Chỉnh sửa
                       </button>
@@ -215,7 +224,9 @@ export function ChatMessageBubble({
                         onKeyDown={(e) => {
                           if (e.key === "Escape") setShowMenu(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          isCozy ? "text-red-400 hover:bg-red-950/30" : "text-red-600 hover:bg-red-50"
+                        }`}
                       >
                         Xóa
                       </button>
@@ -228,7 +239,7 @@ export function ChatMessageBubble({
 
           {/* Time display: only show if explicitly asked (e.g. last in cluster) */}
           {showTime && (
-            <span className="text-[10px] text-slate-300 mt-1 mx-1">{time}</span>
+            <span className={`text-[10px] mt-1 mx-1 ${isCozy ? "text-slate-600" : "text-slate-300"}`}>{time}</span>
           )}
         </div>
       </div>
