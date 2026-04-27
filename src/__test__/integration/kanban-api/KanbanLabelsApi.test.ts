@@ -104,7 +104,7 @@ describe("POST /api/kanban/labels", () => {
       }),
     );
     const body = await res.json();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(body.error).toBe("Label name quá dài");
   });
 

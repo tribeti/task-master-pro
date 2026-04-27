@@ -2,7 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { useProjects } from "@/lib/hooks/useProjects";
 import * as projectService from "@/lib/services/project.service";
 
-jest.mock("@/services/project.service");
+jest.mock("@/lib/services/project.service");
 jest.mock("sonner", () => ({
   toast: {
     success: jest.fn(),
