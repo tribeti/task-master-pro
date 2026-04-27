@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { XIcon, TrashIcon } from "@/components/icons";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { Label } from "@/lib/types/project";
