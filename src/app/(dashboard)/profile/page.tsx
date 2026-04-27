@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EditIcon, TrashIcon, LockIcon } from "@/components/icons";
 import Toggle from "@/components/Toggle";
 import { createClient } from "@/utils/supabase/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDashboardUser } from "../provider";
@@ -372,13 +373,13 @@ export default function ProfilePage() {
                       className="hidden"
                       onChange={handleAvatarChange}
                     />
-                    <img
+                    <Image
                       src={avatarUrl || fallbackAvatar}
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackAvatar;
-                      }}
                       alt="Avatar"
+                      width={112}
+                      height={112}
                       className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                      unoptimized
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ">
                       <span className="text-white text-xs font-bold drop-shadow-md">

@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 import {
   CheckCircleIcon,
   GridIcon,
@@ -106,10 +107,13 @@ export default function FeaturesSection() {
           </p>
 
           <div className="flex -space-x-4">
-            <img
+            <Image
               src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex"
               alt="U"
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-full bg-slate-800 border-4 border-white shadow-md z-30"
+              unoptimized
             />
             <div className="w-16 h-16 rounded-full bg-[#FFF2DE] border-4 border-white shadow-md flex items-center justify-center font-black text-xl text-[#FF8B5E] z-20">
               JD

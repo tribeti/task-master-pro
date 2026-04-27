@@ -15,7 +15,6 @@ export async function fetchUserBoards(): Promise<{
 
 // ── Create a new board ──
 export async function createNewBoard(
-  _userId: string,
   boardData: {
     title: string;
     description: string | null;
@@ -49,7 +48,6 @@ export async function createDefaultColumns(boardId: number): Promise<void> {
 
 // ── Update a board ──
 export async function updateUserBoard(
-  _userId: string,
   boardId: number,
   boardData: Partial<Board>,
 ): Promise<void> {
@@ -67,7 +65,6 @@ export async function updateUserBoard(
 // ── Delete a board ──
 export async function deleteUserBoard(
   projectId: number,
-  _userId: string,
 ): Promise<void> {
   const res = await fetch(`/api/boards/${projectId}`, {
     method: "DELETE",

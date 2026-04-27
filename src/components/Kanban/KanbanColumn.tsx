@@ -12,7 +12,6 @@ import {
   KanbanColumn as ColumnType,
   KanbanTask as KanbanTaskType,
   Label,
-  BoardMember,
 } from "@/lib/types/project";
 import { KanbanTask } from "./KanbanTask";
 import { toast } from "sonner";

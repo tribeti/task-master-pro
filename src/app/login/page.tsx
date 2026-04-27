@@ -38,8 +38,10 @@ export default function TaskFlowAuth() {
   useEffect(() => {
     const savedEmail = localStorage.getItem("remembered_email");
     if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberMe(true);
+      setTimeout(() => {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }, 0);
     }
   }, []);
   // --- CÁC HÀM XỬ LÝ AUTH ---

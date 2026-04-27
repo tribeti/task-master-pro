@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { SearchIcon, PlusIcon, MoreIcon } from "@/components/icons";
+import { SearchIcon, PlusIcon } from "@/components/icons";
+import Image from "next/image";
 import { BoardMember } from "@/lib/types/project";
 import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { createClient } from "@/utils/supabase/client";
@@ -93,10 +94,13 @@ function TeamMemberAvatar({
 
   if (url) {
     return (
-      <img
+      <Image
         src={url}
         alt={displayName}
+        width={96}
+        height={96}
         className={`rounded-full border-4 border-white shadow-sm object-cover ${className}`}
+        unoptimized
       />
     );
   }

@@ -24,9 +24,11 @@ export function useChat(boardId: number, currentUserId?: string) {
     // Grab the sequence number for THIS fetch before any await.
     const seq = ++requestSeqRef.current;
 
-    setMessages([]);
-    setHasMore(false);
-    setLoading(true);
+    setTimeout(() => {
+      setMessages([]);
+      setHasMore(false);
+      setLoading(true);
+    }, 0);
 
     const { data, error } = await supabase
       .from("messages")

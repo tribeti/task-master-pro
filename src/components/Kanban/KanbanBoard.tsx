@@ -35,7 +35,6 @@ interface KanbanBoardProps {
   isDraggingRef: React.MutableRefObject<boolean>;
   markLocalWrite: () => void;
   onColumnAdded: (column: Column) => void;
-  onDataChange: () => Promise<void>;
   onTaskClick: (task: KanbanTask) => void;
   onAddTask: (columnId: number) => void;
   onUpdateColumn: (columnId: number, newTitle: string) => void;
@@ -60,7 +59,6 @@ export function KanbanBoard({
   isDraggingRef,
   markLocalWrite,
   onColumnAdded,
-  onDataChange,
   onTaskClick,
   onAddTask,
   onUpdateColumn,

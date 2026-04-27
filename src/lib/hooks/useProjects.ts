@@ -47,7 +47,7 @@ export const useProjects = (userId?: string) => {
   const confirmDeleteProject = async (projectId: number) => {
     if (!userId) return false;
     try {
-      await deleteUserBoard(projectId, userId);
+      await deleteUserBoard(projectId);
       toast.success("Project deleted successfully!");
       await fetchBoards();
       return true;
@@ -71,7 +71,7 @@ export const useProjects = (userId?: string) => {
 
     setIsSubmitting(true);
     try {
-      const newBoard = await createNewBoard(userId, {
+      const newBoard = await createNewBoard({
         title: data.title,
         description: data.description || null,
         is_private: data.is_private,
@@ -109,7 +109,7 @@ export const useProjects = (userId?: string) => {
 
     setIsSubmitting(true);
     try {
-      await updateUserBoard(userId, projectId, data);
+      await updateUserBoard(projectId, data);
       toast.success("Cập nhật dự án thành công!");
       await fetchBoards();
       return true;

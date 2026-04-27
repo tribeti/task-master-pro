@@ -34,9 +34,7 @@ export default function ProjectCard({
   const { profile } = useDashboardUser();
   const isCozy = profile?.theme === "cozy";
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
-  const projProgress = proj.progress ?? 0;
   const projTag = proj.tag || "Dự án";
-  const projTeam = proj.team ?? 3;
 
   return (
     <div

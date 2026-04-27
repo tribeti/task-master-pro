@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           if (url.origin === origin) {
             safeRedirectTo = redirectTo;
           }
-        } catch (_) {
+        } catch {
           // Invalid URL format, use default safeRedirectTo
         }
       }

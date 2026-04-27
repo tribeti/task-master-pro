@@ -119,15 +119,21 @@ export function TaskDetailsModal({
     initializedFormKeyRef.current = formKey;
 
     if (isEditing) {
-      setTitle(initTitle as string);
-      setDescription(initDescription || "");
-      setPriority(initPriority as "Low" | "Medium" | "High");
-      setDeadline(initDeadline ? initDeadline.split("T")[0] : "");
+      setTimeout(() => {
+        setTitle(initTitle as string);
+        setDescription(initDescription || "");
+        setPriority(initPriority as "Low" | "Medium" | "High");
+        setDeadline(initDeadline ? initDeadline.split("T")[0] : "");
+        setNameError(false);
+      }, 0);
     } else {
-      setTitle("");
-      setDescription("");
-      setPriority("Medium");
-      setDeadline("");
+      setTimeout(() => {
+        setTitle("");
+        setDescription("");
+        setPriority("Medium");
+        setDeadline("");
+        setNameError(false);
+      }, 0);
     }
   }, [
     isOpen,
@@ -139,11 +145,7 @@ export function TaskDetailsModal({
     initDeadline,
   ]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setNameError(false);
-    }
-  }, [isOpen, initId]);
+
 
   const taskLabels = initialData?.labels || [];
   const availableLabels = boardLabels.filter(
@@ -400,7 +402,6 @@ export function TaskDetailsModal({
             <div className="flex flex-col gap-6 w-full h-fit">
               {initialData?.id && (
                 <TaskAssignees
-                  boardId={boardId}
                   taskId={initialData.id}
                   currentAssignees={currentAssignees}
                   isSubmitting={isSubmitting}

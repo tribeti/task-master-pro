@@ -207,7 +207,6 @@ describe("/api/boards/[boardId]", () => {
       const params = Promise.resolve({ boardId: "123" });
 
       const res = await DELETE(req, { params });
-      const body = await res.json();
 
       expect(res.status).toBe(401);
     });

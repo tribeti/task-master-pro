@@ -6,7 +6,6 @@ import { useDashboardUser } from "@/app/(dashboard)/provider";
 import { BoardMember, TaskAssignee } from "@/lib/types/project";
 
 interface TaskAssigneesProps {
-  boardId: number;
   taskId: number;
   currentAssignees: TaskAssignee[];
   isSubmitting: boolean;
@@ -17,7 +16,6 @@ interface TaskAssigneesProps {
 }
 
 export function TaskAssignees({
-  boardId,
   taskId,
   currentAssignees,
   isSubmitting,

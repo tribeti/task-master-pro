@@ -18,7 +18,7 @@ const createMockChain = (table?: string) => {
 
 const mockFrom = jest
   .fn()
-  .mockImplementation((table: string) => createMockChain(table));
+  .mockImplementation((_table: string) => createMockChain());
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({

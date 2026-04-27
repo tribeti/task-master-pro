@@ -39,13 +39,15 @@ export default function UpdateProjectModal({
 
     useEffect(() => {
         if (isOpen && initialData) {
-            setTitle(initialData.title || "");
-            setDescription(initialData.description || "");
-            setSelectedColor(initialData.color || "#FF8B5E");
-            setTag(initialData.tag || "");
-            setSelectedTag(TAG_PRESETS.includes(initialData.tag || "") ? (initialData.tag || "Core") : "");
-            setNameError(false);
-            setIsPrivate(initialData.is_private || false);
+            setTimeout(() => {
+                setTitle(initialData.title || "");
+                setDescription(initialData.description || "");
+                setSelectedColor(initialData.color || "#FF8B5E");
+                setTag(initialData.tag || "");
+                setSelectedTag(TAG_PRESETS.includes(initialData.tag || "") ? (initialData.tag || "Core") : "");
+                setNameError(false);
+                setIsPrivate(initialData.is_private || false);
+            }, 0);
         }
     }, [isOpen, initialData]);
 
