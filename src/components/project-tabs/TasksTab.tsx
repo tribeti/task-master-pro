@@ -62,7 +62,7 @@ function TaskUrlHandler({
 function TasksTabInner({ projectId }: { projectId: number }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile } = useDashboardUser();
+  const { user } = useDashboardUser();
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
