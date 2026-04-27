@@ -37,10 +37,10 @@ export function TaskAssignees({
   }, [taskId]);
 
   const assignedAssigneeIds = new Set(
-    currentAssignees.map((assignee) => assignee.user_id)
+    currentAssignees.map((assignee) => assignee.user_id),
   );
   const availableAssigneeOptions = boardMembers.filter(
-    (member) => !assignedAssigneeIds.has(member.user_id)
+    (member) => !assignedAssigneeIds.has(member.user_id),
   );
 
   const handleAddAssigneeClick = async () => {
@@ -92,7 +92,9 @@ export function TaskAssignees({
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 mt-1 ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
+      <h3
+        className={`text-xs font-bold uppercase tracking-wider mb-1 mt-1 ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+      >
         Người thực hiện
       </h3>
 
@@ -102,7 +104,9 @@ export function TaskAssignees({
             <div
               key={taskAssignee.user_id}
               className={`inline-flex items-center justify-between w-full gap-2 rounded-xl border px-3 py-2 shadow-sm transition-colors ${
-                isCozy ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                isCozy
+                  ? "bg-slate-900 border-slate-800"
+                  : "bg-white border-slate-200"
               }`}
             >
               <div className="flex flex-1 items-center gap-2 overflow-hidden">
@@ -111,7 +115,9 @@ export function TaskAssignees({
                   displayName={taskAssignee.display_name}
                   className="w-6 h-6 flex-shrink-0"
                 />
-                <span className={`text-sm font-semibold truncate ${isCozy ? "text-slate-300" : "text-slate-700"}`}>
+                <span
+                  className={`text-sm font-semibold truncate ${isCozy ? "text-slate-300" : "text-slate-700"}`}
+                >
                   {taskAssignee.display_name}
                 </span>
               </div>
@@ -143,8 +149,8 @@ export function TaskAssignees({
           onChange={(e) => setSelectedAssigneeId(e.target.value)}
           disabled={assigneeSubmitting || isSubmitting}
           className={`w-full appearance-none rounded-xl cursor-pointer px-4 py-2.5 text-sm font-semibold outline-none transition-colors disabled:opacity-50 ${
-            isCozy 
-              ? "bg-slate-900 hover:bg-slate-800 text-slate-300" 
+            isCozy
+              ? "bg-slate-900 hover:bg-slate-800 text-slate-300"
               : "bg-slate-100 hover:bg-slate-200 text-slate-700"
           }`}
         >
@@ -172,8 +178,8 @@ export function TaskAssignees({
           onClick={handleAddAssigneeClick}
           disabled={assigneeSubmitting || isSubmitting}
           className={`w-full mt-1 font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 ${
-            isCozy 
-              ? "bg-[#FF8B5E] hover:bg-orange-600 text-white" 
+            isCozy
+              ? "bg-[#FF8B5E] hover:bg-orange-600 text-white"
               : "bg-slate-900 hover:bg-slate-800 text-white"
           }`}
         >
@@ -182,9 +188,7 @@ export function TaskAssignees({
       )}
 
       {assigneeError && (
-        <p className="text-xs text-red-500 font-medium mt-1">
-          {assigneeError}
-        </p>
+        <p className="text-xs text-red-500 font-medium mt-1">{assigneeError}</p>
       )}
     </div>
   );

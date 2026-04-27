@@ -170,15 +170,25 @@ export default function CommandCenter() {
   return (
     <>
       {/* HEADER */}
-      <header className={`px-10 flex items-end justify-between shrink-0 z-10 py-10 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
+      <header
+        className={`px-10 flex items-end justify-between shrink-0 z-10 py-10 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}
+      >
         <div>
-          <h1 className={`text-3xl font-extrabold tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
+          <h1
+            className={`text-3xl font-extrabold tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+          >
             Trung tâm điều khiển
           </h1>
-          <p className={`text-sm mt-1.5 font-medium transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
+          <p
+            className={`text-sm mt-1.5 font-medium transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}
+          >
             Năng suất hàng ngày là{" "}
-            <span className={`${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"} font-bold`}>84%</span>. Bạn đang làm
-            rất tốt!
+            <span
+              className={`${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"} font-bold`}
+            >
+              84%
+            </span>
+            . Bạn đang làm rất tốt!
           </p>
         </div>
       </header>
@@ -190,25 +200,39 @@ export default function CommandCenter() {
           {/* DEEP FOCUS WIDGET */}
           <div
             className={`rounded-4xl p-6 shadow-sm border relative overflow-hidden transition-all duration-500 group/pro ${
-              isTimerRunning 
-                ? (isCozy ? "bg-slate-800/50 border-slate-700" : "bg-blue-50/50 border-slate-100") 
-                : (isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100")
+              isTimerRunning
+                ? isCozy
+                  ? "bg-slate-800/50 border-slate-700"
+                  : "bg-blue-50/50 border-slate-100"
+                : isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
             }`}
           >
             {/* Blurred Content */}
             <div className="filter blur-md opacity-40 pointer-events-none select-none transition-all duration-700">
               {isTimerRunning && (
-                <div className={`absolute top-6 right-6 w-2.5 h-2.5 rounded-full animate-pulse ${isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]"}`}></div>
+                <div
+                  className={`absolute top-6 right-6 w-2.5 h-2.5 rounded-full animate-pulse ${isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]"}`}
+                ></div>
               )}
-              <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full -z-10 ${isCozy ? "bg-slate-800" : "bg-slate-50"}`}></div>
-              <h3 className={`text-xs font-bold tracking-widest uppercase mb-4 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
+              <div
+                className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full -z-10 ${isCozy ? "bg-slate-800" : "bg-slate-50"}`}
+              ></div>
+              <h3
+                className={`text-xs font-bold tracking-widest uppercase mb-4 ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+              >
                 Tập trung sâu
               </h3>
               <div
                 className={`text-5xl font-black tracking-tighter mb-6 transition-colors ${
-                  isTimerRunning 
-                    ? (isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]") 
-                    : (isCozy ? "text-white" : "text-slate-800")
+                  isTimerRunning
+                    ? isCozy
+                      ? "text-[#FF8B5E]"
+                      : "text-[#28B8FA]"
+                    : isCozy
+                      ? "text-white"
+                      : "text-slate-800"
                 }`}
               >
                 {isTimerRunning ? "23:59" : "24:00"}
@@ -216,9 +240,13 @@ export default function CommandCenter() {
               <button
                 onClick={() => setIsTimerRunning(!isTimerRunning)}
                 className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${
-                  isTimerRunning 
-                    ? (isCozy ? "bg-orange-900/20 text-[#FF8B5E] shadow-none hover:bg-orange-900/30" : "bg-[#FFF2DE] text-[#FF8B5E] shadow-orange-100 hover:bg-orange-100") 
-                    : (isCozy ? "bg-[#FF8B5E] text-white shadow-none hover:bg-orange-600" : "bg-[#28B8FA] text-white shadow-cyan-200 hover:bg-cyan-400")
+                  isTimerRunning
+                    ? isCozy
+                      ? "bg-orange-900/20 text-[#FF8B5E] shadow-none hover:bg-orange-900/30"
+                      : "bg-[#FFF2DE] text-[#FF8B5E] shadow-orange-100 hover:bg-orange-100"
+                    : isCozy
+                      ? "bg-[#FF8B5E] text-white shadow-none hover:bg-orange-600"
+                      : "bg-[#28B8FA] text-white shadow-cyan-200 hover:bg-cyan-400"
                 }`}
               >
                 {isTimerRunning ? "Dừng Sprint" : "Bắt đầu Sprint"}
@@ -227,16 +255,22 @@ export default function CommandCenter() {
 
             {/* Pro Overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-4">
-              <div className={`absolute inset-0 backdrop-blur-[1px] ${isCozy ? "bg-[#0F172A]/20" : "bg-white/20"}`}></div>
+              <div
+                className={`absolute inset-0 backdrop-blur-[1px] ${isCozy ? "bg-[#0F172A]/20" : "bg-white/20"}`}
+              ></div>
               <div className="relative z-30 flex flex-col items-center text-center">
-                <div className={`mb-3 p-3 rounded-xl shadow-lg ${
-                  isCozy 
-                    ? "bg-gradient-to-tr from-slate-700 to-slate-800 shadow-none" 
-                    : "bg-gradient-to-tr from-[#28B8FA] to-[#34D399] shadow-slate-200"
-                }`}>
+                <div
+                  className={`mb-3 p-3 rounded-xl shadow-lg ${
+                    isCozy
+                      ? "bg-gradient-to-tr from-slate-700 to-slate-800 shadow-none"
+                      : "bg-gradient-to-tr from-[#28B8FA] to-[#34D399] shadow-slate-200"
+                  }`}
+                >
                   <ZapIcon className="w-5 h-5 text-white" />
                 </div>
-                <h4 className={`text-sm font-black uppercase tracking-tight ${isCozy ? "text-white" : "text-slate-800"}`}>
+                <h4
+                  className={`text-sm font-black uppercase tracking-tight ${isCozy ? "text-white" : "text-slate-800"}`}
+                >
                   Sprint Pro
                 </h4>
                 <p className="text-[10px] font-bold text-[#FF8B5E] mt-1 bg-orange-50 px-2 py-0.5 rounded-md">
@@ -247,36 +281,58 @@ export default function CommandCenter() {
           </div>
 
           {/* ENERGY SYNC WIDGET */}
-          <div className={`rounded-4xl p-6 shadow-sm border flex flex-col items-center relative overflow-hidden group/pro transition-colors duration-500 ${isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"}`}>
+          <div
+            className={`rounded-4xl p-6 shadow-sm border flex flex-col items-center relative overflow-hidden group/pro transition-colors duration-500 ${isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"}`}
+          >
             {/* Blurred Content */}
             <div className="filter blur-md opacity-30 pointer-events-none select-none transition-all duration-700 w-full flex flex-col items-center">
-              <h3 className={`text-xs font-bold tracking-widest uppercase mb-6 w-full text-left ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
+              <h3
+                className={`text-xs font-bold tracking-widest uppercase mb-6 w-full text-left ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+              >
                 Đồng bộ năng lượng
               </h3>
               <div className="flex items-end gap-2 h-20 mb-4">
-                <div className={`w-6 h-8 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}></div>
-                <div className={`w-6 h-12 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}></div>
-                <div className={`w-6 h-20 rounded-t-md shadow-sm ${isCozy ? "bg-[#FF8B5E]" : "bg-[#34D399] shadow-emerald-200"}`}></div>
-                <div className={`w-6 h-10 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}></div>
-                <div className={`w-6 h-6 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}></div>
+                <div
+                  className={`w-6 h-8 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}
+                ></div>
+                <div
+                  className={`w-6 h-12 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}
+                ></div>
+                <div
+                  className={`w-6 h-20 rounded-t-md shadow-sm ${isCozy ? "bg-[#FF8B5E]" : "bg-[#34D399] shadow-emerald-200"}`}
+                ></div>
+                <div
+                  className={`w-6 h-10 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}
+                ></div>
+                <div
+                  className={`w-6 h-6 rounded-t-md ${isCozy ? "bg-slate-800" : "bg-[#D1FAE5]"}`}
+                ></div>
               </div>
-              <span className={`text-xs font-bold ${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"}`}>
+              <span
+                className={`text-xs font-bold ${isCozy ? "text-[#FF8B5E]" : "text-[#34D399]"}`}
+              >
                 Peak state reached
               </span>
             </div>
 
             {/* Pro Overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-              <div className={`absolute inset-0 backdrop-blur-[1px] ${isCozy ? "bg-[#0F172A]/10" : "bg-white/10"}`}></div>
+              <div
+                className={`absolute inset-0 backdrop-blur-[1px] ${isCozy ? "bg-[#0F172A]/10" : "bg-white/10"}`}
+              ></div>
               <div className="relative z-30 flex flex-col items-center">
-                <div className={`p-2.5 rounded-full shadow-lg mb-2 ${
-                  isCozy 
-                    ? "bg-slate-800 shadow-none" 
-                    : "bg-gradient-to-tr from-[#34D399] to-[#28B8FA] shadow-emerald-100"
-                }`}>
+                <div
+                  className={`p-2.5 rounded-full shadow-lg mb-2 ${
+                    isCozy
+                      ? "bg-slate-800 shadow-none"
+                      : "bg-gradient-to-tr from-[#34D399] to-[#28B8FA] shadow-emerald-100"
+                  }`}
+                >
                   <CheckIcon className="w-4 h-4 text-white" />
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isCozy ? "text-slate-600" : "text-slate-400"}`}>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] ${isCozy ? "text-slate-600" : "text-slate-400"}`}
+                >
                   Locked
                 </span>
               </div>
@@ -285,11 +341,15 @@ export default function CommandCenter() {
         </div>
 
         {/* CENTER WIDGET */}
-        <div className={`rounded-[2.5rem] p-8 shadow-sm border relative overflow-hidden group/pro transition-colors duration-500 ${isCozy ? "lg:col-span-6 bg-[#0F172A] border-slate-700" : "lg:col-span-6 bg-white border-slate-100"}`}>
+        <div
+          className={`rounded-[2.5rem] p-8 shadow-sm border relative overflow-hidden group/pro transition-colors duration-500 ${isCozy ? "lg:col-span-6 bg-[#0F172A] border-slate-700" : "lg:col-span-6 bg-white border-slate-100"}`}
+        >
           {/* Blurred Content Container */}
           <div className="filter blur-md opacity-50 pointer-events-none select-none transition-all duration-700">
             <div className="flex items-center justify-between mb-8">
-              <h2 className={`text-xl font-bold transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
+              <h2
+                className={`text-xl font-bold transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+              >
                 Nhiệm vụ thăng cấp hằng ngày
               </h2>
               <div className="flex gap-1.5">
@@ -303,7 +363,11 @@ export default function CommandCenter() {
               {visibleTasks.map((task) => (
                 <div
                   key={task.id}
-                  onClick={() => setOpenDropdownId(openDropdownId === task.id ? null : task.id)}
+                  onClick={() =>
+                    setOpenDropdownId(
+                      openDropdownId === task.id ? null : task.id,
+                    )
+                  }
                   className={`flex items-center gap-4 p-2 rounded-2xl transition-colors relative cursor-pointer ${openDropdownId === task.id ? (isCozy ? "bg-slate-800" : "bg-slate-50") : "hover:bg-slate-50/50"}`}
                 >
                   {task.status === "done" ? (
@@ -334,40 +398,56 @@ export default function CommandCenter() {
                 </div>
               ))}
             </div>
-            <button 
+            <button
               onClick={() => setIsQueueExpanded(!isQueueExpanded)}
               className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
             >
-              <PlusIcon className={`transition-transform duration-300 ${isQueueExpanded ? "rotate-45" : ""}`} /> {isQueueExpanded ? "Thu gọn hàng đợi" : "Mở rộng hàng đợi"}
+              <PlusIcon
+                className={`transition-transform duration-300 ${isQueueExpanded ? "rotate-45" : ""}`}
+              />{" "}
+              {isQueueExpanded ? "Thu gọn hàng đợi" : "Mở rộng hàng đợi"}
             </button>
           </div>
 
           {/* Pro Overlay */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-            <div className={`absolute inset-0 backdrop-blur-[2px] ${isCozy ? "bg-[#0F172A]/40" : "bg-white/40"}`}></div>
+            <div
+              className={`absolute inset-0 backdrop-blur-[2px] ${isCozy ? "bg-[#0F172A]/40" : "bg-white/40"}`}
+            ></div>
             <div className="relative z-30 flex flex-col items-center animate-in fade-in zoom-in duration-500">
-              <div className={`mb-6 w-20 h-20 rounded-3xl rotate-12 flex items-center justify-center shadow-2xl relative group-hover/pro:rotate-0 transition-transform duration-500 ${
-                isCozy 
-                  ? "bg-slate-800 shadow-none" 
-                  : "bg-gradient-to-tr from-[#28B8FA] to-[#34D399] shadow-cyan-200"
-              }`}>
+              <div
+                className={`mb-6 w-20 h-20 rounded-3xl rotate-12 flex items-center justify-center shadow-2xl relative group-hover/pro:rotate-0 transition-transform duration-500 ${
+                  isCozy
+                    ? "bg-slate-800 shadow-none"
+                    : "bg-gradient-to-tr from-[#28B8FA] to-[#34D399] shadow-cyan-200"
+                }`}
+              >
                 <ZapIcon className="w-10 h-10 text-white" />
                 <div className="absolute -top-3 -right-3 bg-[#FF8B5E] text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
                   PRO
                 </div>
               </div>
-              <h3 className={`text-2xl font-black tracking-tight mb-2 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}>
-                Nâng cấp TaskMaster <span className={isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]"}>Pro</span>
+              <h3
+                className={`text-2xl font-black tracking-tight mb-2 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+              >
+                Nâng cấp TaskMaster{" "}
+                <span className={isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]"}>
+                  Pro
+                </span>
               </h3>
-              <p className={`text-sm font-medium text-center px-12 leading-relaxed mb-8 transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
+              <p
+                className={`text-sm font-medium text-center px-12 leading-relaxed mb-8 transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}
+              >
                 Mở khóa tính năng nhiệm vụ thăng cấp hằng ngày và nhận x2 EXP
                 khi hoàn thành.
               </p>
-              <button className={`px-8 py-4 rounded-2xl font-bold transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3 group ${
-                isCozy 
-                  ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-none" 
-                  : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
-              }`}>
+              <button
+                className={`px-8 py-4 rounded-2xl font-bold transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3 group ${
+                  isCozy
+                    ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-none"
+                    : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
+                }`}
+              >
                 Mở khóa ngay
                 <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/40 transition-colors">
                   <PlusIcon className="w-3 h-3 rotate-45" />
@@ -382,8 +462,12 @@ export default function CommandCenter() {
 
         {/* RIGHT WIDGETS */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          <div className={`rounded-4xl p-6 shadow-sm border transition-colors duration-500 ${isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"}`}>
-            <h3 className={`text-xs font-bold tracking-widest uppercase mb-4 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
+          <div
+            className={`rounded-4xl p-6 shadow-sm border transition-colors duration-500 ${isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"}`}
+          >
+            <h3
+              className={`text-xs font-bold tracking-widest uppercase mb-4 ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+            >
               Lịch trình sắp tới
             </h3>
             <div className="flex flex-col gap-4">
@@ -417,15 +501,23 @@ export default function CommandCenter() {
                     key={task.id}
                     className="flex items-stretch gap-2 group cursor-default"
                   >
-                    <div className={`w-1 rounded-full shrink-0 transition-colors ${isCozy ? "bg-[#FF8B5E]" : "bg-[#34D399] group-hover:bg-[#28B8FA]"}`}></div>
+                    <div
+                      className={`w-1 rounded-full shrink-0 transition-colors ${isCozy ? "bg-[#FF8B5E]" : "bg-[#34D399] group-hover:bg-[#28B8FA]"}`}
+                    ></div>
                     <div className="flex-1 min-w-0">
-                      <h4 className={`text-sm font-bold line-clamp-1 transition-colors ${isCozy ? "text-white group-hover:text-[#FF8B5E]" : "text-slate-800 group-hover:text-slate-900"}`}>
+                      <h4
+                        className={`text-sm font-bold line-clamp-1 transition-colors ${isCozy ? "text-white group-hover:text-[#FF8B5E]" : "text-slate-800 group-hover:text-slate-900"}`}
+                      >
                         {task.title}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter truncate max-w-[120px] ${
-                          isCozy ? "text-[#FF8B5E] bg-orange-900/20" : "text-[#28B8FA] bg-blue-50"
-                        }`}>
+                        <p
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter truncate max-w-[120px] ${
+                            isCozy
+                              ? "text-[#FF8B5E] bg-orange-900/20"
+                              : "text-[#28B8FA] bg-blue-50"
+                          }`}
+                        >
                           {task.project_title}
                         </p>
                         <span className="text-[10px] text-slate-300">•</span>
@@ -450,9 +542,11 @@ export default function CommandCenter() {
       {/* 3. QUICK ENTRY MODAL OVERLAY */}
       {isQuickEntryOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-          <div className={`rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200 ${
-            isCozy ? "bg-[#1E293B]" : "bg-white"
-          }`}>
+          <div
+            className={`rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-2 relative mx-4 animate-in zoom-in-95 duration-200 ${
+              isCozy ? "bg-[#1E293B]" : "bg-white"
+            }`}
+          >
             <button
               onClick={() => {
                 setIsQuickEntryOpen(false);
@@ -485,9 +579,13 @@ export default function CommandCenter() {
                   <button
                     onClick={() => toggleTag("Work")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                      selectedTags.includes("Work") 
-                        ? (isCozy ? "bg-[#FF8B5E]/20 text-[#FF8B5E]" : "bg-[#EAF7FF] text-[#28B8FA]") 
-                        : (isCozy ? "bg-slate-800 text-slate-500 hover:bg-slate-700" : "bg-slate-50 text-slate-500 hover:bg-slate-100") 
+                      selectedTags.includes("Work")
+                        ? isCozy
+                          ? "bg-[#FF8B5E]/20 text-[#FF8B5E]"
+                          : "bg-[#EAF7FF] text-[#28B8FA]"
+                        : isCozy
+                          ? "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                     } `}
                   >
                     <BriefcaseIcon /> Công việc
@@ -495,9 +593,13 @@ export default function CommandCenter() {
                   <button
                     onClick={() => toggleTag("Personal")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                      selectedTags.includes("Personal") 
-                        ? (isCozy ? "bg-emerald-900/20 text-emerald-400" : "bg-[#D1FAE5] text-[#34D399]") 
-                        : (isCozy ? "bg-slate-800 text-slate-500 hover:bg-slate-700" : "bg-slate-50 text-slate-500 hover:bg-slate-100") 
+                      selectedTags.includes("Personal")
+                        ? isCozy
+                          ? "bg-emerald-900/20 text-emerald-400"
+                          : "bg-[#D1FAE5] text-[#34D399]"
+                        : isCozy
+                          ? "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                     } `}
                   >
                     <UserIcon /> Cá nhân
@@ -505,9 +607,13 @@ export default function CommandCenter() {
                   <button
                     onClick={() => toggleTag("Urgent")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                      selectedTags.includes("Urgent") 
-                        ? (isCozy ? "bg-orange-900/20 text-[#FF8B5E]" : "bg-[#FFF2DE] text-[#FF8B5E]") 
-                        : (isCozy ? "bg-slate-800 text-slate-500 hover:bg-slate-700" : "bg-slate-50 text-slate-500 hover:bg-slate-100") 
+                      selectedTags.includes("Urgent")
+                        ? isCozy
+                          ? "bg-orange-900/20 text-[#FF8B5E]"
+                          : "bg-[#FFF2DE] text-[#FF8B5E]"
+                        : isCozy
+                          ? "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                     } `}
                   >
                     <ZapIcon /> Khẩn cấp

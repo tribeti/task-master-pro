@@ -1,7 +1,7 @@
 const mockGetUser = jest.fn();
 
 // A generic chainable mock for Supabase query builder
-const createMockChain = (table?: string) => {
+const createMockChain = () => {
   const chain: any = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
@@ -18,7 +18,7 @@ const createMockChain = (table?: string) => {
 
 const mockFrom = jest
   .fn()
-  .mockImplementation((_table: string) => createMockChain());
+  .mockImplementation(() => createMockChain());
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({

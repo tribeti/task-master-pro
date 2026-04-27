@@ -24,11 +24,9 @@ export function useChat(boardId: number, currentUserId?: string) {
     // Grab the sequence number for THIS fetch before any await.
     const seq = ++requestSeqRef.current;
 
-    setTimeout(() => {
-      setMessages([]);
-      setHasMore(false);
-      setLoading(true);
-    }, 0);
+    setMessages([]);
+    setHasMore(false);
+    setLoading(true);
 
     const { data, error } = await supabase
       .from("messages")
@@ -226,7 +224,9 @@ export function useChat(boardId: number, currentUserId?: string) {
     // Invalidate any in-flight fetches from the previous boardId immediately.
     requestSeqRef.current++;
 
-    loadMessages();
+    setTimeout(() => {
+      loadMessages();
+    }, 0);
 
     // Initialize Realtime Channel for messages and presence
     const channel = supabase.channel(`board_chat_${boardId}`, {
@@ -318,10 +318,11 @@ export function useChat(boardId: number, currentUserId?: string) {
       })
       .subscribe();
 
+    const currentSeq = requestSeqRef;
     return () => {
       // Bump the sequence counter so any in-flight loadMessages / loadMore
       // calls from this boardId are silently discarded when they resolve.
-      requestSeqRef.current++;
+      currentSeq.current++;
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

@@ -28,7 +28,11 @@ interface TaskChecklistProps {
   onChecklistsUpdate?: (checklists: Checklist[]) => void;
 }
 
-export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: TaskChecklistProps) {
+export function TaskChecklist({
+  taskId,
+  isSubmitting,
+  onChecklistsUpdate,
+}: TaskChecklistProps) {
   const { profile } = useDashboardUser();
   const isCozy = profile?.theme === "cozy";
   const [checklists, setChecklists] = useState<Checklist[]>([]);
@@ -36,7 +40,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
   const [checklistsError, setChecklistsError] = useState<string | null>(null);
   const [isAddingChecklist, setIsAddingChecklist] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("Việc cần làm");
-  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(
+    null,
+  );
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
   const [supabase] = useState(() => createClient());
 
@@ -74,20 +80,25 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           .select("*, items:checklist_items(*)")
           .eq("task_id", taskId)
           .order("created_at", { ascending: true })
-          .order("created_at", { foreignTable: "checklist_items", ascending: true });
+          .order("created_at", {
+            foreignTable: "checklist_items",
+            ascending: true,
+          });
 
         if (error) throw error;
 
         if (!ignore) {
           const fetchedData = (data as Checklist[]) || [];
           setChecklists(fetchedData);
-          // Note: We deliberately DO NOT call notifyParent here 
+          // Note: We deliberately DO NOT call notifyParent here
           // to prevent the "reload flicker" on the Kanban card when opening the modal.
         }
       } catch (err: any) {
         console.error("Error fetching checklists:", err);
         if (!ignore) {
-          setChecklistsError(err.message || "Không thể tải danh sách công việc");
+          setChecklistsError(
+            err.message || "Không thể tải danh sách công việc",
+          );
           setChecklists([]);
         }
       } finally {
@@ -139,7 +150,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       if (data && !error) {
         setChecklists((prev) => {
           const next = prev.map((c) =>
-            c.id === tempId ? { ...data, items: [], isPending: false } : c
+            c.id === tempId ? { ...data, items: [], isPending: false } : c,
           );
           return next;
         });
@@ -170,7 +181,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     if (!checklist || checklist.isPending) return;
 
     const oldTitle = checklist.title;
-    const nextOptimistic = checklists.map((c) => (c.id === id ? { ...c, title: trimmedTitle } : c));
+    const nextOptimistic = checklists.map((c) =>
+      c.id === id ? { ...c, title: trimmedTitle } : c,
+    );
     setChecklists(nextOptimistic);
     markParentDirty();
 
@@ -185,11 +198,12 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       console.error("Error updating checklist title:", err);
       setChecklistsError("Lỗi: Không thể đổi tên. Đã hoàn tác.");
       setChecklists((prev) => {
-        const reset = prev.map((c) => (c.id === id ? { ...c, title: oldTitle } : c));
+        const reset = prev.map((c) =>
+          c.id === id ? { ...c, title: oldTitle } : c,
+        );
         return reset;
       });
       markParentDirty();
-
     }
   };
 
@@ -210,7 +224,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       setChecklistsError("Lỗi: Không thể xóa nhóm việc. Đã hoàn tác.");
       setChecklists((prev) => {
         const reset = [...prev, oldChecklist].sort((a, b) =>
-          a.created_at.localeCompare(b.created_at)
+          a.created_at.localeCompare(b.created_at),
         );
         markParentDirty();
         return reset;
@@ -236,7 +250,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     };
 
     const nextOptimistic = checklists.map((c) =>
-      c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c
+      c.id === checklistId ? { ...c, items: [...c.items, newItem] } : c,
     );
     setChecklists(nextOptimistic);
     markParentDirty();
@@ -253,12 +267,12 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           const next = prev.map((c) =>
             c.id === checklistId
               ? {
-                ...c,
-                items: c.items.map((i) =>
-                  i.id === tempId ? { ...data, isPending: false } : i
-                ),
-              }
-              : c
+                  ...c,
+                  items: c.items.map((i) =>
+                    i.id === tempId ? { ...data, isPending: false } : i,
+                  ),
+                }
+              : c,
           );
           markParentDirty();
           return next;
@@ -269,7 +283,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           const next = prev.map((c) =>
             c.id === checklistId
               ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
-              : c
+              : c,
           );
           markParentDirty();
           return next;
@@ -281,7 +295,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
         const next = prev.map((c) =>
           c.id === checklistId
             ? { ...c, items: c.items.filter((i) => i.id !== tempId) }
-            : c
+            : c,
         );
         markParentDirty();
         return next;
@@ -292,7 +306,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
   const handleToggleItem = async (
     checklistId: string,
     itemId: string,
-    isCompleted: boolean
+    isCompleted: boolean,
   ) => {
     const checklist = checklists.find((c) => c.id === checklistId);
     if (!checklist || checklist.isPending) return;
@@ -304,12 +318,12 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     const nextOptimistic = checklists.map((c) =>
       c.id === checklistId
         ? {
-          ...c,
-          items: c.items.map((i) =>
-            i.id === itemId ? { ...i, is_completed: isCompleted } : i
-          ),
-        }
-        : c
+            ...c,
+            items: c.items.map((i) =>
+              i.id === itemId ? { ...i, is_completed: isCompleted } : i,
+            ),
+          }
+        : c,
     );
     setChecklists(nextOptimistic);
     markParentDirty();
@@ -323,17 +337,19 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       if (error) throw error;
     } catch (err: any) {
       console.error("Error toggling item:", err);
-      setChecklistsError("Lỗi: Không thể cập nhật trạng thái mục. Đã hoàn tác.");
+      setChecklistsError(
+        "Lỗi: Không thể cập nhật trạng thái mục. Đã hoàn tác.",
+      );
       setChecklists((prev) => {
         const reset = prev.map((c) =>
           c.id === checklistId
             ? {
-              ...c,
-              items: c.items.map((i) =>
-                i.id === itemId ? { ...i, is_completed: oldStatus } : i
-              ),
-            }
-            : c
+                ...c,
+                items: c.items.map((i) =>
+                  i.id === itemId ? { ...i, is_completed: oldStatus } : i,
+                ),
+              }
+            : c,
         );
         markParentDirty();
         return reset;
@@ -352,7 +368,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     const nextOptimistic = checklists.map((c) =>
       c.id === checklistId
         ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
-        : c
+        : c,
     );
     setChecklists(nextOptimistic);
     markParentDirty();
@@ -371,12 +387,12 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
         const reset = prev.map((c) =>
           c.id === checklistId
             ? {
-              ...c,
-              items: [...c.items, oldItem].sort((a, b) =>
-                a.created_at.localeCompare(b.created_at)
-              ),
-            }
-            : c
+                ...c,
+                items: [...c.items, oldItem].sort((a, b) =>
+                  a.created_at.localeCompare(b.created_at),
+                ),
+              }
+            : c,
         );
         markParentDirty();
         return reset;
@@ -388,7 +404,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
     <div>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
-          <label className={`text-xs font-bold uppercase tracking-wider ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
+          <label
+            className={`text-xs font-bold uppercase tracking-wider ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+          >
             Hệ thống Checklist
           </label>
           {!isAddingChecklist && (
@@ -400,7 +418,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
               }}
               disabled={isSubmitting}
               className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors flex items-center gap-1 uppercase ${
-                isCozy ? "text-slate-400 hover:text-[#FF8B5E] bg-slate-800 hover:bg-orange-950/20" : "text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF]"
+                isCozy
+                  ? "text-slate-400 hover:text-[#FF8B5E] bg-slate-800 hover:bg-orange-950/20"
+                  : "text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF]"
               }`}
             >
               + Thêm Checklist
@@ -408,13 +428,19 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           )}
         </div>
         {isAddingChecklist && (
-          <div className={`flex items-center gap-2 relative z-10 p-1.5 rounded-xl shadow-sm border transition-colors ${
-            isCozy ? "bg-slate-900 border-slate-700" : "bg-white border-slate-200"
-          }`}>
+          <div
+            className={`flex items-center gap-2 relative z-10 p-1.5 rounded-xl shadow-sm border transition-colors ${
+              isCozy
+                ? "bg-slate-900 border-slate-700"
+                : "bg-white border-slate-200"
+            }`}
+          >
             <input
               type="text"
               className={`text-xs font-semibold border rounded-lg px-3 py-1.5 outline-none min-w-[150px] transition-colors ${
-                isCozy ? "bg-slate-800 border-slate-700 text-white focus:border-[#FF8B5E]" : "bg-white border-[#28B8FA] text-slate-900"
+                isCozy
+                  ? "bg-slate-800 border-slate-700 text-white focus:border-[#FF8B5E]"
+                  : "bg-white border-[#28B8FA] text-slate-900"
               }`}
               value={newChecklistTitle}
               onChange={(e) => setNewChecklistTitle(e.target.value)}
@@ -435,7 +461,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                 setIsAddingChecklist(false);
               }}
               className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                isCozy ? "bg-[#FF8B5E] text-white hover:bg-orange-600" : "bg-[#28B8FA] text-white hover:bg-[#0EA5E9]"
+                isCozy
+                  ? "bg-[#FF8B5E] text-white hover:bg-orange-600"
+                  : "bg-[#28B8FA] text-white hover:bg-[#0EA5E9]"
               }`}
             >
               Thêm
@@ -471,9 +499,15 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
       )}
 
       {checklistsLoading ? (
-        <div className={`text-sm italic ${isCozy ? "text-slate-500" : "text-slate-400"}`}>Đang tải checklist...</div>
+        <div
+          className={`text-sm italic ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+        >
+          Đang tải checklist...
+        </div>
       ) : checklists.length === 0 ? (
-        <div className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}>
+        <div
+          className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}
+        >
           Chưa có checklist nào. Thêm một checklist từ bảng thao tác.
         </div>
       ) : (
@@ -481,7 +515,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
           {checklists.map((checklist) => {
             const totalItems = checklist.items.length;
             const completedItems = checklist.items.filter(
-              (i) => i.is_completed
+              (i) => i.is_completed,
             ).length;
             const progress =
               totalItems === 0
@@ -492,7 +526,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
               <div
                 key={checklist.id}
                 className={`rounded-xl border p-4 relative overflow-hidden group/checklist transition-colors ${
-                  isCozy ? "bg-slate-900/30 border-slate-800" : "bg-slate-50 border-slate-200"
+                  isCozy
+                    ? "bg-slate-900/30 border-slate-800"
+                    : "bg-slate-50 border-slate-200"
                 }`}
               >
                 <div className="flex justify-between items-center mb-3">
@@ -509,7 +545,7 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                         ) {
                           handleUpdateChecklistTitle(
                             checklist.id,
-                            editingChecklistTitle
+                            editingChecklistTitle,
                           );
                         }
                         setEditingChecklistId(null);
@@ -522,15 +558,20 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                         }
                       }}
                       className={`text-sm font-bold bg-white border rounded px-2 py-1 outline-none flex-1 mr-4 ${
-                        isCozy ? "bg-slate-800 border-[#FF8B5E] text-white" : "bg-white border-[#28B8FA] text-slate-800"
+                        isCozy
+                          ? "bg-slate-800 border-[#FF8B5E] text-white"
+                          : "bg-white border-[#28B8FA] text-slate-800"
                       }`}
                     />
                   ) : (
                     <h3
-                      className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 -ml-2 ${checklist.isPending
-                        ? "text-slate-500 cursor-not-allowed"
-                        : (isCozy ? "text-slate-300 hover:bg-slate-800" : "text-slate-800 hover:bg-slate-200/50 cursor-pointer")
-                        }`}
+                      className={`text-sm font-bold transition-colors flex-1 mr-4 rounded px-2 py-1 -ml-2 ${
+                        checklist.isPending
+                          ? "text-slate-500 cursor-not-allowed"
+                          : isCozy
+                            ? "text-slate-300 hover:bg-slate-800"
+                            : "text-slate-800 hover:bg-slate-200/50 cursor-pointer"
+                      }`}
                       onClick={() => {
                         if (checklist.isPending) return;
                         setEditingChecklistId(checklist.id);
@@ -550,7 +591,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                     onClick={() => handleDeleteChecklist(checklist.id)}
                     disabled={checklist.isPending}
                     className={`text-[10px] font-bold px-2 py-1 rounded transition-colors disabled:opacity-50 ${
-                      isCozy ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      isCozy
+                        ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20"
+                        : "text-slate-400 hover:text-red-500 hover:bg-red-50"
                     }`}
                   >
                     XÓA NHÓM
@@ -559,13 +602,22 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
 
                 <div className="flex flex-col gap-2 mb-4">
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs font-bold min-w-[32px] ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
+                    <span
+                      className={`text-xs font-bold min-w-[32px] ${isCozy ? "text-slate-400" : "text-slate-500"}`}
+                    >
                       {progress}%
                     </span>
-                    <div className={`h-1.5 flex-1 rounded-full overflow-hidden ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}>
+                    <div
+                      className={`h-1.5 flex-1 rounded-full overflow-hidden ${isCozy ? "bg-slate-800" : "bg-slate-200"}`}
+                    >
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-green-500" : (isCozy ? "bg-[#FF8B5E]" : "bg-[#28B8FA]")
-                          }`}
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          progress === 100
+                            ? "bg-green-500"
+                            : isCozy
+                              ? "bg-[#FF8B5E]"
+                              : "bg-[#28B8FA]"
+                        }`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -576,25 +628,37 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                   {checklist.items.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex items-start gap-3 group ${item.isPending ? "opacity-50" : ""
-                        }`}
+                      className={`flex items-start gap-3 group ${
+                        item.isPending ? "opacity-50" : ""
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={item.is_completed}
                         disabled={item.isPending || checklist.isPending}
                         onChange={(e) =>
-                          handleToggleItem(checklist.id, item.id, e.target.checked)
+                          handleToggleItem(
+                            checklist.id,
+                            item.id,
+                            e.target.checked,
+                          )
                         }
                         className={`mt-0.5 w-4 h-4 rounded border-slate-300 focus:ring-opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed flex-shrink-0 ${
-                          isCozy ? "text-[#FF8B5E] focus:ring-[#FF8B5E] bg-slate-900 border-slate-700" : "text-[#28B8FA] focus:ring-[#28B8FA]"
+                          isCozy
+                            ? "text-[#FF8B5E] focus:ring-[#FF8B5E] bg-slate-900 border-slate-700"
+                            : "text-[#28B8FA] focus:ring-[#28B8FA]"
                         }`}
                       />
                       <span
-                        className={`text-sm font-medium flex-1 break-words transition-all duration-300 ${item.is_completed
-                          ? (isCozy ? "line-through text-slate-600" : "line-through text-slate-400 opacity-60")
-                          : (isCozy ? "text-slate-300" : "text-slate-700")
-                          }`}
+                        className={`text-sm font-medium flex-1 break-words transition-all duration-300 ${
+                          item.is_completed
+                            ? isCozy
+                              ? "line-through text-slate-600"
+                              : "line-through text-slate-400 opacity-60"
+                            : isCozy
+                              ? "text-slate-300"
+                              : "text-slate-700"
+                        }`}
                       >
                         {item.content}
                       </span>
@@ -603,7 +667,9 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                         onClick={() => handleDeleteItem(checklist.id, item.id)}
                         disabled={item.isPending || checklist.isPending}
                         className={`opacity-0 group-hover:opacity-100 transition-all ml-2 p-1 disabled:cursor-not-allowed ${
-                          isCozy ? "text-slate-600 hover:text-red-400" : "text-slate-400 hover:text-red-500"
+                          isCozy
+                            ? "text-slate-600 hover:text-red-400"
+                            : "text-slate-400 hover:text-red-500"
                         }`}
                         title="Xóa mục này"
                       >
@@ -621,8 +687,8 @@ export function TaskChecklist({ taskId, isSubmitting, onChecklistsUpdate }: Task
                     }
                     disabled={checklist.isPending}
                     className={`w-full text-sm font-medium border rounded-xl px-4 py-2 outline-none transition-colors shadow-sm disabled:cursor-not-allowed ${
-                      isCozy 
-                        ? "bg-slate-900 border-slate-800 text-white placeholder:text-slate-700 focus:border-[#FF8B5E] disabled:bg-slate-950" 
+                      isCozy
+                        ? "bg-slate-900 border-slate-800 text-white placeholder:text-slate-700 focus:border-[#FF8B5E] disabled:bg-slate-950"
                         : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#28B8FA] disabled:bg-slate-100"
                     }`}
                     onKeyDown={(e) => {

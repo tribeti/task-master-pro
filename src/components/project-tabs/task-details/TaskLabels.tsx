@@ -13,6 +13,19 @@ const INLINE_LABEL_PRESET_COLORS = [
   "#818CF8",
 ];
 
+function getContrastColor(hexColor: string | null): string {
+  if (!hexColor) return "text-slate-900";
+  // Remove hash if present
+  const color = hexColor.startsWith("#") ? hexColor.slice(1) : hexColor;
+  // Convert to RGB
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "text-slate-900" : "text-white";
+}
+
 interface TaskLabelsProps {
   taskId: number;
   taskLabels: Label[];
@@ -113,21 +126,32 @@ export function TaskLabels({
 
   return (
     <div>
-      <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
+      <label
+        className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+      >
         Nhãn
       </label>
 
       <div className="flex flex-wrap gap-2 mb-3 min-h-[1.75rem]">
         {taskLabels.length === 0 ? (
-          <span className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}>Chưa có nhãn</span>
+          <span
+            className={`text-sm italic ${isCozy ? "text-slate-600" : "text-slate-400"}`}
+          >
+            Chưa có nhãn
+          </span>
         ) : (
           taskLabels.map((label) => (
             <div
               key={label.id}
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
-                isCozy && !label.color_hex ? "text-white" : "text-slate-900"
+                isCozy && !label.color_hex
+                  ? "text-white"
+                  : getContrastColor(label.color_hex)
               }`}
-              style={{ backgroundColor: label.color_hex || (isCozy ? "#334155" : "#E2E8F0") }}
+              style={{
+                backgroundColor:
+                  label.color_hex || (isCozy ? "#334155" : "#E2E8F0"),
+              }}
             >
               <span>{label.name}</span>
               <button
@@ -135,7 +159,9 @@ export function TaskLabels({
                 onClick={() => handleRemoveLabelClick(label.id)}
                 disabled={labelSubmitting || isSubmitting}
                 className={`font-bold transition-colors disabled:opacity-50 ${
-                  isCozy && !label.color_hex ? "text-slate-300 hover:text-red-400" : "text-slate-700 hover:text-red-500"
+                  isCozy && !label.color_hex
+                    ? "text-slate-300 hover:text-red-400"
+                    : "text-slate-700 hover:text-red-500"
                 }`}
               >
                 ×
@@ -154,8 +180,8 @@ export function TaskLabels({
             }
             disabled={labelSubmitting || isSubmitting}
             className={`w-full appearance-none rounded-xl border px-4 py-2.5 pr-11 text-sm font-semibold shadow-sm outline-none transition-all cursor-pointer disabled:opacity-50 ${
-              isCozy 
-                ? "bg-slate-900 border-slate-800 text-slate-300 focus:border-[#FF8B5E]" 
+              isCozy
+                ? "bg-slate-900 border-slate-800 text-slate-300 focus:border-[#FF8B5E]"
                 : "bg-white border-slate-200 text-slate-700 focus:border-[#28B8FA]"
             }`}
           >
@@ -167,12 +193,7 @@ export function TaskLabels({
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
                 d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-4.25-4.25a.75.75 0 0 1 0-1.06Z"
@@ -187,8 +208,8 @@ export function TaskLabels({
           onClick={handleAddLabelClick}
           disabled={!selectedLabelId || labelSubmitting || isSubmitting}
           className={`px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-50 ${
-            isCozy 
-              ? "bg-[#FF8B5E] text-white hover:bg-orange-600" 
+            isCozy
+              ? "bg-[#FF8B5E] text-white hover:bg-orange-600"
               : "bg-slate-900 text-white hover:bg-slate-800"
           }`}
         >
@@ -196,12 +217,20 @@ export function TaskLabels({
         </button>
       </div>
 
-      <div className={`mt-3 rounded-xl border border-dashed p-4 transition-colors ${
-        isCozy ? "border-slate-800 bg-slate-900/40" : "border-slate-200 bg-slate-50/80"
-      }`}>
+      <div
+        className={`mt-3 rounded-xl border border-dashed p-4 transition-colors ${
+          isCozy
+            ? "border-slate-800 bg-slate-900/40"
+            : "border-slate-200 bg-slate-50/80"
+        }`}
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className={`text-sm font-bold ${isCozy ? "text-slate-300" : "text-slate-800"}`}>Tạo nhãn mới</p>
+            <p
+              className={`text-sm font-bold ${isCozy ? "text-slate-300" : "text-slate-800"}`}
+            >
+              Tạo nhãn mới
+            </p>
           </div>
           <button
             type="button"
@@ -211,8 +240,8 @@ export function TaskLabels({
             }}
             disabled={labelSubmitting || isSubmitting}
             className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all disabled:opacity-50 ${
-              isCozy 
-                ? "bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-[#FF8B5E]" 
+              isCozy
+                ? "bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-[#FF8B5E]"
                 : "bg-white border-slate-200 text-slate-600 hover:border-[#28B8FA] hover:text-[#28B8FA]"
             }`}
           >
@@ -235,10 +264,14 @@ export function TaskLabels({
                 placeholder="e.g. Bug, Backend, QA"
                 disabled={labelSubmitting || isSubmitting}
                 className={`w-full rounded-xl border px-3 py-2 text-sm font-medium outline-none transition-colors ${
-                  isCozy 
-                    ? (customLabelError ? "bg-slate-900 border-red-500 text-white" : "bg-slate-900 border-slate-700 text-white focus:border-[#FF8B5E]")
-                    : (customLabelError ? "bg-white border-red-400 focus:border-red-400" : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]")
-                  }`}
+                  isCozy
+                    ? customLabelError
+                      ? "bg-slate-900 border-red-500 text-white"
+                      : "bg-slate-900 border-slate-700 text-white focus:border-[#FF8B5E]"
+                    : customLabelError
+                      ? "bg-white border-red-400 focus:border-red-400"
+                      : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
+                }`}
               />
               {customLabelError && (
                 <p className="mt-1 ml-1 text-xs font-medium text-red-500">
@@ -254,10 +287,11 @@ export function TaskLabels({
                   type="button"
                   onClick={() => setCustomLabelColor(color)}
                   disabled={labelSubmitting || isSubmitting}
-                  className={`h-6 w-6 rounded-full transition-all hover:scale-110 ${customLabelColor === color
+                  className={`h-6 w-6 rounded-full transition-all hover:scale-110 ${
+                    customLabelColor === color
                       ? "ring-2 ring-slate-400 ring-offset-2"
                       : ""
-                    }`}
+                  }`}
                   style={{ backgroundColor: color }}
                   title={color}
                 />
@@ -265,7 +299,9 @@ export function TaskLabels({
 
               <label
                 className={`flex items-center gap-2 rounded-lg border px-2 py-1 text-xs font-bold cursor-pointer transition-colors ${
-                  isCozy ? "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                  isCozy
+                    ? "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                 }`}
                 title="Chọn màu tùy chỉnh"
               >
@@ -280,7 +316,7 @@ export function TaskLabels({
               </label>
 
               <span
-                className="inline-flex items-center rounded-full px-3 py-1 text-[10px] uppercase font-bold text-slate-900 ml-auto shadow-sm"
+                className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] uppercase font-bold ml-auto shadow-sm ${getContrastColor(customLabelColor)}`}
                 style={{ backgroundColor: customLabelColor }}
               >
                 {customLabelName.trim() || "Xem trước"}
@@ -295,7 +331,9 @@ export function TaskLabels({
                   labelSubmitting || isSubmitting || !customLabelName.trim()
                 }
                 className={`w-full py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-50 ${
-                  isCozy ? "bg-[#FF8B5E] text-white hover:bg-orange-600" : "bg-slate-900 text-white hover:bg-slate-800"
+                  isCozy
+                    ? "bg-[#FF8B5E] text-white hover:bg-orange-600"
+                    : "bg-slate-900 text-white hover:bg-slate-800"
                 }`}
               >
                 {labelSubmitting ? "Đang tạo..." : "Tạo và gán nhãn"}

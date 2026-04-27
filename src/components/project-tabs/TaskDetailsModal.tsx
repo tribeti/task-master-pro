@@ -11,7 +11,6 @@ import { TaskComments } from "./task-details/TaskComments";
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
-  boardId: number;
   onClose: () => void;
   onSubmit: (data: {
     title: string;
@@ -63,7 +62,6 @@ interface TaskDetailsModalProps {
 
 export function TaskDetailsModal({
   isOpen,
-  boardId,
   onClose,
   onSubmit,
   onDelete,
@@ -145,8 +143,6 @@ export function TaskDetailsModal({
     initDeadline,
   ]);
 
-
-
   const taskLabels = initialData?.labels || [];
   const availableLabels = boardLabels.filter(
     (label) => !taskLabels.some((taskLabel) => taskLabel.id === label.id),
@@ -186,7 +182,9 @@ export function TaskDetailsModal({
           onClick={onClose}
           disabled={isSubmitting}
           className={`absolute top-4 right-4 md:top-6 md:right-6 transition-colors disabled:opacity-50 z-20 p-2 rounded-full backdrop-blur-md ${
-            isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-slate-100 md:bg-white/80"
+            isCozy
+              ? "bg-slate-800 text-slate-500 hover:text-white"
+              : "text-slate-400 hover:text-slate-600 bg-slate-100 md:bg-white/80"
           }`}
         >
           <XIcon />
@@ -194,10 +192,14 @@ export function TaskDetailsModal({
 
         <div className="p-5 md:p-8 overflow-y-auto w-full h-full custom-scrollbar">
           <div className="mb-6 pr-10">
-            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>
+            <h2
+              className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}
+            >
               {initialData ? "Chỉnh sửa nhiệm vụ" : "Tạo nhiệm vụ"}
             </h2>
-            <p className={`text-sm font-medium ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
+            <p
+              className={`text-sm font-medium ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+            >
               {initialData
                 ? "Cập nhật chi tiết nhiệm vụ."
                 : "Thêm một nhiệm vụ mới vào bảng."}
@@ -208,7 +210,9 @@ export function TaskDetailsModal({
             {/* CỘT TRÁI */}
             <div className="flex flex-col gap-6 w-full">
               <div>
-                <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}>
+                <label
+                  className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+                >
                   Tên nhiệm vụ <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -234,7 +238,7 @@ export function TaskDetailsModal({
                         await onUpdateTask?.(initialData.id, {
                           title: trimmedTitle,
                         });
-                      } catch (error) {
+                      } catch {
                         if (session === updateSessionsRef.current.title) {
                           setTitle(original);
                         }
@@ -242,10 +246,14 @@ export function TaskDetailsModal({
                     }
                   }}
                   className={`w-full px-4 py-2.5 border rounded-xl text-sm font-semibold placeholder-slate-400 focus:outline-none transition-all ${
-                    isCozy 
-                      ? (nameError ? "border-red-500 bg-slate-900 text-white" : "bg-slate-900/50 border-slate-800 text-white focus:border-[#FF8B5E] focus:bg-slate-900")
-                      : (nameError ? "border-red-400 focus:border-red-400" : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]")
-                    }`}
+                    isCozy
+                      ? nameError
+                        ? "border-red-500 bg-slate-900 text-white"
+                        : "bg-slate-900/50 border-slate-800 text-white focus:border-[#FF8B5E] focus:bg-slate-900"
+                      : nameError
+                        ? "border-red-400 focus:border-red-400"
+                        : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
+                  }`}
                   required
                   maxLength={29}
                   autoFocus
@@ -266,9 +274,15 @@ export function TaskDetailsModal({
                   <div className="flex gap-2">
                     {(["Low", "Medium", "High"] as const).map((p) => {
                       const colors = {
-                        Low: isCozy ? "text-[#34D399] bg-[#064E3B]/40 border-[#064E3B]/60" : "text-[#34D399] bg-[#D1FAE5]",
-                        Medium: isCozy ? "text-[#FF8B5E] bg-orange-950/20 border-orange-900/40" : "text-[#28B8FA] bg-[#EAF7FF]",
-                        High: isCozy ? "text-red-400 bg-red-950/40 border-red-900/60" : "text-[#FF8B5E] bg-[#FFF2DE]",
+                        Low: isCozy
+                          ? "text-[#34D399] bg-[#064E3B]/40 border-[#064E3B]/60"
+                          : "text-[#34D399] bg-[#D1FAE5]",
+                        Medium: isCozy
+                          ? "text-[#FF8B5E] bg-orange-950/20 border-orange-900/40"
+                          : "text-[#28B8FA] bg-[#EAF7FF]",
+                        High: isCozy
+                          ? "text-red-400 bg-red-950/40 border-red-900/60"
+                          : "text-[#FF8B5E] bg-[#FFF2DE]",
                       };
 
                       return (
@@ -284,10 +298,10 @@ export function TaskDetailsModal({
                                 await onUpdateTask?.(initialData.id, {
                                   priority: p,
                                 });
-                              } catch (error) {
+                              } catch {
                                 if (
                                   session ===
-                                  updateSessionsRef.current.priority &&
+                                    updateSessionsRef.current.priority &&
                                   original
                                 ) {
                                   setPriority(original);
@@ -296,10 +310,13 @@ export function TaskDetailsModal({
                             }
                           }}
                           disabled={isSubmitting}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${priority === p
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            priority === p
                               ? colors[p]
-                              : (isCozy ? "bg-slate-900/50 text-slate-500 border-slate-800 hover:border-slate-700" : "bg-slate-50 text-slate-500 border-transparent hover:bg-slate-100")
-                            }`}
+                              : isCozy
+                                ? "bg-slate-900/50 text-slate-500 border-slate-800 hover:border-slate-700"
+                                : "bg-slate-50 text-slate-500 border-transparent hover:bg-slate-100"
+                          }`}
                         >
                           {p}
                         </button>
@@ -327,7 +344,7 @@ export function TaskDetailsModal({
                           await onUpdateTask?.(initialData.id, {
                             deadline: deadline || null,
                           });
-                        } catch (error) {
+                        } catch {
                           if (session === updateSessionsRef.current.deadline) {
                             setDeadline(original);
                           }
@@ -335,8 +352,8 @@ export function TaskDetailsModal({
                       }
                     }}
                     className={`w-full px-4 py-2.5 border rounded-xl text-sm font-semibold focus:outline-none transition-colors cursor-pointer ${
-                      isCozy 
-                        ? "bg-slate-900/50 border-slate-800 text-white focus:border-[#FF8B5E] [color-scheme:dark]" 
+                      isCozy
+                        ? "bg-slate-900/50 border-slate-800 text-white focus:border-[#FF8B5E] [color-scheme:dark]"
                         : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
                     }`}
                     disabled={isSubmitting}
@@ -370,7 +387,7 @@ export function TaskDetailsModal({
                       const session = ++updateSessionsRef.current.description;
                       try {
                         await onUpdateTask?.(initialData.id, { description });
-                      } catch (error) {
+                      } catch {
                         if (session === updateSessionsRef.current.description) {
                           setDescription(original);
                         }
@@ -380,8 +397,8 @@ export function TaskDetailsModal({
                   rows={4}
                   disabled={isSubmitting}
                   className={`w-full px-4 py-3 border rounded-xl text-sm font-medium placeholder-slate-500 focus:outline-none transition-colors resize-y min-h-[100px] ${
-                    isCozy 
-                      ? "bg-slate-900/30 hover:bg-slate-900/50 focus:bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]" 
+                    isCozy
+                      ? "bg-slate-900/30 hover:bg-slate-900/50 focus:bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]"
                       : "bg-slate-50/50 hover:bg-white focus:bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
                   }`}
                 />
@@ -425,14 +442,16 @@ export function TaskDetailsModal({
                 />
               )}
 
-              <div className={`flex flex-col gap-2 mt-auto pt-4 border-t ${isCozy ? "border-slate-800" : "border-slate-100"}`}>
+              <div
+                className={`flex flex-col gap-2 mt-auto pt-4 border-t ${isCozy ? "border-slate-800" : "border-slate-100"}`}
+              >
                 {!initialData && (
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                     className={`w-full py-3 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isCozy 
-                        ? "bg-gradient-to-r from-[#FF8B5E] to-orange-600 text-white hover:shadow-lg hover:shadow-orange-950/20" 
+                      isCozy
+                        ? "bg-gradient-to-r from-[#FF8B5E] to-orange-600 text-white hover:shadow-lg hover:shadow-orange-950/20"
                         : "bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white hover:shadow-lg hover:shadow-cyan-200"
                     }`}
                   >
@@ -448,7 +467,9 @@ export function TaskDetailsModal({
                     onClick={onDelete}
                     disabled={isSubmitting}
                     className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 ${
-                      isCozy ? "bg-red-950/30 text-red-400 hover:bg-red-950/50" : "bg-red-50 text-red-600 hover:bg-red-100"
+                      isCozy
+                        ? "bg-red-950/30 text-red-400 hover:bg-red-950/50"
+                        : "bg-red-50 text-red-600 hover:bg-red-100"
                     }`}
                   >
                     Xóa nhiệm vụ

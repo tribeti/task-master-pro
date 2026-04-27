@@ -13,6 +13,23 @@ interface ManageLabelsModalProps {
   onDeleteLabel: (labelId: number) => Promise<void>;
 }
 
+function getContrastColor(hexColor: string | null): string {
+  if (!hexColor) return "text-slate-900";
+  const color = hexColor.startsWith("#") ? hexColor.slice(1) : hexColor;
+  if (color.length === 3) {
+    const r = parseInt(color.substring(0, 1).repeat(2), 16);
+    const g = parseInt(color.substring(1, 2).repeat(2), 16);
+    const b = parseInt(color.substring(2, 3).repeat(2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? "text-slate-900" : "text-white";
+  }
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "text-slate-900" : "text-white";
+}
+
 // Bảng màu gợi ý sẵn
 const PRESET_COLORS = [
   "#FF8B5E", // orange
@@ -97,7 +114,9 @@ export function ManageLabelsModal({
           onClick={onClose}
           aria-label="Đóng"
           className={`absolute top-6 right-6 transition-colors z-10 p-1 rounded-full backdrop-blur-md ${
-            isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-white/80"
+            isCozy
+              ? "bg-slate-800 text-slate-500 hover:text-white"
+              : "text-slate-400 hover:text-slate-600 bg-white/80"
           }`}
         >
           <XIcon />
@@ -106,15 +125,25 @@ export function ManageLabelsModal({
         <div className="p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Header */}
           <div>
-            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>Quản lý nhãn</h2>
-            <p className={`text-sm font-medium mt-1 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
+            <h2
+              className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}
+            >
+              Quản lý nhãn
+            </h2>
+            <p
+              className={`text-sm font-medium mt-1 ${isCozy ? "text-slate-500" : "text-slate-400"}`}
+            >
               Tạo và quản lý nhãn màu cho board này.
             </p>
           </div>
 
           {/* ── Create new label ── */}
-          <div className={`rounded-2xl p-5 flex flex-col gap-4 transition-colors ${isCozy ? "bg-slate-900/40" : "bg-slate-50"}`}>
-            <p className={`text-xs font-black uppercase tracking-widest ${isCozy ? "text-slate-600" : "text-slate-500"}`}>
+          <div
+            className={`rounded-2xl p-5 flex flex-col gap-4 transition-colors ${isCozy ? "bg-slate-900/40" : "bg-slate-50"}`}
+          >
+            <p
+              className={`text-xs font-black uppercase tracking-widest ${isCozy ? "text-slate-600" : "text-slate-500"}`}
+            >
               Tạo nhãn mới
             </p>
 
@@ -128,16 +157,24 @@ export function ManageLabelsModal({
                   setLabelName(e.target.value);
                   if (e.target.value.trim()) setNameError("");
                 }}
-                onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreate();
+                }}
                 disabled={isCreating}
                 className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${
-                  isCozy 
-                    ? (nameError ? "border-red-500 bg-slate-900 text-white" : "bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]")
-                    : (nameError ? "border-red-400 focus:border-red-400" : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]")
-                  }`}
+                  isCozy
+                    ? nameError
+                      ? "border-red-500 bg-slate-900 text-white"
+                      : "bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]"
+                    : nameError
+                      ? "border-red-400 focus:border-red-400"
+                      : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
+                }`}
               />
               {nameError && (
-                <p className="text-xs text-red-400 font-medium mt-1 ml-1">{nameError}</p>
+                <p className="text-xs text-red-400 font-medium mt-1 ml-1">
+                  {nameError}
+                </p>
               )}
             </div>
 
@@ -155,10 +192,11 @@ export function ManageLabelsModal({
                       setSelectedColor(color);
                       setCustomColor(color);
                     }}
-                    className={`w-7 h-7 rounded-full transition-all hover:scale-110 ${selectedColor === color
+                    className={`w-7 h-7 rounded-full transition-all hover:scale-110 ${
+                      selectedColor === color
                         ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
                         : ""
-                      }`}
+                    }`}
                     style={{ backgroundColor: color }}
                     title={color}
                   />
@@ -166,10 +204,11 @@ export function ManageLabelsModal({
 
                 {/* Custom color picker */}
                 <label
-                  className={`w-7 h-7 rounded-full cursor-pointer flex items-center justify-center border-2 border-dashed transition-all hover:scale-110 ${!PRESET_COLORS.includes(selectedColor)
+                  className={`w-7 h-7 rounded-full cursor-pointer flex items-center justify-center border-2 border-dashed transition-all hover:scale-110 ${
+                    !PRESET_COLORS.includes(selectedColor)
                       ? "ring-2 ring-offset-2 ring-slate-400 scale-110 border-transparent"
                       : "border-slate-300"
-                    }`}
+                  }`}
                   style={{
                     backgroundColor: !PRESET_COLORS.includes(selectedColor)
                       ? selectedColor
@@ -219,7 +258,11 @@ export function ManageLabelsModal({
                 >
                   {labelName || "Preview"}
                 </span>
-                <span className={`text-xs font-mono ${isCozy ? "text-slate-600" : "text-slate-400"}`}>{selectedColor}</span>
+                <span
+                  className={`text-xs font-mono ${isCozy ? "text-slate-600" : "text-slate-400"}`}
+                >
+                  {selectedColor}
+                </span>
               </div>
             </div>
 
@@ -229,8 +272,8 @@ export function ManageLabelsModal({
               onClick={handleCreate}
               disabled={isCreating || !labelName.trim()}
               className={`w-full py-3 rounded-2xl text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                isCozy 
-                  ? "bg-[#FF8B5E] text-white hover:bg-orange-600" 
+                isCozy
+                  ? "bg-[#FF8B5E] text-white hover:bg-orange-600"
                   : "bg-gradient-to-r from-[#28B8FA] to-[#0EA5E9] text-white"
               }`}
             >
@@ -238,7 +281,16 @@ export function ManageLabelsModal({
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
@@ -250,7 +302,9 @@ export function ManageLabelsModal({
 
           {/* ── Existing labels list ── */}
           <div>
-            <p className={`text-xs font-black uppercase tracking-widest mb-3 ${isCozy ? "text-slate-600" : "text-slate-500"}`}>
+            <p
+              className={`text-xs font-black uppercase tracking-widest mb-3 ${isCozy ? "text-slate-600" : "text-slate-500"}`}
+            >
               Nhãn hiện có ({boardLabels.length})
             </p>
 
@@ -274,13 +328,15 @@ export function ManageLabelsModal({
                     />
                     {/* Label name badge */}
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-bold text-slate-900 shrink-0"
+                      className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${getContrastColor(label.color_hex)}`}
                       style={{ backgroundColor: label.color_hex }}
                     >
                       {label.name}
                     </span>
                     {/* Hex code */}
-                    <span className={`text-xs font-mono flex-1 ${isCozy ? "text-slate-600" : "text-slate-400"}`}>
+                    <span
+                      className={`text-xs font-mono flex-1 ${isCozy ? "text-slate-600" : "text-slate-400"}`}
+                    >
                       {label.color_hex}
                     </span>
                     {/* Delete button */}
@@ -288,11 +344,13 @@ export function ManageLabelsModal({
                       type="button"
                       onClick={() => handleDelete(label.id)}
                       disabled={deletingId === label.id}
-                      aria-label="Xóa nhãn"
+                      aria-label={`Xóa nhãn ${label.name}`}
                       className={`p-2 rounded-xl transition-all disabled:opacity-50 ${
-                        isCozy ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                        isCozy
+                          ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20"
+                          : "text-slate-400 hover:text-red-500 hover:bg-red-50"
                       }`}
-                      title="Xóa nhãn"
+                      title={`Xóa nhãn ${label.name}`}
                     >
                       {deletingId === label.id ? (
                         <div className="w-4 h-4 border-2 border-slate-300 border-t-red-500 rounded-full animate-spin" />

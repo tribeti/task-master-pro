@@ -272,13 +272,13 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
   };
 
-  const openEditModal = async (task: Task) => {
+  const openEditModal = useCallback(async (task: Task) => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
     await fetchComments(task.id);
-  };
+  }, [fetchComments]);
 
   const handleTaskFoundFromUrl = useCallback(
     (taskToOpen: Task) => {
