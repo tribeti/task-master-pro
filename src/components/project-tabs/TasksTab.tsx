@@ -99,7 +99,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   // because they're echoes of our OWN changes (not other users').
   const lastLocalWriteRef = useRef(0);
 
-  // Tracks tasks that have a pending toggle to avoid overwriting them 
+  // Tracks tasks that have a pending toggle to avoid overwriting them
   // with stale data during fetchData (handles the race between API and Realtime)
   const pendingTogglesRef = useRef<Set<number>>(new Set());
 
@@ -123,7 +123,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         const fetchedTasks = data.tasks || [];
         if (pendingTogglesRef.current.size === 0) return fetchedTasks;
 
-        // 🛡️ Merge: If a task has a pending toggle update, preserve its 
+        // 🛡️ Merge: If a task has a pending toggle update, preserve its
         // local completion state instead of letting stale DB data overwrite it.
         return fetchedTasks.map((ft: Task) => {
           if (pendingTogglesRef.current.has(ft.id)) {
@@ -272,13 +272,16 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
   };
 
-  const openEditModal = useCallback(async (task: Task) => {
-    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-    setEditingTask(task);
-    setSelectedColumnId(task.column_id);
-    setIsModalOpen(true);
-    await fetchComments(task.id);
-  }, [fetchComments]);
+  const openEditModal = useCallback(
+    async (task: Task) => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      setEditingTask(task);
+      setSelectedColumnId(task.column_id);
+      setIsModalOpen(true);
+      await fetchComments(task.id);
+    },
+    [fetchComments],
+  );
 
   const handleTaskFoundFromUrl = useCallback(
     (taskToOpen: Task) => {
@@ -388,7 +391,14 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           if (prev.some((t) => t.id === newTask.id)) return prev;
           return [
             ...prev,
-            { ...newTask, labels: [], assignees: [], assignee: null, is_completed: false, checklists: [] },
+            {
+              ...newTask,
+              labels: [],
+              assignees: [],
+              assignee: null,
+              is_completed: false,
+              checklists: [],
+            },
           ];
         });
       } catch (insertError) {
@@ -702,7 +712,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
-  const handleUpdateTaskField = async (taskId: number, updates: Partial<Task>) => {
+  const handleUpdateTaskField = async (
+    taskId: number,
+    updates: Partial<Task>,
+  ) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}`, {
@@ -716,7 +729,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       }
       const updatedTask = await res.json();
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, ...updatedTask } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, ...updatedTask } : t)),
       );
       // Optional: don't show toast for every minor edit, or maybe just for user feedback:
       // toast.success("Đã lưu thay đổi");
@@ -735,9 +748,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     // Optimistic UI: update local state immediately
     pendingTogglesRef.current.add(taskId);
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, is_completed: newValue } : t
-      )
+      prev.map((t) => (t.id === taskId ? { ...t, is_completed: newValue } : t)),
     );
 
     // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
@@ -752,7 +763,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       .then(async (res) => {
         if (!res.ok) throw new Error();
         // Refresh the protection window after success
-        lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
+        lastLocalWriteRef.current = Math.max(
+          lastLocalWriteRef.current,
+          Date.now(),
+        );
       })
       .catch(() => {
         // Rollback on failure
@@ -764,8 +778,8 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           prev.map((t) =>
             t.id === taskId && previousValue !== undefined
               ? { ...t, is_completed: previousValue }
-              : t
-          )
+              : t,
+          ),
         );
         toast.error("Cập nhật trạng thái thất bại");
       })
@@ -774,22 +788,25 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       });
   };
 
-  const handleChecklistsUpdate = useCallback((taskId: number, newChecklists: any[]) => {
-    // Map full checklists to the Summary type used by KanbanTask
-    const checklistSummaries = newChecklists.map((cl) => ({
-      id: cl.id,
-      checklist_items: cl.items.map((item: any) => ({
-        id: item.id,
-        is_completed: item.is_completed,
-      })),
-    }));
+  const handleChecklistsUpdate = useCallback(
+    (taskId: number, newChecklists: any[]) => {
+      // Map full checklists to the Summary type used by KanbanTask
+      const checklistSummaries = newChecklists.map((cl) => ({
+        id: cl.id,
+        checklist_items: cl.items.map((item: any) => ({
+          id: item.id,
+          is_completed: item.is_completed,
+        })),
+      }));
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, checklists: checklistSummaries } : t
-      )
-    );
-  }, []);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, checklists: checklistSummaries } : t,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleTasksReordered = useCallback(
     (updates: Array<{ id: number; column_id: number; position: number }>) => {
@@ -797,13 +814,17 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         prev.map((t) => {
           const update = updates.find((u) => u.id === t.id);
           if (update) {
-            return { ...t, column_id: update.column_id, position: update.position };
+            return {
+              ...t,
+              column_id: update.column_id,
+              position: update.position,
+            };
           }
           return t;
-        })
+        }),
       );
     },
-    []
+    [],
   );
 
   const currentEditingTask = editingTask
@@ -846,7 +867,6 @@ function TasksTabInner({ projectId }: { projectId: number }) {
             return [...prev, col].sort((a, b) => a.position - b.position);
           })
         }
-        onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
         onUpdateColumn={handleUpdateColumn}
@@ -859,7 +879,6 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
       <TaskDetailsModal
         isOpen={isModalOpen}
-        boardId={projectId}
         onClose={handleCloseModal}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}
