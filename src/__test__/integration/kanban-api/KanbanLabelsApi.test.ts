@@ -99,7 +99,7 @@ describe("POST /api/kanban/labels", () => {
     const res = await POST(
       createMockRequest({
         name: "A".repeat(100),
-        color_hex: "#FFF",
+        color_hex: "#FFFFFF", // ← FIXED: Valid 6-digit hex
         boardId: 1,
       }),
     );
