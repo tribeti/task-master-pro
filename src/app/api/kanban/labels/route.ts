@@ -9,7 +9,16 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const cleanName = validateString(name, "Label name", 50);
+    let cleanName;
+    try {
+      cleanName = validateString(name, "Label name", 50);
+    } catch (validationError: any) {
+      // Return validation error with 400 status
+      return NextResponse.json(
+        { error: validationError.message },
+        { status: 400 }
+      );
+    }
 
     if (!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color_hex)) {
       return NextResponse.json({ error: "Invalid color format." }, { status: 400 });
