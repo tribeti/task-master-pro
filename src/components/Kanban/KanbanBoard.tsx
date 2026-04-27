@@ -200,6 +200,7 @@ export function KanbanBoard({
    *  5. On error → rollback to backup + toast.error
    * ══════════════════════════════════════════════════════════════ */
   const onDragEnd = (result: DropResult) => {
+    if (isFiltering) return;
     const { destination, source, type } = result;
 
     // Dropped outside any droppable
@@ -556,9 +557,8 @@ export function KanbanBoard({
         {columns.map((col) => (
           <div
             key={col.id}
-            className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl animate-pulse ${
-              isCozy ? "bg-slate-800/40" : "bg-slate-50/80"
-            }`}
+            className={`w-80 shrink-0 flex flex-col gap-4 p-2 rounded-2xl animate-pulse ${isCozy ? "bg-slate-800/40" : "bg-slate-50/80"
+              }`}
           >
             <div className={`h-5 rounded w-1/2 mx-2 ${isCozy ? "bg-slate-700" : "bg-slate-200"}`}></div>
             <div className={`h-24 rounded-2xl ${isCozy ? "bg-slate-800" : "bg-slate-100"}`}></div>
@@ -569,7 +569,7 @@ export function KanbanBoard({
   }
 
   const isFiltering =
-    !!filterUserId || effectiveLabelIds.length > 0 || !!debouncedSearchTerm.trim();
+    !!filterUserId || effectiveLabelIds.length > 0 || !!searchTerm.trim();
 
   return (
     <div className="flex flex-col h-full">
@@ -692,9 +692,8 @@ export function KanbanBoard({
               {/* Popover dropdown */}
               {showLabelFilterPopover && (
                 <div
-                  className={`absolute top-full left-0 mt-2 z-50 rounded-2xl shadow-xl border p-2 min-w-50 ${
-                    isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
-                  }`}
+                  className={`absolute top-full left-0 mt-2 z-50 rounded-2xl shadow-xl border p-2 min-w-50 ${isCozy ? "bg-[#0F172A] border-slate-700" : "bg-white border-slate-100"
+                    }`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-2 pb-2 border-b border-slate-100 mb-2">
@@ -778,11 +777,10 @@ export function KanbanBoard({
                 onFilterChange?.(null);
                 onFilterLabelsChange?.([]);
               }}
-              className={`ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                isCozy 
-                  ? "bg-slate-800 text-slate-400 hover:bg-red-900/30 hover:text-red-400 border-slate-700 hover:border-red-900/50" 
+              className={`ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${isCozy
+                  ? "bg-slate-800 text-slate-400 hover:bg-red-900/30 hover:text-red-400 border-slate-700 hover:border-red-900/50"
                   : "bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border-slate-200 hover:border-red-200"
-              }`}
+                }`}
               title="Xóa bộ lọc"
             >
               <svg
@@ -809,11 +807,10 @@ export function KanbanBoard({
             placeholder="Tìm kiếm thẻ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`pl-9 pr-8 py-1.5 rounded-full border text-sm focus:outline-none w-64 shadow-sm transition-all ${
-              isCozy 
-                ? "bg-[#0F172A] border-slate-700 text-white focus:border-[#FF8B5E] focus:ring-1 focus:ring-[#FF8B5E]" 
+            className={`pl-9 pr-8 py-1.5 rounded-full border text-sm focus:outline-none w-64 shadow-sm transition-all ${isCozy
+                ? "bg-[#0F172A] border-slate-700 text-white focus:border-[#FF8B5E] focus:ring-1 focus:ring-[#FF8B5E]"
                 : "bg-white border-slate-200 text-slate-700 focus:border-[#28B8FA] focus:ring-1 focus:ring-[#28B8FA]"
-            }`}
+              }`}
           />
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"
@@ -835,9 +832,8 @@ export function KanbanBoard({
           {searchTerm && !isSearching && (
             <button
               onClick={() => setSearchTerm("")}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 transition-colors ${
-                isCozy ? "bg-slate-700 text-slate-400 hover:bg-slate-600" : "bg-slate-200 text-slate-500 hover:bg-slate-300"
-              }`}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 transition-colors ${isCozy ? "bg-slate-700 text-slate-400 hover:bg-slate-600" : "bg-slate-200 text-slate-500 hover:bg-slate-300"
+                }`}
             >
               <svg
                 width="12"
@@ -855,13 +851,14 @@ export function KanbanBoard({
           )}
         </div>
       </div>
-      
+
       {/* ── Kanban Board Area ── */}
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable
           droppableId="board"
           type="COLUMN"
           direction="horizontal"
+          isDropDisabled={isFiltering}
         >
           {(provided: DroppableProvided) => (
             <div
@@ -869,8 +866,8 @@ export function KanbanBoard({
               ref={provided.innerRef}
               className="flex-1 overflow-x-auto flex gap-6 pb-2 custom-scrollbar"
               style={{
-                backgroundImage: isCozy 
-                  ? "linear-gradient(to right, #1e293b 1px, transparent 1px), linear-gradient(to bottom, #1e293b 1px, transparent 1px)" 
+                backgroundImage: isCozy
+                  ? "linear-gradient(to right, #1e293b 1px, transparent 1px), linear-gradient(to bottom, #1e293b 1px, transparent 1px)"
                   : "linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)",
                 backgroundSize: "40px 40px",
               }}
@@ -882,7 +879,6 @@ export function KanbanBoard({
                   colIndex={index}
                   tasks={filteredTasks.filter((t) => t.column_id === column.id)}
                   boardLabels={boardLabels}
-                  boardMembers={boardMembers}
                   onTaskClick={onTaskClick}
                   onAddTask={onAddTask}
                   onUpdateColumn={onUpdateColumn}
@@ -890,6 +886,7 @@ export function KanbanBoard({
                   onAddLabel={onAddLabel}
                   onRemoveLabel={onRemoveLabel}
                   onToggleComplete={onToggleComplete}
+                  isDragDisabled={isFiltering}
                   isCozy={isCozy}
                 />
               ))}
@@ -898,9 +895,8 @@ export function KanbanBoard({
               {/* Add Column */}
               {isAddingColumn ? (
                 <div className="w-80 shrink-0 p-2">
-                  <div className={`rounded-2xl p-4 border-2 border-dashed flex flex-col gap-3 transition-colors ${
-                    isCozy ? "bg-[#0F172A] border-[#FF8B5E]/50" : "bg-white border-[#28B8FA]/30"
-                  }`}>
+                  <div className={`rounded-2xl p-4 border-2 border-dashed flex flex-col gap-3 transition-colors ${isCozy ? "bg-[#0F172A] border-[#FF8B5E]/50" : "bg-white border-[#28B8FA]/30"
+                    }`}>
                     <input
                       ref={newColInputRef}
                       type="text"
@@ -908,17 +904,15 @@ export function KanbanBoard({
                       value={newColumnTitle}
                       onChange={(e) => setNewColumnTitle(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
-                      className={`w-full bg-transparent border-b-2 py-1 text-sm font-bold focus:outline-none transition-colors ${
-                        isCozy ? "border-slate-700 text-white focus:border-[#FF8B5E]" : "border-slate-100 text-slate-800 focus:border-[#28B8FA]"
-                      }`}
+                      className={`w-full bg-transparent border-b-2 py-1 text-sm font-bold focus:outline-none transition-colors ${isCozy ? "border-slate-700 text-white focus:border-[#FF8B5E]" : "border-slate-100 text-slate-800 focus:border-[#28B8FA]"
+                        }`}
                     />
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleAddColumn}
                         disabled={!newColumnTitle.trim()}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-sm disabled:opacity-50 ${
-                          isCozy ? "bg-[#FF8B5E] hover:bg-orange-600" : "bg-[#28B8FA] hover:bg-[#1DA1E0]"
-                        }`}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-sm disabled:opacity-50 ${isCozy ? "bg-[#FF8B5E] hover:bg-orange-600" : "bg-[#28B8FA] hover:bg-[#1DA1E0]"
+                          }`}
                       >
                         Thêm
                       </button>
@@ -927,9 +921,8 @@ export function KanbanBoard({
                           setIsAddingColumn(false);
                           setNewColumnTitle("");
                         }}
-                        className={`p-2 rounded-xl border transition-colors ${
-                          isCozy ? "border-slate-800 text-slate-500 hover:bg-slate-800 hover:text-white" : "border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-                        }`}
+                        className={`p-2 rounded-xl border transition-colors ${isCozy ? "border-slate-800 text-slate-500 hover:bg-slate-800 hover:text-white" : "border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                          }`}
                       >
                         <svg
                           width="14"
@@ -950,15 +943,13 @@ export function KanbanBoard({
               ) : (
                 <button
                   onClick={() => setIsAddingColumn(true)}
-                  className={`w-80 shrink-0 min-h-30 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer group ${
-                    isCozy 
-                      ? "bg-slate-900/30 border-slate-800 text-slate-600 hover:bg-slate-800/50 hover:text-slate-400 hover:border-slate-700" 
+                  className={`w-80 shrink-0 min-h-30 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 font-bold text-sm transition-all cursor-pointer group ${isCozy
+                      ? "bg-slate-900/30 border-slate-800 text-slate-600 hover:bg-slate-800/50 hover:text-slate-400 hover:border-slate-700"
                       : "bg-transparent border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-300"
-                  }`}
+                    }`}
                 >
-                  <div className={`w-10 h-10 rounded-full border flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${
-                    isCozy ? "bg-slate-800 border-slate-700 text-[#FF8B5E]" : "bg-white border-slate-100 text-[#28B8FA]"
-                  }`}>
+                  <div className={`w-10 h-10 rounded-full border flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${isCozy ? "bg-slate-800 border-slate-700 text-[#FF8B5E]" : "bg-white border-slate-100 text-[#28B8FA]"
+                    }`}>
                     <PlusIcon />
                   </div>
                   Thêm cột

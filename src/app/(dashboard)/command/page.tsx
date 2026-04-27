@@ -156,7 +156,8 @@ export default function CommandCenter() {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Toggle Tag in Modal
   const toggleTag = (tag: string) => {
@@ -214,13 +215,14 @@ export default function CommandCenter() {
                 {isTimerRunning ? "23:59" : "24:00"}
               </div>
               <button
+                onClick={() => setIsTimerRunning(!isTimerRunning)}
                 className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${
                   isTimerRunning 
                     ? (isCozy ? "bg-orange-900/20 text-[#FF8B5E] shadow-none hover:bg-orange-900/30" : "bg-[#FFF2DE] text-[#FF8B5E] shadow-orange-100 hover:bg-orange-100") 
                     : (isCozy ? "bg-[#FF8B5E] text-white shadow-none hover:bg-orange-600" : "bg-[#28B8FA] text-white shadow-cyan-200 hover:bg-cyan-400")
                 }`}
               >
-                Bắt đầu Sprint
+                {isTimerRunning ? "Dừng Sprint" : "Bắt đầu Sprint"}
               </button>
             </div>
 
@@ -302,7 +304,8 @@ export default function CommandCenter() {
               {visibleTasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`flex items-center gap-4 p-2 rounded-2xl transition-colors relative ${openDropdownId === task.id ? "bg-slate-50" : "hover:bg-slate-50/50"}`}
+                  onClick={() => setOpenDropdownId(openDropdownId === task.id ? null : task.id)}
+                  className={`flex items-center gap-4 p-2 rounded-2xl transition-colors relative cursor-pointer ${openDropdownId === task.id ? (isCozy ? "bg-slate-800" : "bg-slate-50") : "hover:bg-slate-50/50"}`}
                 >
                   {task.status === "done" ? (
                     <div className="w-10 h-10 rounded-full bg-[#34D399] flex items-center justify-center shrink-0 shadow-md shadow-emerald-200">
@@ -332,8 +335,11 @@ export default function CommandCenter() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm flex items-center justify-center gap-2">
-              <PlusIcon /> Mở rộng hàng đợi
+            <button 
+              onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+              className="w-full mt-6 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+            >
+              <PlusIcon className={`transition-transform duration-300 ${isQueueExpanded ? "rotate-45" : ""}`} /> {isQueueExpanded ? "Thu gọn hàng đợi" : "Mở rộng hàng đợi"}
             </button>
           </div>
 

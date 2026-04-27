@@ -125,7 +125,7 @@ export function TaskLabels({
             <div
               key={label.id}
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
-                isCozy ? "text-slate-900" : "text-slate-900"
+                isCozy && !label.color_hex ? "text-white" : "text-slate-900"
               }`}
               style={{ backgroundColor: label.color_hex || (isCozy ? "#334155" : "#E2E8F0") }}
             >
@@ -134,7 +134,9 @@ export function TaskLabels({
                 type="button"
                 onClick={() => handleRemoveLabelClick(label.id)}
                 disabled={labelSubmitting || isSubmitting}
-                className="text-slate-700 hover:text-red-500 font-bold disabled:opacity-50"
+                className={`font-bold transition-colors disabled:opacity-50 ${
+                  isCozy && !label.color_hex ? "text-slate-300 hover:text-red-400" : "text-slate-700 hover:text-red-500"
+                }`}
               >
                 ×
               </button>

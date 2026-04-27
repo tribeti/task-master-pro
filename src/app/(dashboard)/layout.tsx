@@ -1,7 +1,7 @@
 import React from "react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { DashboardProvider } from "./provider";
+import { DashboardProvider, DashboardProfile } from "./provider";
 import DashboardSidebar from "./sidebar";
 
 export default async function DashboardLayout({
@@ -31,10 +31,16 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .single();
 
-  const isCozy = profile?.theme === "cozy";
+  const initialProfile: DashboardProfile = {
+    display_name: profile?.display_name ?? "",
+    avatar_url: profile?.avatar_url ?? null,
+    theme: profile?.theme ?? "light",
+  };
+
+  const isCozy = initialProfile.theme === "cozy";
 
   return (
-    <DashboardProvider initialUser={user} initialProfile={profile}>
+    <DashboardProvider initialUser={user} initialProfile={initialProfile}>
       <div className={`flex h-screen w-full font-sans overflow-hidden transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}>
         {/* ========== SIDEBAR (Client Component for interactive routing & logout) ========== */}
         <DashboardSidebar user={user} />

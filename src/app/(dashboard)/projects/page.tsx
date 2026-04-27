@@ -193,7 +193,7 @@ export default function ProjectsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, fetchBoards]);
+  }, [userId, fetchBoards, handleCloseProject]);
 
   // --- HANDLERS ---
   const handleDeleteProject = (projectId: number, projectTitle: string) => {

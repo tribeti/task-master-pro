@@ -95,6 +95,7 @@ export function ManageLabelsModal({
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label="Đóng"
           className={`absolute top-6 right-6 transition-colors z-10 p-1 rounded-full backdrop-blur-md ${
             isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-white/80"
           }`}
@@ -105,7 +106,7 @@ export function ManageLabelsModal({
         <div className="p-8 flex flex-col gap-6 overflow-y-auto">
           {/* Header */}
           <div>
-            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>Manage Labels</h2>
+            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>Quản lý nhãn</h2>
             <p className={`text-sm font-medium mt-1 ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
               Tạo và quản lý nhãn màu cho board này.
             </p>
@@ -287,6 +288,7 @@ export function ManageLabelsModal({
                       type="button"
                       onClick={() => handleDelete(label.id)}
                       disabled={deletingId === label.id}
+                      aria-label="Xóa nhãn"
                       className={`p-2 rounded-xl transition-all disabled:opacity-50 ${
                         isCozy ? "text-slate-600 hover:text-red-400 hover:bg-red-950/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
                       }`}

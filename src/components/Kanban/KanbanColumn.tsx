@@ -29,9 +29,7 @@ interface KanbanColumnProps {
   onAddLabel?: (taskId: number, labelId: number) => Promise<void>;
   onRemoveLabel?: (taskId: number, labelId: number) => Promise<void>;
   isDragDisabled?: boolean;
-  searchMatchedTaskIds?: Set<number> | null;
   onToggleComplete?: (taskId: number, newValue: boolean) => void;
-  boardMembers?: BoardMember[];
   isCozy?: boolean;
 }
 
@@ -87,7 +85,6 @@ export function KanbanColumn({
   onAddLabel,
   onRemoveLabel,
   isDragDisabled,
-  searchMatchedTaskIds,
   onToggleComplete,
   isCozy = false,
 }: KanbanColumnProps) {
@@ -129,7 +126,7 @@ export function KanbanColumn({
   };
 
   return (
-    <Draggable draggableId={`column-${column.id}`} index={colIndex}>
+    <Draggable draggableId={`column-${column.id}`} index={colIndex} isDragDisabled={isDragDisabled}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}

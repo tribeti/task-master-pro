@@ -284,6 +284,7 @@ export function KanbanTask({
                       <>
                         <button
                           type="button"
+                          aria-label="Mở danh sách nhãn"
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowLabelPopover((v) => !v);
@@ -292,8 +293,8 @@ export function KanbanTask({
                           ${showLabelPopover
                               ? (isCozy ? "bg-[#FF8B5E] text-white" : "bg-sky-500 text-white")
                               : (isCozy 
-                                  ? "bg-slate-800 text-slate-500 opacity-0 group-hover/card:opacity-100 hover:bg-orange-950/40 hover:text-[#FF8B5E]" 
-                                  : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 hover:bg-sky-100 hover:text-sky-500")
+                                  ? "bg-slate-800 text-slate-500 opacity-0 group-hover/card:opacity-100 focus:opacity-100 hover:bg-orange-950/40 hover:text-[#FF8B5E]" 
+                                  : "bg-slate-100 text-slate-400 opacity-0 group-hover/card:opacity-100 focus:opacity-100 hover:bg-sky-100 hover:text-sky-500")
                             }`}
                           title="Nhãn"
                           disabled={labelLoading}

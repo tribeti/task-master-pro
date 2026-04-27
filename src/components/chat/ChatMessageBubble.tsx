@@ -28,11 +28,7 @@ export function ChatMessageBubble({
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setEditContent(message.content);
-    }
-  }, [message.id, message.content, isEditing]);
+  // Removed redundant useEffect that resets editContent based on message.id/content/isEditing
 
   const displayName = message.users?.display_name || "Thành viên";
 
@@ -205,6 +201,7 @@ export function ChatMessageBubble({
                       <button
                         onClick={() => {
                           setIsEditing(true);
+                          setEditContent(message.content);
                           setShowMenu(false);
                         }}
                         onKeyDown={(e) => {

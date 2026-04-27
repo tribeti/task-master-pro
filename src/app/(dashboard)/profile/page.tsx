@@ -10,7 +10,10 @@ import { useDashboardUser } from "../provider";
 
 export default function ProfilePage() {
   const { user, profile } = useDashboardUser();
-  const isCozy = profile?.theme === "cozy";
+  const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">(
+    (profile?.theme as "energetic" | "cozy") || "energetic",
+  );
+  const isCozy = themeSetting === "cozy";
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -83,9 +86,6 @@ export default function ProfilePage() {
   const [fanfareAlert, setFanfareAlert] = useState(true);
   const [visualRewards, setVisualRewards] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(false);
-  const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">(
-    "energetic",
-  );
 
   const handleSave = async () => {
     if (!user?.id) return;
@@ -94,31 +94,32 @@ export default function ProfilePage() {
     try {
       let finalAvatarUrl = avatarUrl; // Hiện tại
       let oldAvatarPath: string | null = null;
+      let newFileName: string | null = null;
+
+      // Capture prior user row for rollback
+      const { data: oldData } = await supabase
+        .from("users")
+        .select("display_name, theme, avatar_url")
+        .eq("id", user.id)
+        .single();
+
+      if (oldData?.avatar_url && !oldData.avatar_url.startsWith("http")) {
+        oldAvatarPath = oldData.avatar_url;
+      }
 
       if (avatarFile) {
         const fileExt = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
         const randomId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
-        const fileName = `${user.id}/avatar-${randomId}.${fileExt}`;
-
-        // Lấy path ảnh cũ để xóa SAU KHI mọi thứ thành công
-        const { data: oldData } = await supabase
-          .from("users")
-          .select("avatar_url")
-          .eq("id", user.id)
-          .single();
-
-        if (oldData?.avatar_url && !oldData.avatar_url.startsWith("http")) {
-          oldAvatarPath = oldData.avatar_url;
-        }
+        newFileName = `${user.id}/avatar-${randomId}.${fileExt}`;
 
         // Upload ảnh mới TRƯỚC
         const { error: uploadError } = await supabase.storage
           .from("avatar")
-          .upload(fileName, avatarFile);
+          .upload(newFileName, avatarFile);
 
         if (uploadError) throw uploadError;
 
-        finalAvatarUrl = fileName;
+        finalAvatarUrl = newFileName;
       }
 
       // 1. Ghi file path vào bảng users (Hồ sơ công khai)
@@ -131,7 +132,12 @@ export default function ProfilePage() {
         })
         .eq("id", user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (newFileName) {
+          await supabase.storage.from("avatar").remove([newFileName]);
+        }
+        throw updateError;
+      }
 
       // 2. 👉 ĐỒNG BỘ VÀO KÉT SẮT AUTH.USERS ĐỂ DASHBOARD HIỂN THỊ
       const { error: authError } = await supabase.auth.updateUser({
@@ -143,11 +149,25 @@ export default function ProfilePage() {
       });
 
       if (authError) {
+        // Rollback users table
+        await supabase
+          .from("users")
+          .update({
+            display_name: oldData?.display_name,
+            theme: oldData?.theme,
+            avatar_url: oldData?.avatar_url,
+          })
+          .eq("id", user.id);
+
+        // Rollback storage
+        if (newFileName) {
+          await supabase.storage.from("avatar").remove([newFileName]);
+        }
         throw authError;
       }
 
       // Chỉ xóa ảnh cũ SAU KHI upload + DB update đều thành công
-      if (oldAvatarPath) {
+      if (oldAvatarPath && avatarFile) {
         await supabase.storage.from("avatar").remove([oldAvatarPath]);
       }
 
