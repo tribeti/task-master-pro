@@ -116,22 +116,19 @@ export function TaskDetailsModal({
     if (initializedFormKeyRef.current === formKey) return;
     initializedFormKeyRef.current = formKey;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isEditing) {
-      setTimeout(() => {
-        setTitle(initTitle as string);
-        setDescription(initDescription || "");
-        setPriority(initPriority as "Low" | "Medium" | "High");
-        setDeadline(initDeadline ? initDeadline.split("T")[0] : "");
-        setNameError(false);
-      }, 0);
+      setTitle(initTitle as string);
+      setDescription(initDescription || "");
+      setPriority(initPriority as "Low" | "Medium" | "High");
+      setDeadline(initDeadline ? initDeadline.split("T")[0] : "");
+      setNameError(false);
     } else {
-      setTimeout(() => {
-        setTitle("");
-        setDescription("");
-        setPriority("Medium");
-        setDeadline("");
-        setNameError(false);
-      }, 0);
+      setTitle("");
+      setDescription("");
+      setPriority("Medium");
+      setDeadline("");
+      setNameError(false);
     }
   }, [
     isOpen,

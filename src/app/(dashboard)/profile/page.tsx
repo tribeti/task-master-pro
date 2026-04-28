@@ -49,6 +49,7 @@ export default function ProfilePage() {
       if (!user?.id) return;
       try {
         setIsLoadingProfile(true);
+        if (!supabase) return;
         const { data, error } = await supabase
           .from("users")
           .select("display_name, avatar_url, theme")
@@ -69,6 +70,7 @@ export default function ProfilePage() {
           if (data.avatar_url.startsWith("http")) {
             setAvatarUrl(data.avatar_url);
           } else {
+            if (!supabase) return;
             const { data: signedData, error: signedError } =
               await supabase.storage
                 .from("avatar")
@@ -104,12 +106,19 @@ export default function ProfilePage() {
       let oldAvatarPath: string | null = null;
       let newFileName: string | null = null;
 
+      if (!supabase) return;
+
       // Capture prior user row for rollback
-      const { data: oldData } = await supabase
+      const { data: oldData, error: fetchError } = await supabase
         .from("users")
         .select("display_name, theme, avatar_url")
         .eq("id", user.id)
         .single();
+
+      if (fetchError || !oldData) {
+        console.error("Failed to fetch backup for profile update:", fetchError);
+        throw new Error("Không thể sao lưu thông tin cũ để cập nhật.");
+      }
 
       if (oldData?.avatar_url && !oldData.avatar_url.startsWith("http")) {
         oldAvatarPath = oldData.avatar_url;

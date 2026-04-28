@@ -40,7 +40,7 @@ export default function DashboardSidebar({ user }: { user: User }) {
 
   useEffect(() => {
     const fetchSidebarProfile = async () => {
-      if (!user?.id) return;
+      if (!supabase || !user?.id) return;
       const { data } = await supabase
         .from("users")
         .select("display_name, avatar_url")

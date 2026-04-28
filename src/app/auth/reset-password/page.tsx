@@ -1,6 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
+
 
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -22,7 +22,10 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      if (!supabase?.auth) return;
+      if (!supabase?.auth) {
+        setIsSessionReady(true);
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");

@@ -92,7 +92,7 @@ describe("POST /api/kanban/labels", () => {
     }
   });
 
-  it("3. Lỗi 500 nếu validateString quăng lỗi", async () => {
+  it("3. Lỗi 400 nếu validateString quăng lỗi", async () => {
     (validateString as jest.Mock).mockImplementation(() => {
       throw new Error("Label name quá dài");
     });

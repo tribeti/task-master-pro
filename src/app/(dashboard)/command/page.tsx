@@ -49,6 +49,7 @@ export default function CommandCenter() {
       }
 
       try {
+        if (!supabase) return;
         const {
           data: { user },
           error: authErr,
@@ -239,7 +240,7 @@ export default function CommandCenter() {
               </div>
               <button
                 onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 pointer-events-auto relative z-30 ${
+                className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 pointer-events-auto relative z-[60] ${
                   isTimerRunning
                     ? isCozy
                       ? "bg-orange-900/20 text-[#FF8B5E] shadow-none hover:bg-orange-900/30"

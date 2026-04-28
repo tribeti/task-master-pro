@@ -562,6 +562,11 @@ export function KanbanBoard({
       {} as Record<number, KanbanTask[]>,
     );
 
+    // Sort each column's tasks by position
+    Object.values(grouped).forEach((colTasks) => {
+      colTasks.sort((a, b) => a.position - b.position);
+    });
+
     return { effectiveLabelIds: effectiveIds, tasksByColumn: grouped };
   }, [
     localTasks,
@@ -948,6 +953,7 @@ export function KanbanBoard({
                   onDeleteColumn={onDeleteColumn}
                   onAddLabel={async (taskId, labelId) => {
                     const label = boardLabels.find((l) => l.id === labelId);
+                    const prevTasks = localTasks;
                     if (label) {
                       setLocalTasks((prev) =>
                         prev.map((t) =>
@@ -957,9 +963,15 @@ export function KanbanBoard({
                         ),
                       );
                     }
-                    await onAddLabel?.(taskId, labelId);
+                    try {
+                      await onAddLabel?.(taskId, labelId);
+                    } catch (error) {
+                      setLocalTasks(prevTasks);
+                      throw error;
+                    }
                   }}
                   onRemoveLabel={async (taskId, labelId) => {
+                    const prevTasks = localTasks;
                     setLocalTasks((prev) =>
                       prev.map((t) =>
                         t.id === taskId
@@ -972,16 +984,27 @@ export function KanbanBoard({
                           : t,
                       ),
                     );
-                    await onRemoveLabel?.(taskId, labelId);
+                    try {
+                      await onRemoveLabel?.(taskId, labelId);
+                    } catch (error) {
+                      setLocalTasks(prevTasks);
+                      throw error;
+                    }
                   }}
                   onToggleComplete={(taskId, newValue) => {
+                    const prevTasks = localTasks;
                     // Update local state immediately so drag-and-drop uses the fresh state
                     setLocalTasks((prev) =>
                       prev.map((t) =>
                         t.id === taskId ? { ...t, is_completed: newValue } : t,
                       ),
                     );
-                    onToggleComplete?.(taskId, newValue);
+                    try {
+                      onToggleComplete?.(taskId, newValue);
+                    } catch (error) {
+                      setLocalTasks(prevTasks);
+                      throw error;
+                    }
                   }}
                   isDragDisabled={isFiltering}
                   isCozy={isCozy}

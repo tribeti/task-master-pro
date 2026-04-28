@@ -54,22 +54,30 @@ function TeamMemberAvatar({
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!avatarUrl) {
       setUrl(null);
+      setLoading(false);
       return;
     }
 
     if (avatarUrl.startsWith("http")) {
       setUrl(avatarUrl);
+      setLoading(false);
       return;
     }
 
     const fetchSignedUrl = async () => {
       try {
+        if (!supabase) return;
         setLoading(true);
+        setUrl(null); // Reset while fetching
         const { data, error } = await supabase.storage
           .from("avatar")
           .createSignedUrl(avatarUrl, 3600); // 1 hour
+
+        if (cancelled) return;
 
         if (error) {
           console.error("Error creating signed URL for member avatar:", error);
@@ -79,11 +87,17 @@ function TeamMemberAvatar({
       } catch (err) {
         console.error("Failed to fetch signed URL:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchSignedUrl();
+
+    return () => {
+      cancelled = true;
+    };
   }, [avatarUrl, supabase]);
 
   if (loading) {
@@ -128,6 +142,22 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const autoCloseRef = useRef<NodeJS.Timeout | null>(null);
+
+  const closeAddModal = useCallback(() => {
+    setIsAddOpen(false);
+    if (autoCloseRef.current) {
+      clearTimeout(autoCloseRef.current);
+      autoCloseRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoCloseRef.current) clearTimeout(autoCloseRef.current);
+    };
+  }, []);
 
   // Remove member state
   const [memberToRemove, setMemberToRemove] = useState<BoardMember | null>(
@@ -192,9 +222,11 @@ export function TeamTab({ boardId }: TeamTabProps) {
       setEmail("");
 
       // Auto close after 2.5 seconds
-      setTimeout(() => {
+      if (autoCloseRef.current) clearTimeout(autoCloseRef.current);
+      autoCloseRef.current = setTimeout(() => {
         setSuccessMsg(null);
         setIsAddOpen(false);
+        autoCloseRef.current = null;
       }, 2500);
     } catch {
       setErrorMsg("Network error");
@@ -382,10 +414,13 @@ export function TeamTab({ boardId }: TeamTabProps) {
                   </div>
 
                   <button
-                    className={`w-full py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
+                    disabled
+                    aria-disabled="true"
+                    title="Profile viewing is restricted"
+                    className={`w-full py-3 rounded-xl border-2 font-bold text-sm transition-colors opacity-50 cursor-not-allowed ${
                       isCozy
-                        ? "border-slate-800 text-slate-600 hover:border-[#FF8B5E] hover:text-[#FF8B5E]"
-                        : "border-slate-100 text-slate-500 hover:border-[#28B8FA] hover:text-[#28B8FA]"
+                        ? "border-slate-800 text-slate-700"
+                        : "border-slate-100 text-slate-300"
                     }`}
                   >
                     View Profile
@@ -435,7 +470,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
           {/* Overlay */}
           <div
             className={`absolute inset-0 backdrop-blur-sm ${isCozy ? "bg-slate-950/60" : "bg-black/40"}`}
-            onClick={() => setIsAddOpen(false)}
+            onClick={closeAddModal}
           ></div>
 
           {/* Modal */}
@@ -529,7 +564,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setIsAddOpen(false)}
+                  onClick={closeAddModal}
                   className={`flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
                     isCozy
                       ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800"

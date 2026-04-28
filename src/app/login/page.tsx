@@ -1,6 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
+
 
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -58,6 +58,12 @@ export default function TaskFlowAuth() {
     const callbackUrl = new URL("/api/auth/callback", window.location.origin);
     if (redirectTo) {
       callbackUrl.searchParams.set("redirectTo", redirectTo);
+    }
+
+    if (!supabase) {
+      setErrorMsg("Lỗi cấu hình hệ thống (Supabase).");
+      setIsLoading(false);
+      return;
     }
 
     const { error } = await supabase.auth.signInWithOAuth({

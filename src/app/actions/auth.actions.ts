@@ -12,6 +12,7 @@ export async function checkEmailExistsAction(
 
   try {
     const supabase = await createClient();
+    if (!supabase) return { exists: true, error: "Lỗi kết nối cơ sở dữ liệu." };
 
     const { data, error } = await supabase.rpc("check_email_exists", {
       email_to_check: email.trim(),
@@ -38,6 +39,7 @@ export async function requestPasswordResetAction(
 
   try {
     const supabase = await createClient();
+    if (!supabase) return { error: "Lỗi kết nối cơ sở dữ liệu." };
     let origin = process.env.NEXT_PUBLIC_APP_URL;
     if (!origin && process.env.NODE_ENV === "development") {
       origin = "http://localhost:3000";

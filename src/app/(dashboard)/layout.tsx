@@ -14,6 +14,7 @@ export default async function DashboardLayout({
   // We will just let the client Sidebar determine the Active route cleanly
 
   const supabase = await createClient();
+  if (!supabase) redirect("/login");
 
   const {
     data: { user },

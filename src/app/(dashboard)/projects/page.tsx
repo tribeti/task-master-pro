@@ -166,6 +166,7 @@ export default function ProjectsPage() {
     if (!userId) return;
 
     const supabase = createClient();
+    if (!supabase) return;
     const channel = supabase
       .channel(`board-members-kick-global-${userId}`)
       .on(

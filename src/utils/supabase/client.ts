@@ -5,9 +5,9 @@ export function createClient() {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-        // Return a placeholder during build/SSR if env vars are missing to prevent crash
+        // Return null during build/SSR if env vars are missing to prevent crash
         if (typeof window === 'undefined') {
-            return {} as ReturnType<typeof createBrowserClient>;
+            return null;
         }
         throw new Error('Supabase URL and Key are required');
     }

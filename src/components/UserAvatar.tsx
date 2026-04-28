@@ -72,6 +72,7 @@ export function UserAvatar({
 
     const fetchSignedUrl = async () => {
       try {
+        if (!supabase) return;
         setLoading(true);
         const { data, error } = await supabase.storage
           .from("avatar")

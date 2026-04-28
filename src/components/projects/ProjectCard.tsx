@@ -38,9 +38,11 @@ export default function ProjectCard({
 
   return (
     <div
-      onClick={() => setSelectedProject(proj)}
+      onClick={(e) => {
+        if (e.currentTarget === e.target) setSelectedProject(proj);
+      }}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.currentTarget === e.target && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           setSelectedProject(proj);
         }
@@ -105,7 +107,6 @@ export default function ProjectCard({
           {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
             <div
               id={`menu-${proj.id}`}
-              role="menu"
               className={`absolute right-0 top-full mt-2 w-40 rounded-2xl shadow-lg border py-2 z-50 ${
                 isCozy ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-100"
               }`}

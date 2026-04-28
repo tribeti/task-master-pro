@@ -43,6 +43,7 @@ export default function InsightsPage() {
     async function fetchData() {
       try {
         const supabase = createClient();
+        if (!supabase) return;
 
         // 1. Get the authenticated user
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
