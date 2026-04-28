@@ -118,8 +118,22 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       if (!res.ok) throw new Error("Failed to fetch kanban data");
       const data = await res.json();
 
-      setColumns(data.columns || []);
+      setColumns((prev) => {
+        // 🛡️ Guard: If dragging columns, don't overwrite with potentially stale data
+        if (isDraggingRef.current) return prev;
+        return data.columns || [];
+      });
+
       setTasks((prev) => {
+        // 🛡️ Guard: If user is actively dragging tasks, DO NOT overwrite the task array.
+        // The KanbanBoard is currently managing the optimistic state, and onTasksReordered
+        // will commit the final positions once the API call completes.
+        if (isDraggingRef.current) return prev;
+
+        // 🛡️ Guard: If we just performed a local write (within 3.5s), the data from 
+        // this fetch might still be stale (e.g. from a slightly delayed DB replica).
+        if (Date.now() - lastLocalWriteRef.current < 3500) return prev;
+
         const fetchedTasks = data.tasks || [];
         if (pendingTogglesRef.current.size === 0) return fetchedTasks;
 

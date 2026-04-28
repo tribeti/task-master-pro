@@ -120,13 +120,14 @@ export function KanbanBoard({
   }, [columns, columnSyncTrigger]);
 
   useEffect(() => {
-    if (pendingTasksUpdatesRef.current === 0) {
+    if (pendingTasksUpdatesRef.current === 0 && !isDraggingRef.current) {
       if (!isEqual(tasks, lastSyncedTasksRef.current)) {
         setLocalTasks(tasks);
         lastSyncedTasksRef.current = tasks;
       }
     }
-  }, [tasks, taskSyncTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, taskSyncTrigger, projectId]);
 
   // Add column state
   const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -220,6 +221,12 @@ export function KanbanBoard({
       ...t,
       labels: [...(t.labels || [])],
     }));
+
+    // Cancel any pending release lock timer because we are starting a NEW drag interaction
+    if (dragCooldownTimerRef.current) {
+      clearTimeout(dragCooldownTimerRef.current);
+      dragCooldownTimerRef.current = null;
+    }
 
     /* ══════════════════════════════════════════════
      *  Case 1: Kéo đổi vị trí CỘT
