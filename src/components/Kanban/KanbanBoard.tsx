@@ -173,6 +173,8 @@ export function KanbanBoard({
     dragCooldownTimerRef.current = setTimeout(() => {
       isDraggingRef.current = false;
       dragCooldownTimerRef.current = null;
+      // Trigger a final sync once the lock is fully released
+      setTaskSyncTrigger((c) => c + 1);
     }, 1500); // > Realtime debounce (500ms) + network jitter
   };
 
@@ -227,6 +229,9 @@ export function KanbanBoard({
       clearTimeout(dragCooldownTimerRef.current);
       dragCooldownTimerRef.current = null;
     }
+
+    // 🛡️ Immediately lock parent fetchData to prevent race conditions with Realtime
+    markLocalWrite();
 
     /* ══════════════════════════════════════════════
      *  Case 1: Kéo đổi vị trí CỘT
