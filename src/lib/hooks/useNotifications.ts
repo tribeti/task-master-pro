@@ -33,6 +33,7 @@ export function useNotifications(userId: string | undefined) {
       ? notification.content
       : `[DELETED]${notification.content}`;
 
+    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ content: newContent })
@@ -57,12 +58,13 @@ export function useNotifications(userId: string | undefined) {
 
     if (toHide.length > 0) {
       const results = await Promise.all(
-        toHide.map((n) =>
-          supabase
+        toHide.map((n) => {
+          if (!supabase) return Promise.resolve({ error: { message: "Supabase client not initialized" } });
+          return supabase
             .from("notifications")
             .update({ content: `[DELETED]${n.content}` })
-            .eq("id", n.id)
-        )
+            .eq("id", n.id);
+        })
       );
 
       const hasError = results.some(res => res.error);
@@ -80,6 +82,7 @@ export function useNotifications(userId: string | undefined) {
 
     const fetchNotifications = async () => {
       setIsLoading(true);
+      if (!supabase) return;
       const { data, error } = await supabase
         .from("notifications")
         .select("*, task:tasks(title, deadline), project:boards(title)")
@@ -114,6 +117,7 @@ export function useNotifications(userId: string | undefined) {
     // Use a unique channel topic so multiple instances of the hook don't conflict
     const channelName = `notifications-${userId}-${Math.random().toString(36).substring(7)}`;
 
+    if (!supabase) return;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -152,6 +156,7 @@ export function useNotifications(userId: string | undefined) {
               action: {
                 label: "Đã đọc",
                 onClick: async () => {
+                  if (!supabase) return;
                   await supabase
                     .from("notifications")
                     .update({ is_read: true })
@@ -199,7 +204,7 @@ export function useNotifications(userId: string | undefined) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) supabase.removeChannel(channel);
     };
   }, [userId, supabase]);
 
@@ -213,6 +218,7 @@ export function useNotifications(userId: string | undefined) {
       return next;
     });
 
+    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -231,6 +237,7 @@ export function useNotifications(userId: string | undefined) {
       return next;
     });
 
+    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })

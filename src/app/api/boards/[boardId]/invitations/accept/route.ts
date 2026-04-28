@@ -33,6 +33,7 @@ export async function GET(
   }
 
   const supabase = await createClient();
+  if (!supabase) return NextResponse.redirect(`${appUrl}/?error=config`);
 
   // ── Auth check ──
   const {

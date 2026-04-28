@@ -39,6 +39,12 @@ describe("POST /api/auth/change-password", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (createServerClient as jest.Mock).mockResolvedValue({
+      auth: {
+        getUser: jest.fn(),
+        updateUser: jest.fn(),
+      },
+    });
     // Giả lập môi trường có đầy đủ biến env
     process.env = {
       ...originalEnv,

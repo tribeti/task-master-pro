@@ -11,6 +11,7 @@ import {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const {
       data: { user },
       error: authErr,
@@ -138,6 +139,7 @@ export async function PUT(request: Request) {
     }
 
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const {
       data: { user },
     } = await supabase.auth.getUser();

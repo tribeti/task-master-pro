@@ -205,6 +205,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) return;
     let debounceTimer: NodeJS.Timeout;
 
     const handleRealtimeEvent = () => {

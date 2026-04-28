@@ -33,6 +33,7 @@ export async function POST(request: Request) {
 
     // Get current authenticated user
     const supabase = await createClient();
+    if (!supabase) return createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500);
     const { user, error: authError } = await getAuthenticatedUser(supabase);
     if (authError) return authError;
 

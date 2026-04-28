@@ -116,7 +116,7 @@ export function TaskDetailsModal({
     if (initializedFormKeyRef.current === formKey) return;
     initializedFormKeyRef.current = formKey;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (isEditing) {
       setTitle(initTitle as string);
       setDescription(initDescription || "");
@@ -130,6 +130,7 @@ export function TaskDetailsModal({
       setDeadline("");
       setNameError(false);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [
     isOpen,
     isEditing,

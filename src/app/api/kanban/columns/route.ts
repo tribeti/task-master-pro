@@ -6,6 +6,7 @@ export async function POST(request: Request) {
   try {
     const { projectId, title, position } = await request.json();
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -32,6 +33,7 @@ export async function PUT(request: Request) {
     if (!updates || !updates.length) return NextResponse.json([]);
 
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

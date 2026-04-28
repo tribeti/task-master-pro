@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { SearchIcon, PlusIcon } from "@/components/icons";
 import Image from "next/image";
 import { BoardMember } from "@/lib/types/project";

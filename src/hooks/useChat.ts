@@ -28,6 +28,7 @@ export function useChat(boardId: number, currentUserId?: string) {
     setHasMore(false);
     setLoading(true);
 
+    if (!supabase) return;
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -55,6 +56,7 @@ export function useChat(boardId: number, currentUserId?: string) {
 
     const oldestMessageDate = messages[0].created_at;
 
+    if (!supabase) return;
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -107,6 +109,7 @@ export function useChat(boardId: number, currentUserId?: string) {
 
     setMessages((prev) => [...prev, optimisticMsg]);
 
+    if (!supabase) return;
     const { data, error } = await supabase
       .from("messages")
       .insert({
@@ -145,6 +148,7 @@ export function useChat(boardId: number, currentUserId?: string) {
       return prev.filter((m) => m.id !== messageId);
     });
 
+    if (!supabase) return;
     const { error } = await supabase
       .from("messages")
       .delete()
@@ -189,6 +193,7 @@ export function useChat(boardId: number, currentUserId?: string) {
       ),
     );
 
+    if (!supabase) return;
     const { error } = await supabase
       .from("messages")
       .update({
@@ -228,6 +233,7 @@ export function useChat(boardId: number, currentUserId?: string) {
       loadMessages();
     }, 0);
 
+    if (!supabase) return;
     // Initialize Realtime Channel for messages and presence
     const channel = supabase.channel(`board_chat_${boardId}`, {
       config: {
@@ -248,6 +254,7 @@ export function useChat(boardId: number, currentUserId?: string) {
         },
         async (payload: any) => {
           const newMsg = payload.new as ChatMessage;
+          if (!supabase) return;
           // Fetch sender details because it's not in the insert payload
           const { data: userData } = await supabase
             .from("users")
@@ -323,7 +330,7 @@ export function useChat(boardId: number, currentUserId?: string) {
       // Bump the sequence counter so any in-flight loadMessages / loadMore
       // calls from this boardId are silently discarded when they resolve.
       currentSeq.current++;
-      supabase.removeChannel(channel);
+      if (supabase) supabase.removeChannel(channel);
       channelRef.current = null;
     };
   }, [boardId, currentUserId, loadMessages, supabase]);

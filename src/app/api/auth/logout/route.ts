@@ -8,6 +8,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/auth/helpers";
 export async function POST() {
   try {
     const supabase = await createClient();
+    if (!supabase) return createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500);
 
     const { error } = await supabase.auth.signOut();
 

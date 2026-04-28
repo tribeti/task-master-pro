@@ -9,7 +9,7 @@ import { createClient } from "@/utils/supabase/server";
  * @returns `true` if the user owns the board, `false` otherwise.
  */
 export async function verifyBoardOwnership(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   userId: string,
   boardId: number,
 ): Promise<boolean> {

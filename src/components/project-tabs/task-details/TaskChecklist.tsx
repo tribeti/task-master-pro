@@ -75,6 +75,7 @@ export function TaskChecklist({
       setChecklistsError(null);
 
       try {
+        if (!supabase) return;
         const { data, error } = await supabase
           .from("checklists")
           .select("*, items:checklist_items(*)")
@@ -141,6 +142,7 @@ export function TaskChecklist({
     setChecklists((prev) => [...prev, newChecklist]);
 
     try {
+      if (!supabase) return;
       const { data, error } = await supabase
         .from("checklists")
         .insert({ task_id: taskId, title: trimmedTitle })
@@ -188,6 +190,7 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
+      if (!supabase) return;
       const { error } = await supabase
         .from("checklists")
         .update({ title: trimmedTitle })
@@ -217,6 +220,7 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
+      if (!supabase) return;
       const { error } = await supabase.from("checklists").delete().eq("id", id);
       if (error) throw error;
     } catch (err: any) {
@@ -256,6 +260,7 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
+      if (!supabase) return;
       const { data, error } = await supabase
         .from("checklist_items")
         .insert({ checklist_id: checklistId, content: trimmedContent })
@@ -329,6 +334,7 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
+      if (!supabase) return;
       const { error } = await supabase
         .from("checklist_items")
         .update({ is_completed: isCompleted })
@@ -374,6 +380,7 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
+      if (!supabase) return;
       const { error } = await supabase
         .from("checklist_items")
         .delete()
