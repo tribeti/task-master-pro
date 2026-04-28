@@ -156,6 +156,6 @@ describe("POST /api/kanban/labels", () => {
       body: "invalid-json",
     }) as any;
     const res = await POST(req);
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
   });
 });

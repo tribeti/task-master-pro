@@ -166,9 +166,9 @@ export default function ProfilePage() {
         await supabase
           .from("users")
           .update({
-            display_name: oldData?.display_name,
-            theme: oldData?.theme,
-            avatar_url: oldData?.avatar_url,
+            display_name: oldData?.display_name ?? null,
+            theme: oldData?.theme ?? null,
+            avatar_url: oldData?.avatar_url ?? null,
           })
           .eq("id", user.id);
 

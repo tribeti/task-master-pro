@@ -60,8 +60,8 @@ export async function verifyAllBoardsAccess(
 
   // Gộp các board ID có quyền truy cập
   const accessibleIds = new Set([
-    ...(ownedBoards?.map((b: any) => b.id) ?? []),
-    ...(memberBoards?.map((b: any) => b.board_id) ?? []),
+    ...(ownedBoards?.map((b) => b.id) ?? []),
+    ...(memberBoards?.map((b) => b.board_id) ?? []),
   ]);
 
   // Kiểm tra từng board — throw nếu thiếu quyền
@@ -83,7 +83,7 @@ export async function verifyTaskAccess(
     .eq("id", taskId)
     .single();
 
-  const boardId = (data as { columns: { board_id: number } | null } | null)
+  const boardId = (data as unknown as { columns: { board_id: number } | null } | null)
     ?.columns?.board_id;
 
   if (error || !boardId) {
@@ -103,7 +103,7 @@ export async function getTaskBoardId(
     .eq("id", taskId)
     .single();
 
-  const boardId = (data as { columns: { board_id: number } | null } | null)
+  const boardId = (data as unknown as { columns: { board_id: number } | null } | null)
     ?.columns?.board_id;
   if (error || !boardId) {
     throw new Error("Task or associated column not found.");

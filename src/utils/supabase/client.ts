@@ -7,7 +7,7 @@ export function createClient() {
     if (!supabaseUrl || !supabaseKey) {
         // Return a placeholder during build/SSR if env vars are missing to prevent crash
         if (typeof window === 'undefined') {
-            return {} as any;
+            return {} as ReturnType<typeof createBrowserClient>;
         }
         throw new Error('Supabase URL and Key are required');
     }

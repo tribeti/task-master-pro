@@ -21,14 +21,16 @@ export default function ResetPasswordPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    if (!supabase?.auth) return;
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
+    const checkSession = async () => {
+      if (!supabase?.auth) return;
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
       } else {
         setIsSessionReady(true);
       }
-    });
+    };
+    checkSession();
   }, [router, supabase]);
 
   useEffect(() => {

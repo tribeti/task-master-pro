@@ -405,7 +405,7 @@ export function TaskChecklist({
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
           <label
-            className={`text-xs font-bold uppercase tracking-wider ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+            className="text-xs font-bold uppercase tracking-wider text-slate-500"
           >
             Hệ thống Checklist
           </label>

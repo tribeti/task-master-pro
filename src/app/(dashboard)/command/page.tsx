@@ -239,7 +239,7 @@ export default function CommandCenter() {
               </div>
               <button
                 onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+                className={`w-full font-bold py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 pointer-events-auto relative z-30 ${
                   isTimerRunning
                     ? isCozy
                       ? "bg-orange-900/20 text-[#FF8B5E] shadow-none hover:bg-orange-900/30"
@@ -254,11 +254,11 @@ export default function CommandCenter() {
             </div>
 
             {/* Pro Overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-4 pointer-events-none">
               <div
                 className={`absolute inset-0 backdrop-blur-[1px] ${isCozy ? "bg-[#0F172A]/20" : "bg-white/20"}`}
               ></div>
-              <div className="relative z-30 flex flex-col items-center text-center">
+              <div className="relative z-30 flex flex-col items-center text-center pointer-events-auto">
                 <div
                   className={`mb-3 p-3 rounded-xl shadow-lg ${
                     isCozy
@@ -368,7 +368,7 @@ export default function CommandCenter() {
                       openDropdownId === task.id ? null : task.id,
                     )
                   }
-                  className={`flex items-center gap-4 p-2 rounded-2xl transition-colors relative cursor-pointer ${openDropdownId === task.id ? (isCozy ? "bg-slate-800" : "bg-slate-50") : "hover:bg-slate-50/50"}`}
+                  className={`flex items-center gap-4 p-2 rounded-2xl transition-colors relative cursor-pointer pointer-events-auto ${openDropdownId === task.id ? (isCozy ? "bg-slate-800" : "bg-slate-50") : "hover:bg-slate-50/50"}`}
                 >
                   {task.status === "done" ? (
                     <div className="w-10 h-10 rounded-full bg-[#34D399] flex items-center justify-center shrink-0 shadow-md shadow-emerald-200">
@@ -410,11 +410,11 @@ export default function CommandCenter() {
           </div>
 
           {/* Pro Overlay */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
             <div
               className={`absolute inset-0 backdrop-blur-[2px] ${isCozy ? "bg-[#0F172A]/40" : "bg-white/40"}`}
             ></div>
-            <div className="relative z-30 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+            <div className="relative z-30 flex flex-col items-center animate-in fade-in zoom-in duration-500 pointer-events-auto">
               <div
                 className={`mb-6 w-20 h-20 rounded-3xl rotate-12 flex items-center justify-center shadow-2xl relative group-hover/pro:rotate-0 transition-transform duration-500 ${
                   isCozy

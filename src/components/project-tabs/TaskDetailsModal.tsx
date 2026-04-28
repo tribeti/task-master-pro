@@ -448,7 +448,7 @@ export function TaskDetailsModal({
                 {!initialData && (
                   <button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={!title.trim() || isSubmitting}
                     className={`w-full py-3 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                       isCozy
                         ? "bg-gradient-to-r from-[#FF8B5E] to-orange-600 text-white hover:shadow-lg hover:shadow-orange-950/20"

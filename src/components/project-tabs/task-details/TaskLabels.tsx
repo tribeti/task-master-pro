@@ -127,7 +127,7 @@ export function TaskLabels({
   return (
     <div>
       <label
-        className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+        className="text-xs font-bold uppercase tracking-wider block mb-2 text-slate-500"
       >
         Nhãn
       </label>

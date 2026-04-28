@@ -69,7 +69,7 @@ export function TaskComments({
   return (
     <div className="flex flex-col gap-3 mt-4 flex-1 pb-4">
       <h3
-        className={`text-xs font-bold uppercase tracking-wider ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+        className="text-xs font-bold uppercase tracking-wider text-slate-500"
       >
         Hoạt động & Bình luận
       </h3>

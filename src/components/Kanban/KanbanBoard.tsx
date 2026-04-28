@@ -946,9 +946,43 @@ export function KanbanBoard({
                   onAddTask={onAddTask}
                   onUpdateColumn={onUpdateColumn}
                   onDeleteColumn={onDeleteColumn}
-                  onAddLabel={onAddLabel}
-                  onRemoveLabel={onRemoveLabel}
-                  onToggleComplete={onToggleComplete}
+                  onAddLabel={async (taskId, labelId) => {
+                    const label = boardLabels.find((l) => l.id === labelId);
+                    if (label) {
+                      setLocalTasks((prev) =>
+                        prev.map((t) =>
+                          t.id === taskId
+                            ? { ...t, labels: [...(t.labels || []), label] }
+                            : t,
+                        ),
+                      );
+                    }
+                    await onAddLabel?.(taskId, labelId);
+                  }}
+                  onRemoveLabel={async (taskId, labelId) => {
+                    setLocalTasks((prev) =>
+                      prev.map((t) =>
+                        t.id === taskId
+                          ? {
+                              ...t,
+                              labels: (t.labels || []).filter(
+                                (l) => l.id !== labelId,
+                              ),
+                            }
+                          : t,
+                      ),
+                    );
+                    await onRemoveLabel?.(taskId, labelId);
+                  }}
+                  onToggleComplete={(taskId, newValue) => {
+                    // Update local state immediately so drag-and-drop uses the fresh state
+                    setLocalTasks((prev) =>
+                      prev.map((t) =>
+                        t.id === taskId ? { ...t, is_completed: newValue } : t,
+                      ),
+                    );
+                    onToggleComplete?.(taskId, newValue);
+                  }}
                   isDragDisabled={isFiltering}
                   isCozy={isCozy}
                 />

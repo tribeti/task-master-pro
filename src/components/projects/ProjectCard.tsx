@@ -39,6 +39,15 @@ export default function ProjectCard({
   return (
     <div
       onClick={() => setSelectedProject(proj)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setSelectedProject(proj);
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Mở dự án ${proj.title}`}
       className={`rounded-4xl p-6 shadow-sm border transition-all cursor-pointer group flex flex-col h-full hover:-translate-y-1 ${
         isCozy 
           ? "bg-[#0F172A] border-slate-700 hover:shadow-orange-900/10 hover:border-slate-600" 
@@ -81,6 +90,9 @@ export default function ProjectCard({
                   openMenuProjectId === proj.id ? null : proj.id,
                 );
               }}
+              aria-label="Tùy chọn dự án"
+              aria-expanded={openMenuProjectId === proj.id}
+              aria-controls={`menu-${proj.id}`}
               className={`rounded-full p-2 transition-colors ${
                 isCozy 
                   ? "text-slate-500 hover:text-[#FF8B5E] bg-slate-800 hover:bg-slate-700" 
@@ -91,9 +103,13 @@ export default function ProjectCard({
             </button>
           )}
           {openMenuProjectId === proj.id && proj.owner_id === currentUserId && (
-            <div className={`absolute right-0 top-full mt-2 w-40 rounded-2xl shadow-lg border py-2 z-50 ${
-              isCozy ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-100"
-            }`}>
+            <div
+              id={`menu-${proj.id}`}
+              role="menu"
+              className={`absolute right-0 top-full mt-2 w-40 rounded-2xl shadow-lg border py-2 z-50 ${
+                isCozy ? "bg-[#1E293B] border-slate-700" : "bg-white border-slate-100"
+              }`}
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();

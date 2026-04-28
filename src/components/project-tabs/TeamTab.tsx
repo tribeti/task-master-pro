@@ -297,6 +297,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                     <button
                       onClick={() => setMemberToRemove(member)}
                       title="Xóa thành viên"
+                      aria-label={`Xóa thành viên ${member.display_name || member.user_id}`}
                       className={`absolute top-6 right-6 transition-colors rounded-full p-2 ${
                         isCozy
                           ? "text-rose-500 hover:text-rose-400 bg-rose-950/20"
@@ -394,7 +395,8 @@ export function TeamTab({ boardId }: TeamTabProps) {
             })}
 
         {/* Add Member Card */}
-        <div
+        <button
+          type="button"
           onClick={() => {
             setIsAddOpen(true);
             setErrorMsg(null);
@@ -424,7 +426,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
           <p className="text-sm text-slate-400 font-medium px-4">
             Gửi lời mời đến email để thêm thành viên mới.
           </p>
-        </div>
+        </button>
       </div>
 
       {/* ── Add Member Modal ── */}
@@ -443,8 +445,12 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 ? "bg-[#0F172A] border-slate-800"
                 : "bg-white border-transparent"
             }`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-member-title"
           >
             <h2
+              id="add-member-title"
               className={`text-2xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}
             >
               Gửi lời mời
@@ -584,8 +590,12 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 ? "bg-[#0F172A] border-slate-800"
                 : "bg-white border-transparent"
             }`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-member-title"
           >
             <h2
+              id="remove-member-title"
               className={`text-xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}
             >
               Xóa thành viên

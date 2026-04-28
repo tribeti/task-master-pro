@@ -63,6 +63,7 @@ export function ManageLabelsModal({
   const [nameError, setNameError] = useState("");
 
   const handleCreate = async () => {
+    if (isCreating) return;
     const trimmed = labelName.trim();
     if (!trimmed) {
       setNameError("Label name is required.");
@@ -108,6 +109,9 @@ export function ManageLabelsModal({
           isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
         }`}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manage-labels-title"
       >
         {/* Close button */}
         <button
@@ -126,6 +130,7 @@ export function ManageLabelsModal({
           {/* Header */}
           <div>
             <h2
+              id="manage-labels-title"
               className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}
             >
               Quản lý nhãn
