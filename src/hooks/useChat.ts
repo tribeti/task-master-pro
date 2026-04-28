@@ -246,7 +246,7 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        async (payload) => {
+        async (payload: any) => {
           const newMsg = payload.new as ChatMessage;
           // Fetch sender details because it's not in the insert payload
           const { data: userData } = await supabase
@@ -281,7 +281,7 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const updatedMsg = payload.new as ChatMessage;
           setMessages((prev) =>
             prev.map((m) =>
@@ -298,17 +298,17 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const deletedId = payload.old.id;
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         },
       )
       // Listen for presence state
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<PresenceState>();
+        const state = (channel.presenceState as any)();
         const formattedState: Record<string, PresenceState> = {};
 
-        for (const [key, presences] of Object.entries(state)) {
+        for (const [key, presences] of Object.entries(state) as [string, any[]][]) {
           // presences is an array of presence objects for the same key. Get the latest.
           if (presences.length > 0) {
             formattedState[key] = presences[presences.length - 1];

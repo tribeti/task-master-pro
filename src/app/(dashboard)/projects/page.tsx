@@ -175,7 +175,7 @@ export default function ProjectsPage() {
           schema: "public",
           table: "board_members",
         },
-        (payload) => {
+        (payload: any) => {
           const oldRow = payload.old as { user_id?: string; board_id?: number };
           if (oldRow?.user_id === userId) {
             // Read from ref to avoid stale closure

@@ -21,7 +21,8 @@ export default function ResetPasswordPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!supabase?.auth) return;
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       if (!session) {
         router.push("/login");
       } else {
@@ -57,6 +58,11 @@ export default function ResetPasswordPage() {
     }
 
     setIsLoading(true);
+    if (!supabase?.auth) {
+      setErrorMsg("Hệ thống chưa sẵn sàng. Vui lòng thử lại sau.");
+      setIsLoading(false);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       setErrorMsg(

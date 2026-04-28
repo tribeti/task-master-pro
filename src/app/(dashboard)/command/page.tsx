@@ -86,8 +86,8 @@ export default function CommandCenter() {
         }
 
         const accessibleBoardIds = [
-          ...(ownedBoards?.map((b) => b.id) || []),
-          ...(memberBoards?.map((m) => m.board_id) || []),
+          ...(ownedBoards?.map((b: any) => b.id) || []),
+          ...(memberBoards?.map((m: any) => m.board_id) || []),
         ];
 
         if (accessibleBoardIds.length === 0) {

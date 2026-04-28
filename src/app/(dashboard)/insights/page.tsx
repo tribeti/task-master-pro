@@ -58,8 +58,8 @@ export default function InsightsPage() {
         if (memberRes.error) throw memberRes.error;
 
         const accessibleBoardIds = [
-          ...(ownedRes.data?.map((b) => b.id) || []),
-          ...(memberRes.data?.map((m) => m.board_id) || []),
+          ...(ownedRes.data?.map((b: any) => b.id) || []),
+          ...(memberRes.data?.map((m: any) => m.board_id) || []),
         ];
 
         // 3. If no boards, set empty data

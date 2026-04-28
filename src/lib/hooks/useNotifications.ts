@@ -124,7 +124,7 @@ export function useNotifications(userId: string | undefined) {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.eventType === "INSERT") {
             const rawNotification = payload.new as Notification;
             if (rawNotification.content.startsWith("[DELETED]")) return;

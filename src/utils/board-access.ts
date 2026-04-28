@@ -60,8 +60,8 @@ export async function verifyAllBoardsAccess(
 
   // Gộp các board ID có quyền truy cập
   const accessibleIds = new Set([
-    ...(ownedBoards?.map((b) => b.id) ?? []),
-    ...(memberBoards?.map((b) => b.board_id) ?? []),
+    ...(ownedBoards?.map((b: any) => b.id) ?? []),
+    ...(memberBoards?.map((b: any) => b.board_id) ?? []),
   ]);
 
   // Kiểm tra từng board — throw nếu thiếu quyền
