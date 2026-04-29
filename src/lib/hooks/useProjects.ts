@@ -15,7 +15,7 @@ export const useProjects = (userId?: string) => {
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchBoards = useCallback(async () => {
+  const fetchBoards = useCallback(async (isSilent = false) => {
     if (!userId) {
       setOwnedBoards([]);
       setJoinedBoards([]);
@@ -23,7 +23,7 @@ export const useProjects = (userId?: string) => {
       return;
     }
 
-    setBoardsLoading(true);
+    if (!isSilent) setBoardsLoading(true);
 
     try {
       const data = await fetchUserBoards();

@@ -44,7 +44,17 @@ export function TaskChecklist({
     null,
   );
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
-  const [supabase] = useState(() => createClient());
+  const [supabase] = useState(() => {
+    try {
+      return createClient();
+    } catch (err) {
+      console.error(
+        "Failed to initialize Supabase client in TaskChecklist:",
+        err,
+      );
+      return null;
+    }
+  });
 
   // Helper to notify parent - ONLY called on user interaction
   // Important: Must be called outside of state updater functions to avoid React warning.
@@ -422,9 +432,7 @@ export function TaskChecklist({
     <div>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
-          <label
-            className="text-xs font-bold uppercase tracking-wider text-slate-500"
-          >
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Hệ thống Checklist
           </label>
           {!isAddingChecklist && (

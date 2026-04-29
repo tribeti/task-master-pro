@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { SearchIcon, PlusIcon } from "@/components/icons";
 import Image from "next/image";
 import { BoardMember } from "@/lib/types/project";
@@ -51,7 +57,17 @@ function TeamMemberAvatar({
 }: MemberAvatarProps) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch (err) {
+      console.error(
+        "Failed to initialize Supabase client in TeamMemberAvatar:",
+        err,
+      );
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -132,9 +132,13 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         // will commit the final positions once the API call completes.
         if (isDraggingRef.current) return prev;
 
-        // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project, 
+        // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project,
         // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
-        if (Date.now() - lastLocalWriteRef.current < 3500 && lastLocalWriteProjectIdRef.current === projectId) return prev;
+        if (
+          Date.now() - lastLocalWriteRef.current < 3500 &&
+          lastLocalWriteProjectIdRef.current === projectId
+        )
+          return prev;
 
         const fetchedTasks = data.tasks || [];
         if (pendingTogglesRef.current.size === 0) return fetchedTasks;
@@ -222,7 +226,11 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
       // 🛡️ Guard 2: If this is an echo of our own recent write for THIS project, skip
       // Increased to 3.5s to account for potentially slow Vercel cold starts/latency
-      if (Date.now() - lastLocalWriteRef.current < 3500 && lastLocalWriteProjectIdRef.current === projectId) return;
+      if (
+        Date.now() - lastLocalWriteRef.current < 3500 &&
+        lastLocalWriteProjectIdRef.current === projectId
+      )
+        return;
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {

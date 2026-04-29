@@ -35,7 +35,7 @@ function ProjectUrlHandler({
   boardsLoading: boolean;
   selectedProjectId?: number;
   currentTab: string;
-  onProjectFound: (project: Board, tab: string | null) => void;
+  onProjectFound: (project: Board | null, tab: string | null) => void;
 }) {
   const searchParams = useSearchParams();
   const urlProjectId = searchParams.get("projectId");
@@ -66,6 +66,9 @@ function ProjectUrlHandler({
       }
     } else if (!urlProjectId) {
       // Clear the ref when url clears, so they can reopen it later
+      if (selectedProjectId !== null && selectedProjectId !== undefined) {
+        onProjectFound(null, null);
+      }
       lastAppliedRef.current = null;
     }
   }, [
@@ -84,6 +87,7 @@ function ProjectUrlHandler({
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, profile } = useDashboardUser();
   const isCozy = profile?.theme === "cozy";
   const userId = user?.id;
@@ -116,8 +120,20 @@ export default function ProjectsPage() {
     router.replace("/projects", { scroll: false });
   }, [router]);
 
+  // Sync state -> URL
+  useEffect(() => {
+    if (selectedProject) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get("projectId") !== selectedProject.id.toString()) {
+        params.set("projectId", selectedProject.id.toString());
+        params.set("tab", projectTab);
+        router.push(`/projects?${params.toString()}`, { scroll: false });
+      }
+    }
+  }, [selectedProject, projectTab, router, searchParams]);
+
   const handleProjectFoundFromUrl = useCallback(
-    (foundProject: Board, tab: string | null) => {
+    (foundProject: Board | null, tab: string | null) => {
       setSelectedProject(foundProject);
       if (
         tab === "Tasks" ||
@@ -185,7 +201,7 @@ export default function ProjectsPage() {
               toast.error("Bạn đã bị xóa khỏi dự án này.");
               handleCloseProject();
             }
-            fetchBoards();
+            fetchBoards(true);
           }
         },
       )

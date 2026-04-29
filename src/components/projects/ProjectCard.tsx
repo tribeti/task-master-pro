@@ -38,9 +38,7 @@ export default function ProjectCard({
 
   return (
     <div
-      onClick={(e) => {
-        if (e.currentTarget === e.target) setSelectedProject(proj);
-      }}
+      onClick={() => setSelectedProject(proj)}
       onKeyDown={(e) => {
         if (e.currentTarget === e.target && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
