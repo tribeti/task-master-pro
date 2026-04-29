@@ -110,7 +110,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     lastLocalWriteProjectIdRef.current = projectId;
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (bypassLocalWriteGuard: boolean = false) => {
     // Only show loading spinner on initial load, not on subsequent refreshes
     if (isInitialLoad.current) {
       setIsLoading(true);
@@ -135,6 +135,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project,
         // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
         if (
+          !bypassLocalWriteGuard &&
           Date.now() - lastLocalWriteRef.current < 3500 &&
           lastLocalWriteProjectIdRef.current === projectId
         )
@@ -279,19 +280,37 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     // Include columnIdsString here so it auto-re-subscribes when columns are added/removed!
   }, [projectId, fetchData, columnIdsString]);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchComments = useCallback(async (taskId: number) => {
+    // Abort previous fetch if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setCommentsLoading(true);
-      const res = await fetch(`/api/tasks/${taskId}/comments`);
+      const res = await fetch(`/api/tasks/${taskId}/comments`, {
+        signal: controller.signal
+      });
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
-      setTaskComments(data || []);
-    } catch (error) {
+      
+      if (!controller.signal.aborted) {
+        setTaskComments(data || []);
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error("Failed to fetch comments:", error);
       setTaskComments([]);
       toast.error("Failed to load comments");
     } finally {
-      setCommentsLoading(false);
+      if (!controller.signal.aborted) {
+        setCommentsLoading(false);
+      }
     }
   }, []);
 
@@ -490,7 +509,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Thêm nhãn thành công");
     } catch (error) {
       console.error("Failed to add label:", error);
@@ -509,7 +528,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa nhãn thành công");
     } catch (error) {
       console.error("Failed to remove label:", error);
@@ -529,7 +548,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Tạo nhãn thành công");
     } catch (error) {
       console.error("Failed to create label:", error);
@@ -589,7 +608,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
 
     // Both steps succeeded
-    await fetchData();
+    await fetchData(true);
     toast.success("Tạo và gán nhãn thành công");
     return createdLabel;
   };
@@ -604,7 +623,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Đã xóa nhãn");
     } catch (error) {
       console.error("Failed to delete label:", error);
@@ -656,7 +675,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Thêm người thực hiện thành công");
     } catch (error) {
       console.error("Failed to add assignee:", error);
@@ -676,7 +695,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove assignee:", error);
@@ -696,7 +715,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa tất cả người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove all assignees:", error);
@@ -718,7 +737,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         throw new Error();
       }
       toast.success("Cập nhật cột thành công");
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
       console.error("Failed to update column:", error);
       toast.error("Cập nhật cột thất bại");
@@ -736,7 +755,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         throw new Error();
       }
       toast.success("Đã xóa cột");
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
       console.error("Failed to delete column:", error);
       toast.error("Xóa cột thất bại");

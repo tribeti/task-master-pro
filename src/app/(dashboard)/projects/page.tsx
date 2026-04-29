@@ -124,7 +124,10 @@ export default function ProjectsPage() {
   useEffect(() => {
     if (selectedProject) {
       const params = new URLSearchParams(searchParams.toString());
-      if (params.get("projectId") !== selectedProject.id.toString()) {
+      const currentUrlId = params.get("projectId");
+      const currentUrlTab = params.get("tab");
+
+      if (currentUrlId !== selectedProject.id.toString() || currentUrlTab !== projectTab) {
         params.set("projectId", selectedProject.id.toString());
         params.set("tab", projectTab);
         router.push(`/projects?${params.toString()}`, { scroll: false });
@@ -327,9 +330,11 @@ export default function ProjectsPage() {
           ))}
 
         {/* Create New Project Card */}
-        <div
+        <button
+          type="button"
           onClick={() => setIsCreateProjectOpen(true)}
-          className={`rounded-4xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-75 group h-full ${
+          aria-label="Tạo dự án mới"
+          className={`rounded-4xl p-6 border-2 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-75 group h-full w-full ${
             isCozy 
               ? "border-slate-700 hover:bg-slate-800/50" 
               : "border-slate-200 hover:bg-slate-50"
@@ -346,7 +351,7 @@ export default function ProjectsPage() {
           <p className="text-sm text-slate-400 font-medium px-4">
             Bắt đầu theo dõi một sáng kiến mới.
           </p>
-        </div>
+        </button>
       </div>
 
       {/* ── Joined Projects ── */}
@@ -406,6 +411,7 @@ export default function ProjectsPage() {
               <h1 className={`text-3xl font-extrabold tracking-tight flex items-center gap-3 ${isCozy ? "text-white" : "text-slate-900"}`}>
                 <button
                   onClick={handleCloseProject}
+                  aria-label="Đóng dự án"
                   className={`p-1.5 rounded-xl shadow-sm border transition-all flex items-center justify-center -ml-1 mr-1 ${
                     isCozy 
                       ? "text-slate-400 hover:text-white bg-slate-800 border-slate-700 hover:bg-slate-700" 

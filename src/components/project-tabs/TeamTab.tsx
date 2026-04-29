@@ -41,6 +41,68 @@ function getInitials(name: string) {
     .substring(0, 2);
 }
 
+function useFocusTrap(isOpen: boolean, onClose: () => void) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      
+      const container = containerRef.current;
+      if (container) {
+        const focusableElements = container.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length > 0) {
+          // Small delay to ensure modal is rendered and visible before focusing
+          const timer = setTimeout(() => focusableElements[0].focus(), 50);
+          return () => clearTimeout(timer);
+        }
+      }
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Tab') {
+          const container = containerRef.current;
+          if (!container) return;
+
+          const focusableElements = container.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusableElements.length === 0) return;
+
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              lastElement.focus();
+              e.preventDefault();
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              firstElement.focus();
+              e.preventDefault();
+            }
+          }
+        } else if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        // Delay restoring focus slightly to avoid immediate re-triggering of whatever opened the modal
+        const prev = previousFocusRef.current;
+        setTimeout(() => prev?.focus(), 50);
+      };
+    }
+  }, [isOpen, onClose]);
+
+  return containerRef;
+}
+
 // ── Component for individual member avatar ──
 interface MemberAvatarProps {
   avatarUrl: string | null;
@@ -482,164 +544,19 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
       {/* ── Add Member Modal ── */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Overlay */}
-          <div
-            className={`absolute inset-0 backdrop-blur-sm ${isCozy ? "bg-slate-950/60" : "bg-black/40"}`}
-            onClick={closeAddModal}
-          ></div>
-
-          {/* Modal */}
-          <div
-            className={`relative rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 transition-colors duration-500 border ${
-              isCozy
-                ? "bg-[#0F172A] border-slate-800"
-                : "bg-white border-transparent"
-            }`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-member-title"
-          >
-            <h2
-              id="add-member-title"
-              className={`text-2xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}
-            >
-              Gửi lời mời
-            </h2>
-            <p className="text-sm text-slate-400 mb-6">
-              Nhập email của người dùng. Họ sẽ nhận được lời mời qua email và
-              cần chấp nhận để tham gia.
-            </p>
-
-            <form onSubmit={handleAddMember}>
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="member@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErrorMsg(null);
-                    setSuccessMsg(null);
-                  }}
-                  className={`w-full border rounded-xl py-3 px-4 text-sm font-medium focus:outline-none transition-all ${
-                    isCozy
-                      ? "bg-slate-900 text-white border-slate-800 focus:border-[#FF8B5E]"
-                      : "bg-slate-50 text-black border-slate-200 focus:border-[#28B8FA] focus:ring-2 focus:ring-[#28B8FA]/20"
-                  }`}
-                  autoFocus
-                />
-              </div>
-
-              {/* Error message */}
-              {errorMsg && (
-                <div
-                  className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
-                    isCozy
-                      ? "bg-rose-950/20 border-rose-900/50"
-                      : "bg-rose-50 border-rose-200"
-                  }`}
-                >
-                  <svg
-                    className={`w-5 h-5 shrink-0 ${isCozy ? "text-rose-400" : "text-rose-500"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="15" y1="9" x2="9" y2="15" />
-                    <line x1="9" y1="9" x2="15" y2="15" />
-                  </svg>
-                  <span
-                    className={`text-sm font-semibold ${isCozy ? "text-rose-400" : "text-rose-600"}`}
-                  >
-                    {errorMsg}
-                  </span>
-                </div>
-              )}
-
-              {/* Success message */}
-              {successMsg && (
-                <div
-                  className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
-                    isCozy
-                      ? "bg-emerald-950/20 border-emerald-900/50"
-                      : "bg-emerald-50 border-emerald-200"
-                  }`}
-                >
-                  <svg
-                    className={`w-5 h-5 shrink-0 ${isCozy ? "text-emerald-400" : "text-emerald-500"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <span
-                    className={`text-sm font-semibold ${isCozy ? "text-emerald-400" : "text-emerald-600"}`}
-                  >
-                    {successMsg}
-                  </span>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={closeAddModal}
-                  className={`flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
-                    isCozy
-                      ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800"
-                      : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  Huỷ
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !email.trim()}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${
-                    isCozy
-                      ? "bg-[#FF8B5E] text-white hover:bg-orange-600 shadow-orange-950/20"
-                      : "bg-[#28B8FA] text-white hover:bg-[#1DA1E0] shadow-cyan-200"
-                  }`}
-                >
-                  {submitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      Đang gửi...
-                    </span>
-                  ) : (
-                    "Gửi lời mời"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ModalWrapper 
+          isOpen={isAddOpen} 
+          onClose={closeAddModal} 
+          isCozy={isCozy}
+          handleAddMember={handleAddMember}
+          email={email}
+          setEmail={setEmail}
+          setErrorMsg={setErrorMsg}
+          setSuccessMsg={setSuccessMsg}
+          errorMsg={errorMsg}
+          successMsg={successMsg}
+          submitting={submitting}
+        />
       )}
 
       {/* ── Confirm Remove Member Modal ── */}
@@ -695,7 +612,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 className={`flex-[1] py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md ${
                   isCozy
                     ? "bg-rose-600 hover:bg-rose-700 shadow-rose-950/40"
-                    : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"
+                    : "bg-rose-50 hover:bg-rose-600 shadow-rose-200"
                 }`}
               >
                 {isRemoving ? (
@@ -723,6 +640,201 @@ export function TeamTab({ boardId }: TeamTabProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface ModalWrapperProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isCozy: boolean;
+  handleAddMember: (e: React.FormEvent) => Promise<void>;
+  email: string;
+  setEmail: (email: string) => void;
+  setErrorMsg: (msg: string | null) => void;
+  setSuccessMsg: (msg: string | null) => void;
+  errorMsg: string | null;
+  successMsg: string | null;
+  submitting: boolean;
+}
+
+function ModalWrapper({ 
+  isOpen, 
+  onClose, 
+  isCozy, 
+  handleAddMember, 
+  email, 
+  setEmail, 
+  setErrorMsg, 
+  setSuccessMsg, 
+  errorMsg, 
+  successMsg, 
+  submitting 
+}: ModalWrapperProps) {
+  const modalRef = useFocusTrap(isOpen, onClose);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Overlay */}
+      <div
+        className={`absolute inset-0 backdrop-blur-sm ${isCozy ? "bg-slate-950/60" : "bg-black/40"}`}
+        onClick={onClose}
+      ></div>
+
+      {/* Modal */}
+      <div
+        ref={modalRef}
+        className={`relative rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 transition-colors border ${
+          isCozy
+            ? "bg-[#0F172A] border-slate-800"
+            : "bg-white border-transparent"
+        }`}
+        style={{ 
+          transitionProperty: 'color, background-color, border-color',
+          transitionDuration: '500ms'
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-member-title"
+      >
+        <h2
+          id="add-member-title"
+          className={`text-2xl font-extrabold mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}
+        >
+          Gửi lời mời
+        </h2>
+        <p className="text-sm text-slate-400 mb-6">
+          Nhập email của người dùng. Họ sẽ nhận được lời mời qua email và
+          cần chấp nhận để tham gia.
+        </p>
+
+        <form onSubmit={handleAddMember}>
+          <div className="mb-4">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="member@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className={`w-full border rounded-xl py-3 px-4 text-sm font-medium focus:outline-none transition-all ${
+                isCozy
+                  ? "bg-slate-900 text-white border-slate-800 focus:border-[#FF8B5E]"
+                  : "bg-slate-50 text-black border-slate-200 focus:border-[#28B8FA] focus:ring-2 focus:ring-[#28B8FA]/20"
+              }`}
+            />
+          </div>
+
+          {/* Error message */}
+          {errorMsg && (
+            <div
+              className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
+                isCozy
+                  ? "bg-rose-950/20 border-rose-900/50"
+                  : "bg-rose-50 border-rose-200"
+              }`}
+            >
+              <svg
+                className={`w-5 h-5 shrink-0 ${isCozy ? "text-rose-400" : "text-rose-500"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <span
+                className={`text-sm font-semibold ${isCozy ? "text-rose-400" : "text-rose-600"}`}
+              >
+                {errorMsg}
+              </span>
+            </div>
+          )}
+
+          {/* Success message */}
+          {successMsg && (
+            <div
+              className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
+                isCozy
+                  ? "bg-emerald-950/20 border-emerald-900/50"
+                  : "bg-emerald-50 border-emerald-200"
+              }`}
+            >
+              <svg
+                className={`w-5 h-5 shrink-0 ${isCozy ? "text-emerald-400" : "text-emerald-500"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span
+                className={`text-sm font-semibold ${isCozy ? "text-emerald-400" : "text-emerald-600"}`}
+              >
+                {successMsg}
+              </span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className={`flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-colors ${
+                isCozy
+                  ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800"
+                  : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              Huỷ
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || !email.trim()}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${
+                isCozy
+                  ? "bg-[#FF8B5E] text-white hover:bg-orange-600 shadow-orange-950/20"
+                  : "bg-[#28B8FA] text-white hover:bg-[#1DA1E0] shadow-cyan-200"
+              }`}
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Đang gửi...
+                </span>
+              ) : (
+                "Gửi lời mời"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

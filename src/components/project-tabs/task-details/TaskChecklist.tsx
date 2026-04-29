@@ -44,14 +44,21 @@ export function TaskChecklist({
     null,
   );
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
+  const [initError, setInitError] = useState<string | null>(null);
   const [supabase] = useState(() => {
     try {
-      return createClient();
-    } catch (err) {
+      const client = createClient();
+      if (!client) {
+        setInitError("Không thể khởi tạo kết nối cơ sở dữ liệu.");
+        return null;
+      }
+      return client;
+    } catch (err: any) {
       console.error(
         "Failed to initialize Supabase client in TaskChecklist:",
         err,
       );
+      setInitError(err.message || "Lỗi khởi tạo Supabase.");
       return null;
     }
   });
@@ -141,6 +148,10 @@ export function TaskChecklist({
   }, [checklistsError]);
 
   const handleAddChecklist = async (title: string = "Việc cần làm") => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const trimmedTitle = title.trim();
@@ -175,14 +186,16 @@ export function TaskChecklist({
         markParentDirty();
       } else {
         if (error) console.error("Error adding checklist:", error);
+        setChecklistsError(error?.message || "Không thể tạo checklist.");
         setChecklists((prev) => {
           const next = prev.filter((c) => c.id !== tempId);
           return next;
         });
         markParentDirty();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Exception adding checklist:", err);
+      setChecklistsError(err.message || "Lỗi hệ thống khi tạo checklist.");
       setChecklists((prev) => {
         const next = prev.filter((c) => c.id !== tempId);
         return next;
@@ -192,6 +205,10 @@ export function TaskChecklist({
   };
 
   const handleUpdateChecklistTitle = async (id: string, newTitle: string) => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const trimmedTitle = newTitle.trim();
@@ -228,6 +245,10 @@ export function TaskChecklist({
   };
 
   const handleDeleteChecklist = async (id: string) => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const checklist = checklists.find((c) => c.id === id);
@@ -255,6 +276,10 @@ export function TaskChecklist({
   };
 
   const handleAddItem = async (checklistId: string, content: string) => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const trimmedContent = content.trim();
@@ -303,6 +328,7 @@ export function TaskChecklist({
         });
       } else {
         if (error) console.error("Error adding checklist item:", error);
+        setChecklistsError(error?.message || "Không thể thêm mục mới.");
         setChecklists((prev) => {
           const next = prev.map((c) =>
             c.id === checklistId
@@ -313,8 +339,9 @@ export function TaskChecklist({
           return next;
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Exception adding checklist item:", err);
+      setChecklistsError(err.message || "Lỗi hệ thống khi thêm mục.");
       setChecklists((prev) => {
         const next = prev.map((c) =>
           c.id === checklistId
@@ -332,6 +359,10 @@ export function TaskChecklist({
     itemId: string,
     isCompleted: boolean,
   ) => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const checklist = checklists.find((c) => c.id === checklistId);
@@ -384,6 +415,10 @@ export function TaskChecklist({
   };
 
   const handleDeleteItem = async (checklistId: string, itemId: string) => {
+    if (initError) {
+      setChecklistsError(initError);
+      return;
+    }
     if (!supabase) return;
 
     const checklist = checklists.find((c) => c.id === checklistId);
@@ -432,9 +467,9 @@ export function TaskChecklist({
     <div>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Hệ thống Checklist
-          </label>
+          </h2>
           {!isAddingChecklist && (
             <button
               type="button"
@@ -442,11 +477,11 @@ export function TaskChecklist({
                 setIsAddingChecklist(true);
                 setNewChecklistTitle("Việc cần làm");
               }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!initError}
               className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors flex items-center gap-1 uppercase ${
                 isCozy
-                  ? "text-slate-400 hover:text-[#FF8B5E] bg-slate-800 hover:bg-orange-950/20"
-                  : "text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF]"
+                  ? "text-slate-400 hover:text-[#FF8B5E] bg-slate-800 hover:bg-orange-950/20 disabled:opacity-50"
+                  : "text-slate-500 hover:text-[#28B8FA] bg-slate-100 hover:bg-[#EAF7FF] disabled:opacity-50"
               }`}
             >
               + Thêm Checklist
