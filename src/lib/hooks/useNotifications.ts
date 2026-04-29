@@ -155,8 +155,18 @@ export function useNotifications(userId: string | undefined) {
               return next;
             });
 
+            let toastDescription = finalNotification.content;
+            if (rawNotification.type === "Invite") {
+              try {
+                const payload = JSON.parse(rawNotification.content);
+                toastDescription = `${payload.inviterName} đã mời bạn tham gia "${payload.boardTitle}"`;
+              } catch {
+                toastDescription = "Bạn có một lời mời tham gia dự án mới";
+              }
+            }
+
             toast("Thông báo mới", {
-              description: finalNotification.content,
+              description: toastDescription,
               action: {
                 label: "Đã đọc",
                 onClick: async () => {
