@@ -1,8 +1,5 @@
 "use client";
 
-
-
-
 import React, { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -359,7 +356,7 @@ export default function TaskFlowAuth() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#28B8FA] transition-colors focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[`#28B8FA`] transition-colors focus:outline-none focus-visible:text-[`#28B8FA`]"
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -473,7 +470,7 @@ export default function TaskFlowAuth() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#34D399] transition-colors focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#34D399] transition-colors focus:outline-none focus-visible:text-[#34D399]"
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
