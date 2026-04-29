@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { ChatMessage, PresenceState } from "@/types/chat";
+import { ChatMessage, PresenceState } from "@/lib/types/chat";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 const PAGE_SIZE = 50;
@@ -193,11 +193,11 @@ export function useChat(boardId: number, currentUserId?: string) {
       prev.map((m) =>
         m.id === messageId
           ? {
-              ...m,
-              content: newContent.trim(),
-              is_edited: true,
-              updated_at: new Date().toISOString(),
-            }
+            ...m,
+            content: newContent.trim(),
+            is_edited: true,
+            updated_at: new Date().toISOString(),
+          }
           : m,
       ),
     );
