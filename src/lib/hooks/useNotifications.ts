@@ -17,6 +17,8 @@ export function useNotifications(userId: string | undefined) {
   const supabase = useMemo(() => createClient(), []);
 
   const hideNotification = async (notificationId: number) => {
+    if (!supabase) return;
+
     const notification = notifications.find(n => n.id === notificationId);
     if (!notification) return;
 
@@ -57,12 +59,13 @@ export function useNotifications(userId: string | undefined) {
 
     if (toHide.length > 0) {
       const results = await Promise.all(
-        toHide.map((n) =>
-          supabase
+        toHide.map((n) => {
+          if (!supabase) return Promise.resolve({ error: { message: "Supabase client not initialized" } });
+          return supabase
             .from("notifications")
             .update({ content: `[DELETED]${n.content}` })
-            .eq("id", n.id)
-        )
+            .eq("id", n.id);
+        })
       );
 
       const hasError = results.some(res => res.error);
@@ -80,6 +83,10 @@ export function useNotifications(userId: string | undefined) {
 
     const fetchNotifications = async () => {
       setIsLoading(true);
+      if (!supabase) {
+        setIsLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("notifications")
         .select("*, task:tasks(title, deadline), project:boards(title)")
@@ -114,6 +121,7 @@ export function useNotifications(userId: string | undefined) {
     // Use a unique channel topic so multiple instances of the hook don't conflict
     const channelName = `notifications-${userId}-${Math.random().toString(36).substring(7)}`;
 
+    if (!supabase) return;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -124,7 +132,7 @@ export function useNotifications(userId: string | undefined) {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.eventType === "INSERT") {
             const rawNotification = payload.new as Notification;
             if (rawNotification.content.startsWith("[DELETED]")) return;
@@ -152,6 +160,7 @@ export function useNotifications(userId: string | undefined) {
               action: {
                 label: "Đã đọc",
                 onClick: async () => {
+                  if (!supabase) return;
                   await supabase
                     .from("notifications")
                     .update({ is_read: true })
@@ -199,11 +208,16 @@ export function useNotifications(userId: string | undefined) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) supabase.removeChannel(channel);
     };
   }, [userId, supabase]);
 
   const markAsRead = async (notificationId: number) => {
+    if (!supabase) return;
+
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     // Optimistic UI update
     setNotifications((prev) => {
       const next = prev.map((n) =>
@@ -220,10 +234,17 @@ export function useNotifications(userId: string | undefined) {
 
     if (error) {
       console.error("Error marking as read:", error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 
   const markAllAsRead = async () => {
+    if (!supabase) return;
+
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     // Optimistic update
     setNotifications((prev) => {
       const next = prev.map((n) => ({ ...n, is_read: true }));
@@ -239,6 +260,8 @@ export function useNotifications(userId: string | undefined) {
 
     if (error) {
       console.error("Error marking all as read:", error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 

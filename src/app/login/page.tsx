@@ -1,5 +1,8 @@
 "use client";
 
+
+
+
 import React, { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -38,8 +41,10 @@ export default function TaskFlowAuth() {
   useEffect(() => {
     const savedEmail = localStorage.getItem("remembered_email");
     if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberMe(true);
+      setTimeout(() => {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }, 0);
     }
   }, []);
   // --- CÁC HÀM XỬ LÝ AUTH ---
@@ -53,6 +58,12 @@ export default function TaskFlowAuth() {
     const callbackUrl = new URL("/api/auth/callback", window.location.origin);
     if (redirectTo) {
       callbackUrl.searchParams.set("redirectTo", redirectTo);
+    }
+
+    if (!supabase) {
+      setErrorMsg("Lỗi cấu hình hệ thống (Supabase).");
+      setIsLoading(false);
+      return;
     }
 
     const { error } = await supabase.auth.signInWithOAuth({

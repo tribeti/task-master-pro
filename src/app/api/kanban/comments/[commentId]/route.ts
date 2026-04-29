@@ -14,6 +14,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import Image from "next/image";
 
 const AVATAR_CACHE_PREFIX = "avatar_cache_";
 const AVATAR_CACHE_TTL_MS = 50 * 60 * 1000; // 50 minutes (signed URL lasts 60 min)
@@ -71,6 +72,7 @@ export function UserAvatar({
 
     const fetchSignedUrl = async () => {
       try {
+        if (!supabase) return;
         setLoading(true);
         const { data, error } = await supabase.storage
           .from("avatar")
@@ -120,10 +122,13 @@ export function UserAvatar({
 
   if (resolvedUrl) {
     return (
-      <img
+      <Image
         src={resolvedUrl}
         alt={displayName}
+        width={32}
+        height={32}
         className={`${className} rounded-full object-cover`}
+        unoptimized
       />
     );
   }

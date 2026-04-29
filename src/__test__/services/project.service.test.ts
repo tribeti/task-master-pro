@@ -74,7 +74,7 @@ describe("Project Service", () => {
         json: async () => mockResponse,
       });
 
-      const result = await createNewBoard("user_123", newBoardData);
+      const result = await createNewBoard(newBoardData);
       expect(result).toEqual(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/boards",
@@ -92,7 +92,7 @@ describe("Project Service", () => {
         json: async () => ({ error: "Missing required field" }),
       });
 
-      await expect(createNewBoard("user123", newBoardData)).rejects.toThrow(
+      await expect(createNewBoard(newBoardData)).rejects.toThrow(
         "Missing required field",
       );
     });
@@ -103,7 +103,7 @@ describe("Project Service", () => {
         json: async () => ({}), // Trả về object rỗng không có error field
       });
 
-      await expect(createNewBoard("user123", newBoardData)).rejects.toThrow(
+      await expect(createNewBoard(newBoardData)).rejects.toThrow(
         "Failed to create project.",
       );
     });
@@ -142,7 +142,7 @@ describe("Project Service", () => {
     it("should send correct PUT request to update board", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-      await updateUserBoard("user_123", 10, updateData);
+      await updateUserBoard(10, updateData);
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/boards/10",
         expect.objectContaining({
@@ -159,7 +159,7 @@ describe("Project Service", () => {
         json: async () => ({ error: "Not allowed to update" }),
       });
 
-      await expect(updateUserBoard("user_123", 10, updateData)).rejects.toThrow(
+      await expect(updateUserBoard(10, updateData)).rejects.toThrow(
         "Not allowed to update",
       );
     });
@@ -170,7 +170,7 @@ describe("Project Service", () => {
         json: async () => ({}),
       });
 
-      await expect(updateUserBoard("user_123", 10, updateData)).rejects.toThrow(
+      await expect(updateUserBoard(10, updateData)).rejects.toThrow(
         "Failed to update project.",
       );
     });
@@ -180,7 +180,7 @@ describe("Project Service", () => {
     it("should send correct DELETE request", async () => {
       (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-      await deleteUserBoard(10, "user_123");
+      await deleteUserBoard(10);
       expect(global.fetch).toHaveBeenCalledWith("/api/boards/10", {
         method: "DELETE",
       });
@@ -192,7 +192,7 @@ describe("Project Service", () => {
         json: async () => ({ error: "Board not found" }),
       });
 
-      await expect(deleteUserBoard(10, "user_123")).rejects.toThrow(
+      await expect(deleteUserBoard(10)).rejects.toThrow(
         "Board not found",
       );
     });
@@ -205,7 +205,7 @@ describe("Project Service", () => {
         },
       });
 
-      await expect(deleteUserBoard(10, "user_123")).rejects.toThrow(
+      await expect(deleteUserBoard(10)).rejects.toThrow(
         "Failed to delete project.",
       );
     });

@@ -28,6 +28,10 @@ export function useChat(boardId: number, currentUserId?: string) {
     setHasMore(false);
     setLoading(true);
 
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -55,6 +59,10 @@ export function useChat(boardId: number, currentUserId?: string) {
 
     const oldestMessageDate = messages[0].created_at;
 
+    if (!supabase) {
+      setLoadingMore(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -105,6 +113,7 @@ export function useChat(boardId: number, currentUserId?: string) {
       },
     };
 
+    if (!supabase) return;
     setMessages((prev) => [...prev, optimisticMsg]);
 
     const { data, error } = await supabase
@@ -137,6 +146,8 @@ export function useChat(boardId: number, currentUserId?: string) {
 
   const deleteMessage = async (messageId: string) => {
     if (!currentUserId) return;
+
+    if (!supabase) return;
 
     // Optimistic delete: find the message first so we can re-insert on failure
     let deletedMsg: ChatMessage | undefined;
@@ -175,6 +186,8 @@ export function useChat(boardId: number, currentUserId?: string) {
     // concurrent realtime updates to unrelated messages.
     const prevMessage = messages.find((m) => m.id === messageId);
     if (!prevMessage) return;
+
+    if (!supabase) return;
 
     setMessages((prev) =>
       prev.map((m) =>
@@ -224,8 +237,9 @@ export function useChat(boardId: number, currentUserId?: string) {
     // Invalidate any in-flight fetches from the previous boardId immediately.
     requestSeqRef.current++;
 
-    loadMessages();
+    Promise.resolve().then(() => loadMessages());
 
+    if (!supabase) return;
     // Initialize Realtime Channel for messages and presence
     const channel = supabase.channel(`board_chat_${boardId}`, {
       config: {
@@ -244,8 +258,9 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        async (payload) => {
+        async (payload: any) => {
           const newMsg = payload.new as ChatMessage;
+          if (!supabase) return;
           // Fetch sender details because it's not in the insert payload
           const { data: userData } = await supabase
             .from("users")
@@ -279,7 +294,7 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const updatedMsg = payload.new as ChatMessage;
           setMessages((prev) =>
             prev.map((m) =>
@@ -296,17 +311,17 @@ export function useChat(boardId: number, currentUserId?: string) {
           table: "messages",
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const deletedId = payload.old.id;
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         },
       )
       // Listen for presence state
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<PresenceState>();
+        const state = (channel.presenceState as any)();
         const formattedState: Record<string, PresenceState> = {};
 
-        for (const [key, presences] of Object.entries(state)) {
+        for (const [key, presences] of Object.entries(state) as [string, any[]][]) {
           // presences is an array of presence objects for the same key. Get the latest.
           if (presences.length > 0) {
             formattedState[key] = presences[presences.length - 1];
@@ -316,11 +331,12 @@ export function useChat(boardId: number, currentUserId?: string) {
       })
       .subscribe();
 
+    const currentSeq = requestSeqRef;
     return () => {
       // Bump the sequence counter so any in-flight loadMessages / loadMore
       // calls from this boardId are silently discarded when they resolve.
-      requestSeqRef.current++;
-      supabase.removeChannel(channel);
+      currentSeq.current++;
+      if (supabase) supabase.removeChannel(channel);
       channelRef.current = null;
     };
   }, [boardId, currentUserId, loadMessages, supabase]);

@@ -8,6 +8,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
+    if (!supabase) return NextResponse.redirect(`${origin}/login?error=config`);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
           if (url.origin === origin) {
             safeRedirectTo = redirectTo;
           }
-        } catch (_) {
+        } catch {
           // Invalid URL format, use default safeRedirectTo
         }
       }

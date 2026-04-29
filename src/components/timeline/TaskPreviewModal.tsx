@@ -1,6 +1,6 @@
-import React from "react";
 import { XIcon } from "@/components/icons";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 import {
   getBarColor,
   TimelineTask,
@@ -15,6 +15,8 @@ export function TaskPreviewModal({
   task: TimelineTask;
   onClose: () => void;
 }) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const hasDeadline = !!task.deadline;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -32,17 +34,25 @@ export function TaskPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200"
+      className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200 ${
+        isCozy ? "bg-slate-950/60" : "bg-slate-900/40"
+      }`}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden"
+        className={`rounded-[2.5rem] shadow-2xl w-full max-w-lg relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden transition-colors duration-500 ${
+          isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
+          className={`absolute top-6 right-6 transition-colors z-10 p-1 rounded-full backdrop-blur-md ${
+            isCozy
+              ? "bg-slate-800 text-slate-500 hover:text-white"
+              : "text-slate-400 hover:text-slate-600 bg-white/80"
+          }`}
         >
           <XIcon />
         </button>
@@ -73,7 +83,9 @@ export function TaskPreviewModal({
                   </span>
                 )}
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mt-3">
+            <h2
+              className={`text-2xl font-bold mt-3 ${isCozy ? "text-white" : "text-slate-900"}`}
+            >
               {task.title}
             </h2>
           </div>
@@ -84,7 +96,13 @@ export function TaskPreviewModal({
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
                 Mô tả
               </label>
-              <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p
+                className={`text-sm leading-relaxed rounded-2xl p-4 border ${
+                  isCozy
+                    ? "bg-slate-900 border-slate-800 text-slate-400"
+                    : "bg-slate-50 text-slate-600 border-slate-100"
+                }`}
+              >
                 {task.description}
               </p>
             </div>
@@ -92,11 +110,15 @@ export function TaskPreviewModal({
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <div
+              className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}
+            >
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
                 Ngày tạo
               </label>
-              <p className="text-sm font-semibold text-slate-700">
+              <p
+                className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}
+              >
                 {task.created_at
                   ? new Date(task.created_at).toLocaleDateString("vi-VN", {
                       day: "2-digit",
@@ -106,7 +128,9 @@ export function TaskPreviewModal({
                   : "—"}
               </p>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <div
+              className={`rounded-2xl p-4 border ${isCozy ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-100"}`}
+            >
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
                 Hạn chót
               </label>
@@ -116,7 +140,9 @@ export function TaskPreviewModal({
                     ? "text-red-500"
                     : daysLeft !== null && daysLeft <= 3
                       ? "text-amber-500"
-                      : "text-slate-700"
+                      : isCozy
+                        ? "text-slate-300"
+                        : "text-slate-700"
                 }`}
               >
                 {hasDeadline
@@ -165,15 +191,25 @@ export function TaskPreviewModal({
                 {assignees.map((a) => (
                   <div
                     key={a.user_id}
-                    className="flex items-center gap-2 bg-slate-50 rounded-full pr-4 pl-1 py-1 border border-slate-100"
+                    className={`flex items-center gap-2 rounded-full pr-4 pl-1 py-1 border transition-colors ${
+                      isCozy
+                        ? "bg-slate-900 border-slate-800"
+                        : "bg-slate-50 border-slate-100"
+                    }`}
                   >
                     <UserAvatar
                       avatarUrl={a.avatar_url}
                       displayName={a.display_name}
                       className="w-8 h-8"
-                      fallbackClassName="bg-[#EAF7FF] text-[#0284C7]"
+                      fallbackClassName={
+                        isCozy
+                          ? "bg-slate-800 text-slate-400"
+                          : "bg-[#EAF7FF] text-[#0284C7]"
+                      }
                     />
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span
+                      className={`text-sm font-semibold ${isCozy ? "text-slate-300" : "text-slate-700"}`}
+                    >
                       {a.display_name}
                     </span>
                   </div>

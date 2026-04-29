@@ -1,4 +1,5 @@
 import React from "react";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -13,12 +14,20 @@ export default function DeleteConfirmModal({
   onConfirm,
   projectTitle,
 }: DeleteConfirmModalProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200">
-      <div className="bg-white rounded-4xl shadow-2xl w-full max-w-md p-8 relative mx-4 animate-in zoom-in-95 duration-200">
-        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">
+    <div className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200 ${
+      isCozy ? "bg-slate-950/60" : "bg-slate-900/40"
+    }`}>
+      <div className={`rounded-4xl shadow-2xl w-full max-w-md p-8 relative mx-4 animate-in zoom-in-95 duration-200 transition-colors duration-500 ${
+        isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
+      }`}>
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+          isCozy ? "bg-red-950/20" : "bg-red-50"
+        }`}>
           <svg
             width="28"
             height="28"
@@ -35,12 +44,12 @@ export default function DeleteConfirmModal({
             <line x1="14" y1="11" x2="14" y2="17"></line>
           </svg>
         </div>
-        <h3 className="text-xl font-extrabold text-slate-900 text-center mb-2">
+        <h3 className={`text-xl font-extrabold text-center mb-2 ${isCozy ? "text-white" : "text-slate-900"}`}>
           Xóa dự án
         </h3>
-        <p className="text-sm text-slate-500 text-center font-medium mb-8 leading-relaxed">
+        <p className={`text-sm text-center font-medium mb-8 leading-relaxed ${isCozy ? "text-slate-400" : "text-slate-500"}`}>
           Bạn có chắc chắn muốn xóa{" "}
-          <span className="font-bold text-slate-700">
+          <span className={`font-bold ${isCozy ? "text-white" : "text-slate-700"}`}>
             &ldquo;{projectTitle}&rdquo;
           </span>
           ? Hành động này không thể hoàn tác.
@@ -48,13 +57,21 @@ export default function DeleteConfirmModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border-2 border-slate-100 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
+            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors border-2 ${
+              isCozy 
+                ? "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800" 
+                : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
+            }`}
           >
             Hủy
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm shadow-lg shadow-red-200 transition-colors"
+            className={`flex-1 py-3 rounded-xl text-white font-bold text-sm transition-all ${
+              isCozy 
+                ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-950/40" 
+                : "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200"
+            }`}
           >
             Xóa
           </button>

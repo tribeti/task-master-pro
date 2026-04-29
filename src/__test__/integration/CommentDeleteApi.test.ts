@@ -1,7 +1,7 @@
 const mockGetUser = jest.fn();
 
 // A generic chainable mock for Supabase query builder
-const createMockChain = (table?: string) => {
+const createMockChain = () => {
   const chain: any = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
@@ -18,7 +18,7 @@ const createMockChain = (table?: string) => {
 
 const mockFrom = jest
   .fn()
-  .mockImplementation((table: string) => createMockChain(table));
+  .mockImplementation(() => createMockChain());
 
 jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn().mockResolvedValue({
@@ -47,7 +47,7 @@ describe("DELETE /api/comments/[commentId]", () => {
   it("returns 404 when comment not found", async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = createMockChain();
       if (table === "comments") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -67,7 +67,7 @@ describe("DELETE /api/comments/[commentId]", () => {
   it("returns 403 when user is not the author", async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-other" } } });
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = createMockChain();
       if (table === "comments") {
         chain.select.mockReturnValue({
           eq: jest.fn().mockReturnValue({
@@ -91,7 +91,7 @@ describe("DELETE /api/comments/[commentId]", () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: userId } } });
 
     mockFrom.mockImplementation((table: string) => {
-      const chain = createMockChain(table);
+      const chain = createMockChain();
       if (table === "comments") {
         // First call: select comment
         chain.select.mockReturnValue({

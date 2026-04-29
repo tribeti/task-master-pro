@@ -9,6 +9,7 @@ import { validateString } from "@/utils/validate-string";
 export async function GET() {
   try {
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
 
     // Verify the user is authenticated
     const {
@@ -90,6 +91,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
 
     const {
       data: { user },

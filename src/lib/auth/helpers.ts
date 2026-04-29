@@ -43,8 +43,15 @@ type AuthResult =
  * ```
  */
 export async function getAuthenticatedUser(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient | null,
 ): Promise<AuthResult> {
+  if (!supabase) {
+    return {
+      user: null,
+      error: createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500),
+    };
+  }
+
   const {
     data: { user },
     error: authError,

@@ -9,7 +9,7 @@ const config: Config = {
   coverageProvider: "v8",
   testEnvironment: "jest-environment-jsdom",
   roots: ["<rootDir>"],
-  moduleDirectories: ["node_modules", "<rootDir>/node_modules"],
+  moduleDirectories: ["node_modules"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },

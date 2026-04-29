@@ -17,10 +17,14 @@ jest.mock("@/utils/supabase/server", () => ({
   createClient: jest.fn(),
 }));
 
-jest.mock("@/utils/board-access", () => ({
-  verifyBoardAccess: jest.fn(),
-  validateString: jest.fn(),
-}));
+jest.mock("@/utils/board-access", () => {
+  const actual = jest.requireActual("@/utils/validate-string");
+  return {
+    verifyBoardAccess: jest.fn(),
+    validateString: jest.fn(),
+    ValidationError: actual.ValidationError,
+  };
+});
 
 // 3. SMART MOCK CHAINS
 const mockAuthGetUser = jest.fn();
@@ -92,19 +96,20 @@ describe("POST /api/kanban/labels", () => {
     }
   });
 
-  it("3. Lỗi 500 nếu validateString quăng lỗi", async () => {
+  it("3. Lỗi 400 nếu validateString quăng lỗi", async () => {
+    const { ValidationError } = jest.requireActual("@/utils/validate-string");
     (validateString as jest.Mock).mockImplementation(() => {
-      throw new Error("Label name quá dài");
+      throw new ValidationError("Label name quá dài");
     });
     const res = await POST(
       createMockRequest({
         name: "A".repeat(100),
-        color_hex: "#FFF",
+        color_hex: "#FFFFFF", // ← FIXED: Valid 6-digit hex
         boardId: 1,
       }),
     );
     const body = await res.json();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(body.error).toBe("Label name quá dài");
   });
 
@@ -156,6 +161,6 @@ describe("POST /api/kanban/labels", () => {
       body: "invalid-json",
     }) as any;
     const res = await POST(req);
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
   });
 });

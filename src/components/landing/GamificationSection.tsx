@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 import { FlameIcon, TrophyIcon, CheckIcon } from "@/components/icons";
 
 export default function GamificationSection() {
@@ -14,10 +15,13 @@ export default function GamificationSection() {
             {/* Profile Level Card */}
             <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 transform -rotate-2 hover:rotate-0 transition-transform">
               <div className="flex items-center gap-4 mb-6">
-                <img
+                <Image
                   src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex"
                   alt="Avatar"
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-full bg-slate-200 border-2 border-slate-100"
+                  unoptimized
                 />
                 <div>
                   <h4 className="font-black text-xl text-slate-800">
@@ -114,8 +118,8 @@ export default function GamificationSection() {
                   Huy hiệu có thể mở khóa
                 </h4>
                 <p className="text-slate-500 text-sm font-medium">
-                  Kiếm huy hiệu độc đáo cho các thành tích đặc biệt như "Bậc
-                  thầy làm việc sâu" hoặc "Chim sớm".
+                  Kiếm huy hiệu độc đáo cho các thành tích đặc biệt như &quot;Bậc
+                  thầy làm việc sâu&quot; hoặc &quot;Chim sớm&quot;.
                 </p>
               </div>
             </li>

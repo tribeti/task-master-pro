@@ -31,7 +31,7 @@ jest.mock('@/utils/supabase/client', () => ({
   }),
 }));
 
-jest.mock('@/hooks/useProjects');
+jest.mock('@/lib/hooks/useProjects');
 const mockedUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
 
 describe('ProjectsPage Integration', () => {

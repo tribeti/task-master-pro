@@ -8,7 +8,7 @@ export class AuthorizationError extends Error {
 }
 
 export async function verifyBoardAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   userId: string,
   boardId: number,
 ) {
@@ -34,7 +34,7 @@ export async function verifyBoardAccess(
 }
 
 export async function verifyAllBoardsAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   userId: string,
   boardIds: Set<number> | number[],
 ) {
@@ -73,7 +73,7 @@ export async function verifyAllBoardsAccess(
 }
 
 export async function verifyTaskAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   userId: string,
   taskId: number,
 ) {
@@ -83,7 +83,7 @@ export async function verifyTaskAccess(
     .eq("id", taskId)
     .single();
 
-  const boardId = (data as { columns: { board_id: number } | null } | null)
+  const boardId = (data as unknown as { columns: { board_id: number } | null } | null)
     ?.columns?.board_id;
 
   if (error || !boardId) {
@@ -94,7 +94,7 @@ export async function verifyTaskAccess(
 }
 
 export async function getTaskBoardId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   taskId: number,
 ): Promise<number> {
   const { data, error } = await supabase
@@ -103,7 +103,7 @@ export async function getTaskBoardId(
     .eq("id", taskId)
     .single();
 
-  const boardId = (data as { columns: { board_id: number } | null } | null)
+  const boardId = (data as unknown as { columns: { board_id: number } | null } | null)
     ?.columns?.board_id;
   if (error || !boardId) {
     throw new Error("Task or associated column not found.");
@@ -113,7 +113,7 @@ export async function getTaskBoardId(
 }
 
 export async function ensureBoardMember(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   boardId: number,
   userId: string,
 ) {
@@ -157,7 +157,7 @@ export async function ensureBoardMember(
 }
 
 export async function syncPrimaryAssignee(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Exclude<Awaited<ReturnType<typeof createClient>>, null>,
   taskId: number,
 ) {
   const { data: assigneeRows, error: assigneeRowsErr } = await supabase
@@ -186,4 +186,4 @@ export async function syncPrimaryAssignee(
 }
 
 // Re-export from dedicated utility for backward compatibility
-export { validateString } from "@/utils/validate-string";
+export { validateString, ValidationError } from "@/utils/validate-string";

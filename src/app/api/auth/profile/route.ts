@@ -12,6 +12,7 @@ import {
 export async function GET() {
   try {
     const supabase = await createClient();
+    if (!supabase) return createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500);
     const { user, error: authError } = await getAuthenticatedUser(supabase);
     if (authError) return authError;
 
@@ -49,6 +50,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const supabase = await createClient();
+    if (!supabase) return createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500);
     const { user, error: authError } = await getAuthenticatedUser(supabase);
     if (authError) return authError;
 

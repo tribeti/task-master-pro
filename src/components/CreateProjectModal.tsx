@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { XIcon } from "@/components/icons";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 const TAG_PRESETS = ["Core", "Marketing", "Design", "Dev", "QA"];
 
@@ -25,6 +26,8 @@ export default function CreateProjectModal({
   onSubmit,
   isSubmitting = false,
 }: CreateProjectModalProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -66,25 +69,28 @@ export default function CreateProjectModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200"
+      className={`fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-200 ${isCozy ? "bg-slate-950/60" : "bg-slate-900/40"
+        }`}
       onClick={resetAndClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className={`rounded-[2.5rem] shadow-2xl w-full max-w-md relative mx-4 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[90vh] transition-colors duration-500 ${isCozy ? "bg-[#0F172A] border border-slate-800" : "bg-white"
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={resetAndClose}
           disabled={isSubmitting}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 z-10 bg-white/80 p-1 rounded-full backdrop-blur-md"
+          className={`absolute top-6 right-6 transition-colors disabled:opacity-50 z-10 p-1 rounded-full backdrop-blur-md ${isCozy ? "bg-slate-800 text-slate-500 hover:text-white" : "text-slate-400 hover:text-slate-600 bg-white/80"
+            }`}
         >
           <XIcon />
         </button>
 
         <div className="p-8 flex flex-col gap-5 overflow-y-auto w-full">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Tạo dự án mới</h2>
-            <p className="text-sm text-slate-400 font-medium">
+            <h2 className={`text-2xl font-bold ${isCozy ? "text-white" : "text-slate-900"}`}>Tạo dự án mới</h2>
+            <p className={`text-sm font-medium ${isCozy ? "text-slate-500" : "text-slate-400"}`}>
               Hãy thiết lập cho chiến thắng tiếp theo của bạn.
             </p>
           </div>
@@ -102,7 +108,10 @@ export default function CreateProjectModal({
                 setTitle(e.target.value);
                 if (e.target.value.trim()) setNameError(false);
               }}
-              className={`w-full text-slate-900 px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-colors ${nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#FF8B5E]"}`}
+              className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${isCozy
+                ? (nameError ? "border-red-500 bg-slate-900 text-white" : "bg-slate-900/50 border-slate-800 text-white focus:border-[#FF8B5E] focus:bg-slate-900")
+                : (nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 bg-white text-slate-900 focus:border-[#FF8B5E]")
+                }`}
               required
               maxLength={100}
               autoFocus
@@ -126,11 +135,10 @@ export default function CreateProjectModal({
                   key={t}
                   onClick={() => setSelectedTag(t)}
                   disabled={isSubmitting}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                    selectedTag === t
-                      ? "bg-[#1E293B] text-white"
-                      : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${selectedTag === t
+                    ? (isCozy ? "bg-[#FF8B5E] text-white border-[#FF8B5E]" : "bg-[#1E293B] text-white border-transparent")
+                    : (isCozy ? "bg-slate-900/50 text-slate-500 border-slate-800 hover:border-slate-700" : "bg-slate-50 text-slate-500 border-transparent hover:bg-slate-100")
+                    }`}
                 >
                   {t}
                 </button>
@@ -149,7 +157,10 @@ export default function CreateProjectModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               disabled={isSubmitting}
-              className="w-full text-slate-900 px-4 py-3 border border-slate-200 rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-[#FF8B5E] transition-colors resize-none"
+              className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all resize-none ${isCozy
+                ? "bg-slate-900/30 hover:bg-slate-900/50 focus:bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]"
+                : "bg-white border-slate-200 text-slate-900 focus:border-[#FF8B5E]"
+                }`}
             />
           </div>
 
@@ -191,7 +202,10 @@ export default function CreateProjectModal({
             <button
               onClick={() => setIsPrivate(!isPrivate)}
               disabled={isSubmitting}
-              className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate ? "bg-[#FF8B5E]" : "bg-slate-200"}`}
+              className={`relative w-12 h-7 rounded-full transition-colors ${isPrivate
+                ? (isCozy ? "bg-[#FF8B5E]" : "bg-[#1E293B]")
+                : (isCozy ? "bg-slate-800" : "bg-slate-200")
+                }`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${isPrivate ? "translate-x-5" : "translate-x-0"}`}
@@ -203,7 +217,10 @@ export default function CreateProjectModal({
           <button
             onClick={handleCreateProject}
             disabled={isSubmitting || !title.trim()}
-            className="w-full py-3 rounded-full bg-linear-to-r from-[#FF8B5E] to-[#FFB088] text-white font-bold text-base hover:shadow-lg hover:shadow-orange-200 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full py-3 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed ${isCozy
+              ? "bg-gradient-to-r from-[#FF8B5E] to-orange-600 text-white hover:shadow-lg hover:shadow-orange-950/20"
+              : "bg-linear-to-r from-[#FF8B5E] to-[#FFB088] text-white hover:shadow-lg hover:shadow-orange-200"
+              }`}
           >
             {isSubmitting ? (
               <>

@@ -4,12 +4,22 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EditIcon, TrashIcon, LockIcon } from "@/components/icons";
 import Toggle from "@/components/Toggle";
 import { createClient } from "@/utils/supabase/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDashboardUser } from "../provider";
 
 export default function ProfilePage() {
-  const { user } = useDashboardUser();
+  const { user, profile } = useDashboardUser();
+  const normalizedTheme = useMemo(() => {
+    if (profile?.theme === "cozy") return "cozy";
+    return "energetic";
+  }, [profile?.theme]);
+
+  const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">(
+    normalizedTheme,
+  );
+  const isCozy = themeSetting === "cozy";
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -39,9 +49,10 @@ export default function ProfilePage() {
       if (!user?.id) return;
       try {
         setIsLoadingProfile(true);
+        if (!supabase) return;
         const { data, error } = await supabase
           .from("users")
-          .select("display_name, avatar_url")
+          .select("display_name, avatar_url, theme")
           .eq("id", user.id)
           .single();
 
@@ -50,11 +61,16 @@ export default function ProfilePage() {
           toast.error("Không thể tải thông tin profile.");
         }
         if (data?.display_name) setDisplayName(data.display_name);
+        if (data?.theme) {
+          const theme = data.theme === "cozy" ? "cozy" : "energetic";
+          setThemeSetting(theme);
+        }
 
         if (!avatarFileRef.current && data?.avatar_url) {
           if (data.avatar_url.startsWith("http")) {
             setAvatarUrl(data.avatar_url);
           } else {
+            if (!supabase) return;
             const { data: signedData, error: signedError } =
               await supabase.storage
                 .from("avatar")
@@ -75,15 +91,11 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-     
   }, [user, supabase]);
 
   const [fanfareAlert, setFanfareAlert] = useState(true);
   const [visualRewards, setVisualRewards] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(false);
-  const [themeSetting, setThemeSetting] = useState<"energetic" | "cozy">(
-    "energetic",
-  );
 
   const handleSave = async () => {
     if (!user?.id) return;
@@ -92,31 +104,44 @@ export default function ProfilePage() {
     try {
       let finalAvatarUrl = avatarUrl; // Hiện tại
       let oldAvatarPath: string | null = null;
+      let newFileName: string | null = null;
+
+      if (!supabase) return;
+
+      // Capture prior user row for rollback
+      const { data: oldData, error: fetchError } = await supabase
+        .from("users")
+        .select("display_name, theme, avatar_url")
+        .eq("id", user.id)
+        .single();
+
+      if (fetchError || !oldData) {
+        console.error("Failed to fetch backup for profile update:", fetchError);
+        throw new Error("Không thể sao lưu thông tin cũ để cập nhật.");
+      }
+
+      if (oldData?.avatar_url && !oldData.avatar_url.startsWith("http")) {
+        oldAvatarPath = oldData.avatar_url;
+      }
 
       if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
-        const randomId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
-        const fileName = `${user.id}/avatar-${randomId}.${fileExt}`;
-
-        // Lấy path ảnh cũ để xóa SAU KHI mọi thứ thành công
-        const { data: oldData } = await supabase
-          .from("users")
-          .select("avatar_url")
-          .eq("id", user.id)
-          .single();
-
-        if (oldData?.avatar_url && !oldData.avatar_url.startsWith("http")) {
-          oldAvatarPath = oldData.avatar_url;
-        }
+        const fileExt =
+          avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const randomId =
+          typeof crypto !== "undefined" &&
+          typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2, 11);
+        newFileName = `${user.id}/avatar-${randomId}.${fileExt}`;
 
         // Upload ảnh mới TRƯỚC
         const { error: uploadError } = await supabase.storage
           .from("avatar")
-          .upload(fileName, avatarFile);
+          .upload(newFileName, avatarFile);
 
         if (uploadError) throw uploadError;
 
-        finalAvatarUrl = fileName;
+        finalAvatarUrl = newFileName;
       }
 
       // 1. Ghi file path vào bảng users (Hồ sơ công khai)
@@ -124,27 +149,47 @@ export default function ProfilePage() {
         .from("users")
         .update({
           display_name: displayName,
+          theme: themeSetting,
           ...(avatarFile ? { avatar_url: finalAvatarUrl } : {}),
         })
         .eq("id", user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (newFileName) {
+          await supabase.storage.from("avatar").remove([newFileName]);
+        }
+        throw updateError;
+      }
 
       // 2. 👉 ĐỒNG BỘ VÀO KÉT SẮT AUTH.USERS ĐỂ DASHBOARD HIỂN THỊ
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: displayName, // Bắt buộc dùng key này cho Supabase Dashboard
-          name: displayName,      // Dự phòng
+          name: displayName, // Dự phòng
           ...(avatarFile ? { avatar_url: finalAvatarUrl } : {}),
-        }
+        },
       });
 
       if (authError) {
+        // Rollback users table
+        await supabase
+          .from("users")
+          .update({
+            display_name: oldData?.display_name ?? null,
+            theme: oldData?.theme ?? null,
+            avatar_url: oldData?.avatar_url ?? null,
+          })
+          .eq("id", user.id);
+
+        // Rollback storage
+        if (newFileName) {
+          await supabase.storage.from("avatar").remove([newFileName]);
+        }
         throw authError;
       }
 
       // Chỉ xóa ảnh cũ SAU KHI upload + DB update đều thành công
-      if (oldAvatarPath) {
+      if (oldAvatarPath && avatarFile) {
         await supabase.storage.from("avatar").remove([oldAvatarPath]);
       }
 
@@ -182,7 +227,9 @@ export default function ProfilePage() {
 
     // 1. Kiểm tra MIME type thực tế (Bảo mật hơn chỉ check extension)
     if (!allowedMimeTypes.includes(file.type)) {
-      toast.error("Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (JPG, PNG, WebP)");
+      toast.error(
+        "Định dạng file không hợp lệ. Chỉ chấp nhận ảnh (JPG, PNG, WebP)",
+      );
       event.target.value = "";
       return;
     }
@@ -261,14 +308,22 @@ export default function ProfilePage() {
   return (
     <>
       {/* HEADER */}
-      <header className="px-10 flex items-end justify-between shrink-0 bg-[#F8FAFC] z-10 pt-10 pb-6">
+      <header
+        className={`px-10 flex items-end justify-between shrink-0 z-10 pt-10 pb-6 transition-colors duration-500 ${isCozy ? "bg-[#1E293B]" : "bg-[#F8FAFC]"}`}
+      >
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1
+            className={`text-3xl font-extrabold tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+          >
             Cấu hình &amp; Cài đặt
           </h1>
-          <p className="text-slate-500 text-sm mt-1.5 font-medium">
+          <p
+            className={`text-sm mt-1.5 font-medium transition-colors ${isCozy ? "text-slate-400" : "text-slate-500"}`}
+          >
             Tùy chỉnh trải nghiệm{" "}
-            <span className="text-[#28B8FA] font-bold">
+            <span
+              className={`${isCozy ? "text-[#FF8B5E]" : "text-[#28B8FA]"} font-bold`}
+            >
               Trung tâm Điều khiển
             </span>{" "}
             của bạn.
@@ -278,7 +333,9 @@ export default function ProfilePage() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className={`bg-[#FF8B5E] hover:bg-orange-500 transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg shadow-orange-300/30 flex items-center gap-2.5 ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`transition-colors text-white px-6 py-3.5 rounded-xl font-bold text-[15px] shadow-lg flex items-center gap-2.5 ${
+            isSaving ? "opacity-50 cursor-not-allowed" : ""
+          } ${isCozy ? "bg-[#FF8B5E] hover:bg-orange-600 shadow-none" : "bg-[#FF8B5E] hover:bg-orange-500 shadow-orange-300/30"}`}
         >
           {isSaving ? (
             <svg
@@ -327,16 +384,38 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Profile Info */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-32 bg-slate-50 border-b border-slate-100/50"></div>
+            <div
+              className={`rounded-[2.5rem] p-8 shadow-sm border flex flex-col items-center relative overflow-hidden transition-colors duration-500 ${
+                isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
+              }`}
+            >
+              <div
+                className={`absolute top-0 left-0 w-full h-32 border-b transition-colors ${
+                  isCozy
+                    ? "bg-slate-800/50 border-slate-700/50"
+                    : "bg-slate-50 border-slate-100/50"
+                }`}
+              ></div>
 
               {/* Avatar Section */}
               <div className="relative mb-5 mt-8 z-10 w-28 h-28">
                 {isLoadingProfile ? (
-                  <div className="w-full h-full rounded-4xl bg-slate-200 animate-pulse border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden"></div>
+                  <div
+                    className={`w-full h-full rounded-4xl animate-pulse border-[6px] shadow-xl flex items-center justify-center overflow-hidden ${
+                      isCozy
+                        ? "bg-slate-800 border-[#0F172A] shadow-none"
+                        : "bg-slate-200 border-white shadow-slate-200/50"
+                    }`}
+                  ></div>
                 ) : (
                   <label
-                    className={`w-full h-full rounded-4xl bg-slate-900 border-[6px] border-white shadow-xl shadow-slate-200/50 flex items-center justify-center overflow-hidden cursor-pointer group`}
+                    className={`w-full h-full rounded-4xl bg-slate-900 border-[6px] shadow-xl flex items-center justify-center overflow-hidden cursor-pointer group ${
+                      isCozy
+                        ? "border-[#0F172A] shadow-none"
+                        : "border-white shadow-slate-200/50"
+                    }`}
                   >
                     <input
                       type="file"
@@ -344,13 +423,13 @@ export default function ProfilePage() {
                       className="hidden"
                       onChange={handleAvatarChange}
                     />
-                    <img
+                    <Image
                       src={avatarUrl || fallbackAvatar}
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackAvatar;
-                      }}
                       alt="Avatar"
+                      width={112}
+                      height={112}
                       className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                      unoptimized
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ">
                       <span className="text-white text-xs font-bold drop-shadow-md">
@@ -359,12 +438,20 @@ export default function ProfilePage() {
                     </div>
                   </label>
                 )}
-                <div className="absolute -bottom-1 -right-1 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 text-[#28B8FA] pointer-events-none z-20">
-                  <EditIcon className="w-4 h-4 text-[#28B8FA]" />
+                <div
+                  className={`absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center shadow-md border pointer-events-none z-20 ${
+                    isCozy
+                      ? "bg-slate-800 border-slate-700 text-[#FF8B5E]"
+                      : "bg-white border-slate-100 text-[#28B8FA]"
+                  }`}
+                >
+                  <EditIcon className="w-4 h-4" />
                 </div>
               </div>
 
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight z-10 mb-8 mt-2">
+              <h2
+                className={`text-2xl font-black tracking-tight z-10 mb-8 mt-2 transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+              >
                 {isLoadingProfile ? (
                   <div className="h-8 w-32 bg-slate-100 animate-pulse rounded-lg"></div>
                 ) : (
@@ -378,11 +465,17 @@ export default function ProfilePage() {
                     Tên hiển thị
                   </label>
                   {isLoadingProfile ? (
-                    <div className="w-full h-12 bg-slate-100 animate-pulse rounded-2xl"></div>
+                    <div
+                      className={`w-full h-12 animate-pulse rounded-2xl ${isCozy ? "bg-slate-800" : "bg-slate-100"}`}
+                    ></div>
                   ) : (
                     <input
                       type="text"
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                      className={`w-full px-5 py-3.5 border rounded-2xl text-sm font-bold transition-all focus:outline-none ${
+                        isCozy
+                          ? "bg-slate-800/50 border-slate-700 text-white focus:border-[#FF8B5E] focus:bg-slate-800"
+                          : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#28B8FA] focus:bg-white"
+                      }`}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       required
@@ -397,7 +490,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="email"
-                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                    className={`w-full px-5 py-3.5 border rounded-2xl text-sm font-bold transition-colors ${
+                      isCozy
+                        ? "bg-slate-800/30 border-slate-700/50 text-slate-500"
+                        : "bg-slate-50 border-slate-200 text-slate-800"
+                    }`}
                     defaultValue={user?.email || "alex@taskflow.com"}
                     disabled
                   />
@@ -406,13 +503,27 @@ export default function ProfilePage() {
             </div>
 
             {/* Change Password Card */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100">
+            <div
+              className={`rounded-[2.5rem] p-8 shadow-sm border transition-colors duration-500 ${
+                isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
+              }`}
+            >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-[#EAF7FF] flex items-center justify-center text-[#28B8FA]">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    isCozy
+                      ? "bg-slate-800 text-[#FF8B5E]"
+                      : "bg-[#EAF7FF] text-[#28B8FA]"
+                  }`}
+                >
                   <LockIcon />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">
+                  <h3
+                    className={`font-bold text-base transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                  >
                     Đổi Mật Khẩu
                   </h3>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">
@@ -450,7 +561,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="password"
-                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                    className={`w-full px-5 py-3.5 border rounded-2xl text-sm font-bold transition-all focus:outline-none ${
+                      isCozy
+                        ? "bg-slate-800/50 border-slate-700 text-white focus:border-[#FF8B5E] focus:bg-slate-800"
+                        : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#28B8FA] focus:bg-white"
+                    }`}
                     value={oldPassword}
                     onChange={(e) => {
                       setOldPassword(e.target.value);
@@ -467,7 +582,11 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="password"
-                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-colors"
+                    className={`w-full px-5 py-3.5 border rounded-2xl text-sm font-bold transition-all focus:outline-none ${
+                      isCozy
+                        ? "bg-slate-800/50 border-slate-700 text-white focus:border-[#FF8B5E] focus:bg-slate-800"
+                        : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#28B8FA] focus:bg-white"
+                    }`}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Nhập mật khẩu mới"
@@ -481,10 +600,13 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="password"
-                    className={`w-full px-5 py-3.5 bg-slate-50 border rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:bg-white transition-colors ${confirmError
-                      ? "border-red-400 focus:border-red-400"
-                      : "border-slate-200 focus:border-[#28B8FA]"
-                      }`}
+                    className={`w-full px-5 py-3.5 border rounded-2xl text-sm font-bold transition-all focus:outline-none ${
+                      confirmError
+                        ? "border-red-400 focus:border-red-400"
+                        : isCozy
+                          ? "bg-slate-800/50 border-slate-700 text-white focus:border-[#FF8B5E] focus:bg-slate-800"
+                          : "bg-slate-50 border-slate-200 text-slate-800 focus:border-[#28B8FA] focus:bg-white"
+                    }`}
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
@@ -504,7 +626,11 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className={`w-full mt-2 bg-[#1E293B] hover:bg-slate-900 text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/10 transition-all flex items-center justify-center gap-2 ${isChangingPassword ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`w-full mt-2 py-3.5 rounded-2xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${isChangingPassword ? "opacity-50 cursor-not-allowed" : ""} ${
+                    isCozy
+                      ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-none"
+                      : "bg-[#1E293B] hover:bg-slate-900 text-white shadow-slate-900/10"
+                  }`}
                 >
                   {isChangingPassword ? (
                     <svg
@@ -535,13 +661,27 @@ export default function ProfilePage() {
               </form>
             </div>
 
-            <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer hover:bg-red-50/50 hover:border-red-100 transition-colors group">
+            <div
+              className={`rounded-4xl p-6 shadow-sm border flex items-center justify-between transition-colors ${
+                isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
+              }`}
+            >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+                    isCozy
+                      ? "bg-red-900/20 text-red-400"
+                      : "bg-red-50 text-red-500"
+                  }`}
+                >
                   <TrashIcon />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
+                  <h3
+                    className={`font-bold text-sm transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                  >
                     Vùng nguy hiểm
                   </h3>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">
@@ -549,29 +689,26 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
-              <div className="text-slate-300 group-hover:text-red-400 transition-colors">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </div>
             </div>
           </div>
 
           {/* Right Column: Notification Vibes & Theme Settings */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100">
+            <div
+              className={`rounded-[2.5rem] p-8 md:p-10 shadow-sm border transition-colors duration-500 ${
+                isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
+              }`}
+            >
               <div className="flex items-center gap-5 mb-10">
-                <div className="w-14 h-14 rounded-[1.25rem] bg-[#D1FAE5] flex items-center justify-center text-[#34D399]">
+                <div
+                  className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center ${
+                    isCozy
+                      ? "bg-slate-800 text-[#FF8B5E]"
+                      : "bg-[#D1FAE5] text-[#34D399]"
+                  }`}
+                >
                   <svg
                     width="24"
                     height="24"
@@ -587,7 +724,9 @@ export default function ProfilePage() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  <h2
+                    className={`text-2xl font-black tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                  >
                     Thông báo &amp; Âm thanh
                   </h2>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
@@ -599,7 +738,9 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900 text-base">
+                    <h4
+                      className={`font-bold text-base transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                    >
                       Âm thanh hoàn thành nhiệm vụ
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
@@ -612,13 +753,18 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 pt-8">
+                <div
+                  className={`flex items-center justify-between border-t pt-8 ${isCozy ? "border-slate-800" : "border-slate-100"}`}
+                >
                   <div>
-                    <h4 className="font-bold text-slate-900 text-base">
+                    <h4
+                      className={`font-bold text-base transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                    >
                       Phần thưởng trực tuyến
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
-                      Hiển thị hiệu ứng confetti và starbursts cho các cột mốc quan trọng.
+                      Hiển thị hiệu ứng confetti và starbursts cho các cột mốc
+                      quan trọng.
                     </p>
                   </div>
                   <Toggle
@@ -627,9 +773,13 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 pt-8">
+                <div
+                  className={`flex items-center justify-between border-t pt-8 ${isCozy ? "border-slate-800" : "border-slate-100"}`}
+                >
                   <div>
-                    <h4 className="font-bold text-slate-900 text-base">
+                    <h4
+                      className={`font-bold text-base transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                    >
                       Tóm tắt hàng ngày
                     </h4>
                     <p className="text-sm font-medium text-slate-500 mt-1">
@@ -644,9 +794,21 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 flex-1">
+            <div
+              className={`rounded-[2.5rem] p-8 md:p-10 shadow-sm border flex-1 transition-colors duration-500 ${
+                isCozy
+                  ? "bg-[#0F172A] border-slate-700"
+                  : "bg-white border-slate-100"
+              }`}
+            >
               <div className="flex items-center gap-5 mb-10">
-                <div className="w-14 h-14 rounded-[1.25rem] bg-[#FFF2DE] flex items-center justify-center text-[#FF8B5E]">
+                <div
+                  className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center ${
+                    isCozy
+                      ? "bg-slate-800 text-[#FF8B5E]"
+                      : "bg-[#FFF2DE] text-[#FF8B5E]"
+                  }`}
+                >
                   <svg
                     width="24"
                     height="24"
@@ -663,7 +825,9 @@ export default function ProfilePage() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  <h2
+                    className={`text-2xl font-black tracking-tight transition-colors ${isCozy ? "text-white" : "text-slate-900"}`}
+                  >
                     Đồng bộ giao diện
                   </h2>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
@@ -676,10 +840,13 @@ export default function ProfilePage() {
                 {/* Theme 1: Energetic Flow */}
                 <div
                   onClick={() => setThemeSetting("energetic")}
-                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "energetic"
-                    ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50"
-                    : "border-slate-100 hover:border-slate-200"
-                    }`}
+                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
+                    themeSetting === "energetic"
+                      ? "border-[#28B8FA] shadow-xl shadow-cyan-100/50 bg-white"
+                      : isCozy
+                        ? "border-slate-800 hover:border-slate-700"
+                        : "border-slate-100 hover:border-slate-200 bg-white"
+                  }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-white border-[3px] border-slate-100 shadow-sm relative overflow-hidden mb-5 flex flex-col p-3.5">
                     <div className="w-full flex items-center justify-between mb-2.5">
@@ -693,8 +860,7 @@ export default function ProfilePage() {
                       <div className="flex-1 h-5 bg-slate-50 border-[1.5px] border-slate-100 rounded-lg"></div>
                     </div>
                     <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
-                      <span className="text-[7px] font-black text-slate-400 tracking-[0.2em]">
-                      </span>
+                      <span className="text-[7px] font-black text-slate-400 tracking-[0.2em]"></span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between w-full mt-auto">
@@ -707,10 +873,11 @@ export default function ProfilePage() {
                       </p>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "energetic"
-                        ? "border-[#28B8FA]"
-                        : "border-slate-200"
-                        }`}
+                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
+                        themeSetting === "energetic"
+                          ? "border-[#28B8FA]"
+                          : "border-slate-200"
+                      }`}
                     >
                       {themeSetting === "energetic" && (
                         <div className="w-2.5 h-2.5 bg-[#28B8FA] rounded-full"></div>
@@ -722,10 +889,13 @@ export default function ProfilePage() {
                 {/* Theme 2: Cozy Focus */}
                 <div
                   onClick={() => setThemeSetting("cozy")}
-                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${themeSetting === "cozy"
-                    ? "border-[#FF8B5E] shadow-xl shadow-orange-100/50 bg-[#1E293B]"
-                    : "border-slate-100 hover:border-slate-200"
-                    }`}
+                  className={`border-[3px] rounded-4xl p-6 cursor-pointer transition-all flex flex-col items-center justify-between h-56 ${
+                    themeSetting === "cozy"
+                      ? "border-[#FF8B5E] shadow-xl shadow-orange-900/40 bg-[#1E293B]"
+                      : isCozy
+                        ? "border-slate-800 hover:border-slate-700 bg-[#1E293B]"
+                        : "border-slate-100 hover:border-slate-200"
+                  }`}
                 >
                   <div className="w-full h-24 rounded-[1.25rem] bg-[#0F172A] border-[3px] border-slate-700 shadow-inner relative overflow-hidden mb-5 flex flex-col p-3.5">
                     <div className="w-full flex items-center justify-between mb-2">
@@ -736,34 +906,36 @@ export default function ProfilePage() {
                       <div className="flex-1 h-5 bg-[#0F172A] rounded-lg"></div>
                     </div>
                     <div className="absolute bottom-1.5 left-0 w-full flex justify-center opacity-40">
-                      <span className="text-[7px] font-black text-slate-500 tracking-[0.2em]">
-                      </span>
+                      <span className="text-[7px] font-black text-slate-500 tracking-[0.2em]"></span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between w-full mt-auto">
                     <div>
                       <h4
-                        className={`font-extrabold text-base ${themeSetting === "cozy"
-                          ? "text-white"
-                          : "text-slate-900"
-                          }`}
+                        className={`font-extrabold text-base ${
+                          themeSetting === "cozy"
+                            ? "text-white"
+                            : "text-slate-900"
+                        }`}
                       >
                         Cozy Focus
                       </h4>
                       <p
-                        className={`text-[10px] font-bold mt-0.5 ${themeSetting === "cozy"
-                          ? "text-slate-400"
-                          : "text-slate-500"
-                          }`}
+                        className={`text-[10px] font-bold mt-0.5 ${
+                          themeSetting === "cozy"
+                            ? "text-slate-400"
+                            : "text-slate-500"
+                        }`}
                       >
                         Chế độ tối, tông màu ấm
                       </p>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${themeSetting === "cozy"
-                        ? "border-[#FF8B5E]"
-                        : "border-slate-200"
-                        }`}
+                      className={`w-6 h-6 rounded-full border-[3px] flex items-center justify-center transition-colors ${
+                        themeSetting === "cozy"
+                          ? "border-[#FF8B5E]"
+                          : "border-slate-200"
+                      }`}
                     >
                       {themeSetting === "cozy" && (
                         <div className="w-2.5 h-2.5 bg-[#FF8B5E] rounded-full"></div>

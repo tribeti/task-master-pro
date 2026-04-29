@@ -85,6 +85,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 
@@ -94,59 +95,99 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   // ══════════════════════════════════════════════════════════════
   const isDraggingRef = useRef(false);
 
-  // Tracks the timestamp of our most recent local write operation.
+  // Tracks the timestamp and projectId of our most recent local write operation.
   // Realtime events arriving within 3.5s of a local write are suppressed
   // because they're echoes of our OWN changes (not other users').
   const lastLocalWriteRef = useRef(0);
+  const lastLocalWriteProjectIdRef = useRef<number | null>(null);
 
-  // Tracks tasks that have a pending toggle to avoid overwriting them 
+  // Tracks tasks that have a pending toggle to avoid overwriting them
   // with stale data during fetchData (handles the race between API and Realtime)
   const pendingTogglesRef = useRef<Set<number>>(new Set());
 
   // Wrapper: call this around any CRUD action to stamp the write time
   const markLocalWrite = () => {
     lastLocalWriteRef.current = Date.now();
+    lastLocalWriteProjectIdRef.current = projectId;
   };
 
-  const fetchData = useCallback(async () => {
-    // Only show loading spinner on initial load, not on subsequent refreshes
-    if (isInitialLoad.current) {
-      setIsLoading(true);
-    }
-    try {
-      const res = await fetch(`/api/boards/${projectId}/kanban`);
-      if (!res.ok) throw new Error("Failed to fetch kanban data");
-      const data = await res.json();
+  const fetchSeqRef = useRef(0);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
-      setColumns(data.columns || []);
-      setTasks((prev) => {
-        const fetchedTasks = data.tasks || [];
-        if (pendingTogglesRef.current.size === 0) return fetchedTasks;
+  const fetchData = useCallback(
+    async (bypassLocalWriteGuard: boolean = false) => {
+      const requestSeq = ++fetchSeqRef.current;
+      fetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
 
-        // 🛡️ Merge: If a task has a pending toggle update, preserve its 
-        // local completion state instead of letting stale DB data overwrite it.
-        return fetchedTasks.map((ft: Task) => {
-          if (pendingTogglesRef.current.has(ft.id)) {
-            const localTask = prev.find((t) => t.id === ft.id);
-            if (localTask) {
-              return { ...ft, is_completed: localTask.is_completed };
-            }
-          }
-          return ft;
+      // Only show loading spinner on initial load, not on subsequent refreshes
+      if (isInitialLoad.current) {
+        setIsLoading(true);
+      }
+      try {
+        const res = await fetch(`/api/boards/${projectId}/kanban`, {
+          signal: controller.signal,
         });
-      });
-      setBoardLabels(data.labels || []);
-    } catch (error) {
-      console.error("Failed to fetch kanban data:", error);
-      setColumns([]);
-      setTasks([]);
-      setBoardLabels([]);
-      toast.error("Failed to load kanban data");
-    } finally {
-      setIsLoading(false);
-      isInitialLoad.current = false;
-    }
-  }, [projectId]);
+        if (!res.ok) throw new Error("Failed to fetch kanban data");
+        const data = await res.json();
+
+        if (controller.signal.aborted || fetchSeqRef.current !== requestSeq) {
+          return;
+        }
+        setColumns((prev) => {
+          // 🛡️ Guard: If dragging columns, don't overwrite with potentially stale data
+          if (isDraggingRef.current) return prev;
+          return data.columns || [];
+        });
+
+        setTasks((prev) => {
+          // 🛡️ Guard: If user is actively dragging tasks, DO NOT overwrite the task array.
+          // The KanbanBoard is currently managing the optimistic state, and onTasksReordered
+          // will commit the final positions once the API call completes.
+          if (isDraggingRef.current) return prev;
+
+          // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project,
+          // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
+          if (
+            !bypassLocalWriteGuard &&
+            Date.now() - lastLocalWriteRef.current < 3500 &&
+            lastLocalWriteProjectIdRef.current === projectId
+          )
+            return prev;
+
+          const fetchedTasks = data.tasks || [];
+          if (pendingTogglesRef.current.size === 0) return fetchedTasks;
+
+          // 🛡️ Merge: If a task has a pending toggle update, preserve its
+          // local completion state instead of letting stale DB data overwrite it.
+          return fetchedTasks.map((ft: Task) => {
+            if (pendingTogglesRef.current.has(ft.id)) {
+              const localTask = prev.find((t) => t.id === ft.id);
+              if (localTask) {
+                return { ...ft, is_completed: localTask.is_completed };
+              }
+            }
+            return ft;
+          });
+        });
+        setBoardLabels(data.labels || []);
+      } catch (error: any) {
+        if (error.name === "AbortError") return;
+        console.error("Failed to fetch kanban data:", error);
+        if (isInitialLoad.current) {
+          setColumns([]);
+          setTasks([]);
+          setBoardLabels([]);
+        }
+        toast.error("Failed to load kanban data");
+      } finally {
+        setIsLoading(false);
+        isInitialLoad.current = false;
+      }
+    },
+    [projectId],
+  );
 
   // Fetch board members for filter bar
   useEffect(() => {
@@ -190,16 +231,27 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   }, [columns]);
 
   useEffect(() => {
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (err) {
+      console.error("Failed to create supabase client in TasksTab:", err);
+      return;
+    }
+    if (!supabase) return;
     let debounceTimer: NodeJS.Timeout;
 
     const handleRealtimeEvent = () => {
       // 🛡️ Guard 1: If user is actively dragging, skip entirely
       if (isDraggingRef.current) return;
 
-      // 🛡️ Guard 2: If this is an echo of our own recent write, skip
+      // 🛡️ Guard 2: If this is an echo of our own recent write for THIS project, skip
       // Increased to 3.5s to account for potentially slow Vercel cold starts/latency
-      if (Date.now() - lastLocalWriteRef.current < 3500) return;
+      if (
+        Date.now() - lastLocalWriteRef.current < 3500 &&
+        lastLocalWriteProjectIdRef.current === projectId
+      )
+        return;
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -248,19 +300,37 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     // Include columnIdsString here so it auto-re-subscribes when columns are added/removed!
   }, [projectId, fetchData, columnIdsString]);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchComments = useCallback(async (taskId: number) => {
+    // Abort previous fetch if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setCommentsLoading(true);
-      const res = await fetch(`/api/tasks/${taskId}/comments`);
+      const res = await fetch(`/api/tasks/${taskId}/comments`, {
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
-      setTaskComments(data || []);
-    } catch (error) {
+
+      if (!controller.signal.aborted) {
+        setTaskComments(data || []);
+      }
+    } catch (error: any) {
+      if (error.name === "AbortError") return;
       console.error("Failed to fetch comments:", error);
       setTaskComments([]);
       toast.error("Failed to load comments");
     } finally {
-      setCommentsLoading(false);
+      if (!controller.signal.aborted) {
+        setCommentsLoading(false);
+      }
     }
   }, []);
 
@@ -272,13 +342,16 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     setIsModalOpen(true);
   };
 
-  const openEditModal = async (task: Task) => {
-    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-    setEditingTask(task);
-    setSelectedColumnId(task.column_id);
-    setIsModalOpen(true);
-    await fetchComments(task.id);
-  };
+  const openEditModal = useCallback(
+    async (task: Task) => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      setEditingTask(task);
+      setSelectedColumnId(task.column_id);
+      setIsModalOpen(true);
+      await fetchComments(task.id);
+    },
+    [fetchComments],
+  );
 
   const handleTaskFoundFromUrl = useCallback(
     (taskToOpen: Task) => {
@@ -388,7 +461,14 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           if (prev.some((t) => t.id === newTask.id)) return prev;
           return [
             ...prev,
-            { ...newTask, labels: [], assignees: [], assignee: null, is_completed: false, checklists: [] },
+            {
+              ...newTask,
+              labels: [],
+              assignees: [],
+              assignee: null,
+              is_completed: false,
+              checklists: [],
+            },
           ];
         });
       } catch (insertError) {
@@ -449,7 +529,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Thêm nhãn thành công");
     } catch (error) {
       console.error("Failed to add label:", error);
@@ -468,7 +548,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa nhãn thành công");
     } catch (error) {
       console.error("Failed to remove label:", error);
@@ -488,7 +568,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Tạo nhãn thành công");
     } catch (error) {
       console.error("Failed to create label:", error);
@@ -548,7 +628,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
 
     // Both steps succeeded
-    await fetchData();
+    await fetchData(true);
     toast.success("Tạo và gán nhãn thành công");
     return createdLabel;
   };
@@ -563,7 +643,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Đã xóa nhãn");
     } catch (error) {
       console.error("Failed to delete label:", error);
@@ -615,7 +695,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("Thêm người thực hiện thành công");
     } catch (error) {
       console.error("Failed to add assignee:", error);
@@ -635,7 +715,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove assignee:", error);
@@ -655,7 +735,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         lastLocalWriteRef.current = 0; // Reset on failure
         throw new Error();
       }
-      await fetchData();
+      await fetchData(true);
       toast.success("xóa tất cả người thực hiện thành công");
     } catch (error) {
       console.error("Failed to remove all assignees:", error);
@@ -677,7 +757,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         throw new Error();
       }
       toast.success("Cập nhật cột thành công");
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
       console.error("Failed to update column:", error);
       toast.error("Cập nhật cột thất bại");
@@ -695,14 +775,17 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         throw new Error();
       }
       toast.success("Đã xóa cột");
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
       console.error("Failed to delete column:", error);
       toast.error("Xóa cột thất bại");
     }
   };
 
-  const handleUpdateTaskField = async (taskId: number, updates: Partial<Task>) => {
+  const handleUpdateTaskField = async (
+    taskId: number,
+    updates: Partial<Task>,
+  ) => {
     markLocalWrite();
     try {
       const res = await fetch(`/api/kanban/tasks/${taskId}`, {
@@ -716,7 +799,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       }
       const updatedTask = await res.json();
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, ...updatedTask } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, ...updatedTask } : t)),
       );
       // Optional: don't show toast for every minor edit, or maybe just for user feedback:
       // toast.success("Đã lưu thay đổi");
@@ -735,14 +818,13 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     // Optimistic UI: update local state immediately
     pendingTogglesRef.current.add(taskId);
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, is_completed: newValue } : t
-      )
+      prev.map((t) => (t.id === taskId ? { ...t, is_completed: newValue } : t)),
     );
 
     // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
     const now = Date.now();
     lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
+    lastLocalWriteProjectIdRef.current = projectId;
 
     fetch(`/api/kanban/tasks/${taskId}`, {
       method: "PUT",
@@ -752,7 +834,11 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       .then(async (res) => {
         if (!res.ok) throw new Error();
         // Refresh the protection window after success
-        lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, Date.now());
+        lastLocalWriteRef.current = Math.max(
+          lastLocalWriteRef.current,
+          Date.now(),
+        );
+        lastLocalWriteProjectIdRef.current = projectId;
       })
       .catch(() => {
         // Rollback on failure
@@ -764,32 +850,37 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           prev.map((t) =>
             t.id === taskId && previousValue !== undefined
               ? { ...t, is_completed: previousValue }
-              : t
-          )
+              : t,
+          ),
         );
         toast.error("Cập nhật trạng thái thất bại");
       })
       .finally(() => {
-        pendingTogglesRef.current.delete(taskId);
+        if (completionToggleSeqRef.current[taskId] === requestSeq) {
+          pendingTogglesRef.current.delete(taskId);
+        }
       });
   };
 
-  const handleChecklistsUpdate = useCallback((taskId: number, newChecklists: any[]) => {
-    // Map full checklists to the Summary type used by KanbanTask
-    const checklistSummaries = newChecklists.map((cl) => ({
-      id: cl.id,
-      checklist_items: cl.items.map((item: any) => ({
-        id: item.id,
-        is_completed: item.is_completed,
-      })),
-    }));
+  const handleChecklistsUpdate = useCallback(
+    (taskId: number, newChecklists: any[]) => {
+      // Map full checklists to the Summary type used by KanbanTask
+      const checklistSummaries = newChecklists.map((cl) => ({
+        id: cl.id,
+        checklist_items: cl.items.map((item: any) => ({
+          id: item.id,
+          is_completed: item.is_completed,
+        })),
+      }));
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, checklists: checklistSummaries } : t
-      )
-    );
-  }, []);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, checklists: checklistSummaries } : t,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleTasksReordered = useCallback(
     (updates: Array<{ id: number; column_id: number; position: number }>) => {
@@ -797,13 +888,17 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         prev.map((t) => {
           const update = updates.find((u) => u.id === t.id);
           if (update) {
-            return { ...t, column_id: update.column_id, position: update.position };
+            return {
+              ...t,
+              column_id: update.column_id,
+              position: update.position,
+            };
           }
           return t;
-        })
+        }),
       );
     },
-    []
+    [],
   );
 
   const currentEditingTask = editingTask
@@ -846,7 +941,6 @@ function TasksTabInner({ projectId }: { projectId: number }) {
             return [...prev, col].sort((a, b) => a.position - b.position);
           })
         }
-        onDataChange={fetchData}
         onTaskClick={openEditModal}
         onAddTask={openCreateModal}
         onUpdateColumn={handleUpdateColumn}
@@ -859,7 +953,6 @@ function TasksTabInner({ projectId }: { projectId: number }) {
 
       <TaskDetailsModal
         isOpen={isModalOpen}
-        boardId={projectId}
         onClose={handleCloseModal}
         onSubmit={handleSaveTask}
         onDelete={currentEditingTask ? handleDeleteTask : undefined}

@@ -1,5 +1,8 @@
 "use client";
 
+
+
+
 import React, { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -18,13 +21,19 @@ export default function ResetPasswordPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkSession = async () => {
+      if (!supabase?.auth) {
+        setIsSessionReady(true);
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
       } else {
         setIsSessionReady(true);
       }
-    });
+    };
+    checkSession();
   }, [router, supabase]);
 
   useEffect(() => {
@@ -54,6 +63,11 @@ export default function ResetPasswordPage() {
     }
 
     setIsLoading(true);
+    if (!supabase?.auth) {
+      setErrorMsg("Hệ thống chưa sẵn sàng. Vui lòng thử lại sau.");
+      setIsLoading(false);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       setErrorMsg(

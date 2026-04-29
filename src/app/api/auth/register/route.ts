@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient();
+    if (!supabase) return createErrorResponse("Lỗi kết nối cơ sở dữ liệu.", 500);
 
     // Build email confirmation callback URL
     const origin =

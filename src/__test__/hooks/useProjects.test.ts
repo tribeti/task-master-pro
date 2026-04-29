@@ -2,7 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { useProjects } from "@/lib/hooks/useProjects";
 import * as projectService from "@/lib/services/project.service";
 
-jest.mock("@/services/project.service");
+jest.mock("@/lib/services/project.service");
 jest.mock("sonner", () => ({
   toast: {
     success: jest.fn(),
@@ -132,7 +132,7 @@ describe("useProjects Hook", () => {
         returnVal = await result.current.confirmDeleteProject(1);
       });
 
-      expect(projectService.deleteUserBoard).toHaveBeenCalledWith(1, "user1");
+      expect(projectService.deleteUserBoard).toHaveBeenCalledWith(1);
       expect(toast.success).toHaveBeenCalledWith(
         "Project deleted successfully!",
       );
@@ -224,7 +224,7 @@ describe("useProjects Hook", () => {
         returnVal = await result.current.handleCreateProject(createData);
       });
 
-      expect(projectService.createNewBoard).toHaveBeenCalledWith("user1", {
+      expect(projectService.createNewBoard).toHaveBeenCalledWith({
         title: createData.title,
         description: createData.description,
         is_private: createData.is_private,
@@ -259,7 +259,6 @@ describe("useProjects Hook", () => {
       });
 
       expect(projectService.createNewBoard).toHaveBeenCalledWith(
-        "user1",
         expect.objectContaining({ description: null }),
       );
     });
@@ -372,7 +371,6 @@ describe("useProjects Hook", () => {
       });
 
       expect(projectService.updateUserBoard).toHaveBeenCalledWith(
-        "user1",
         1,
         updateData,
       );

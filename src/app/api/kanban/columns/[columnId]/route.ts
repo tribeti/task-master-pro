@@ -13,6 +13,7 @@ export async function PUT(request: Request, context: any) {
   try {
     const payload = await request.json();
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -82,6 +83,7 @@ export async function DELETE(request: Request, context: any) {
     const params = await context.params;
     const columnId = parseInt(params.columnId);
     const supabase = await createClient();
+    if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
     const {
       data: { user },
     } = await supabase.auth.getUser();

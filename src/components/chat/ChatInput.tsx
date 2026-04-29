@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 interface ChatInputProps {
   onSendMessage: (content: string) => void;
@@ -6,6 +7,8 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
+  const { profile } = useDashboardUser();
+  const isCozy = profile?.theme === "cozy";
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,14 +57,20 @@ export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
   };
 
   return (
-    <div className="flex items-end gap-2 bg-white p-4 border-t border-slate-200">
+    <div className={`flex items-end gap-2 p-4 border-t transition-colors duration-500 ${
+      isCozy ? "bg-[#0F172A] border-slate-800" : "bg-white border-slate-200"
+    }`}>
       <textarea
         ref={textareaRef}
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Nhập tin nhắn..."
-        className="flex-1 max-h-37.5 min-h-11 bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#28B8FA] focus:bg-white transition-all resize-none text-sm text-slate-700"
+        className={`flex-1 max-h-37.5 min-h-11 rounded-2xl py-3 px-4 focus:outline-none transition-all resize-none text-sm ${
+          isCozy 
+            ? "bg-slate-900 border-slate-700 text-white placeholder-slate-600 focus:ring-2 focus:ring-[#FF8B5E]/50 focus:bg-slate-800" 
+            : "bg-slate-50 border-slate-200 text-slate-700 focus:ring-2 focus:ring-[#28B8FA] focus:bg-white"
+        }`}
         rows={1}
       />
       <button
@@ -69,8 +78,8 @@ export function ChatInput({ onSendMessage, onTyping }: ChatInputProps) {
         disabled={!text.trim()}
         className={`w-11 h-11 shrink-0 flex items-center justify-center rounded-full transition-all ${
           text.trim()
-            ? "bg-[#28B8FA] text-white hover:bg-[#0EA5E9] shadow-md hover:scale-105"
-            : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            ? (isCozy ? "bg-[#FF8B5E] text-white hover:bg-orange-600 shadow-md hover:scale-105 shadow-orange-950/20" : "bg-[#28B8FA] text-white hover:bg-[#0EA5E9] shadow-md hover:scale-105")
+            : (isCozy ? "bg-slate-800 text-slate-600 cursor-not-allowed" : "bg-slate-100 text-slate-400 cursor-not-allowed")
         }`}
       >
         <svg
