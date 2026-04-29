@@ -20,6 +20,8 @@ import {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckIconLogin as CheckIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from "@/components/icons";
 
 type AuthView = "login" | "register" | "forgot";
@@ -34,6 +36,7 @@ export default function TaskFlowAuth() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [emailFormatError, setEmailFormatError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -346,13 +349,21 @@ export default function TaskFlowAuth() {
                     <LockIcon />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-all placeholder:text-slate-400"
+                    className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#28B8FA] focus:bg-white transition-all placeholder:text-slate-400"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#28B8FA] transition-colors focus:outline-none"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 pb-2">
@@ -452,13 +463,21 @@ export default function TaskFlowAuth() {
                     <LockIcon />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Create Password"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:bg-white transition-all placeholder:text-slate-400"
+                    className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-800 focus:outline-none focus:border-[#34D399] focus:bg-white transition-all placeholder:text-slate-400"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#34D399] transition-colors focus:outline-none"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
                 </div>
 
                 <div className="pt-2">
