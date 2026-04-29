@@ -865,10 +865,18 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center justify-between w-full mt-auto">
                     <div>
-                      <h4 className="font-extrabold text-slate-900 text-base">
+                      <h4
+                        className={`font-extrabold text-base ${
+                          isCozy ? "text-white" : "text-slate-900"
+                        }`}
+                      >
                         Energetic Flow
                       </h4>
-                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                      <p
+                        className={`text-[10px] font-bold mt-0.5 ${
+                          isCozy ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
                         Tương phản cao, rực rỡ
                       </p>
                     </div>
