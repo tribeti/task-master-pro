@@ -50,11 +50,19 @@ function useFocusTrap(isOpen: boolean, onClose: () => void) {
     previousFocusRef.current = document.activeElement as HTMLElement;
     let focusTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const getFocusableElements = (container: HTMLDivElement) =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (el) =>
+          !el.hasAttribute("disabled") &&
+          el.getAttribute("aria-hidden") !== "true",
+      );
     const container = containerRef.current;
     if (container) {
-      const focusableElements = container.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
+      const focusableElements = getFocusableElements(container);
       if (focusableElements.length > 0) {
         focusTimer = setTimeout(() => focusableElements[0].focus(), 50);
       }
@@ -64,9 +72,7 @@ function useFocusTrap(isOpen: boolean, onClose: () => void) {
         const container = containerRef.current;
         if (!container) return;
 
-        const focusableElements = container.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
+        const focusableElements = getFocusableElements(container);
         if (focusableElements.length === 0) return;
 
         const firstElement = focusableElements[0];
@@ -222,6 +228,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
   const closeAddModal = useCallback(() => {
     setIsAddOpen(false);
+    setSubmitting(false);
     if (addMemberAbortRef.current) {
       addMemberAbortRef.current.abort();
       addMemberAbortRef.current = null;
@@ -323,7 +330,8 @@ export function TeamTab({ boardId }: TeamTabProps) {
       if (err.name === "AbortError") return;
       setErrorMsg("Network error");
     } finally {
-      if (!controller.signal.aborted) {
+      if (addMemberAbortRef.current === controller) {
+        addMemberAbortRef.current = null;
         setSubmitting(false);
       }
     }
@@ -726,10 +734,14 @@ function ModalWrapper({
 
         <form onSubmit={handleAddMember}>
           <div className="mb-4">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+            <label
+              htmlFor="add-member-email"
+              className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2"
+            >
               Email
             </label>
             <input
+              id="add-member-email"
               type="email"
               required
               placeholder="member@example.com"

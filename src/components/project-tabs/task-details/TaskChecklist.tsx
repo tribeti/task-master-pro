@@ -732,7 +732,7 @@ export function TaskChecklist({
                         type="button"
                         onClick={() => handleDeleteItem(checklist.id, item.id)}
                         disabled={item.isPending || checklist.isPending}
-                        className={`opacity-0 group-hover:opacity-100 transition-all ml-2 p-1 disabled:cursor-not-allowed ${
+                        className={`opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-all ml-2 p-1 disabled:cursor-not-allowed ${
                           isCozy
                             ? "text-slate-600 hover:text-red-400"
                             : "text-slate-400 hover:text-red-500"

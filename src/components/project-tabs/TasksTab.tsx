@@ -111,17 +111,30 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     lastLocalWriteProjectIdRef.current = projectId;
   };
 
+  const fetchSeqRef = useRef(0);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(
     async (bypassLocalWriteGuard: boolean = false) => {
+      const requestSeq = ++fetchSeqRef.current;
+      fetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
+
       // Only show loading spinner on initial load, not on subsequent refreshes
       if (isInitialLoad.current) {
         setIsLoading(true);
       }
       try {
-        const res = await fetch(`/api/boards/${projectId}/kanban`);
+        const res = await fetch(`/api/boards/${projectId}/kanban`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error("Failed to fetch kanban data");
         const data = await res.json();
 
+        if (controller.signal.aborted || fetchSeqRef.current !== requestSeq) {
+          return;
+        }
         setColumns((prev) => {
           // 🛡️ Guard: If dragging columns, don't overwrite with potentially stale data
           if (isDraggingRef.current) return prev;
@@ -159,11 +172,14 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           });
         });
         setBoardLabels(data.labels || []);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === "AbortError") return;
         console.error("Failed to fetch kanban data:", error);
-        setColumns([]);
-        setTasks([]);
-        setBoardLabels([]);
+        if (isInitialLoad.current) {
+          setColumns([]);
+          setTasks([]);
+          setBoardLabels([]);
+        }
         toast.error("Failed to load kanban data");
       } finally {
         setIsLoading(false);
