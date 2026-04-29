@@ -370,9 +370,9 @@ export function TeamTab({ boardId }: TeamTabProps) {
   );
 
   return (
-    <div className="flex-1 mt-6">
+    <div className="flex-1 mt-6 flex flex-col min-h-0">
       {/* Search bar */}
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-end mb-6 shrink-0">
         <div className="relative w-64">
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -390,7 +390,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
       </div>
 
       {/* Members grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 overflow-y-auto pr-2 custom-scrollbar">
         {loading
           ? // Skeleton loading cards
             Array.from({ length: 3 }).map((_, i) => (
@@ -708,7 +708,7 @@ function ModalWrapper({
       {/* Modal */}
       <div
         ref={modalRef}
-        className={`relative rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 transition-colors border ${
+        className={`relative rounded-3xl shadow-2xl w-full max-w-md p-8 mx-4 animate-in fade-in zoom-in-95 duration-200 transition-colors border max-h-[90vh] overflow-y-auto ${
           isCozy
             ? "bg-[#0F172A] border-slate-800"
             : "bg-white border-transparent"
