@@ -85,6 +85,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 
@@ -110,64 +111,67 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     lastLocalWriteProjectIdRef.current = projectId;
   };
 
-  const fetchData = useCallback(async (bypassLocalWriteGuard: boolean = false) => {
-    // Only show loading spinner on initial load, not on subsequent refreshes
-    if (isInitialLoad.current) {
-      setIsLoading(true);
-    }
-    try {
-      const res = await fetch(`/api/boards/${projectId}/kanban`);
-      if (!res.ok) throw new Error("Failed to fetch kanban data");
-      const data = await res.json();
+  const fetchData = useCallback(
+    async (bypassLocalWriteGuard: boolean = false) => {
+      // Only show loading spinner on initial load, not on subsequent refreshes
+      if (isInitialLoad.current) {
+        setIsLoading(true);
+      }
+      try {
+        const res = await fetch(`/api/boards/${projectId}/kanban`);
+        if (!res.ok) throw new Error("Failed to fetch kanban data");
+        const data = await res.json();
 
-      setColumns((prev) => {
-        // 🛡️ Guard: If dragging columns, don't overwrite with potentially stale data
-        if (isDraggingRef.current) return prev;
-        return data.columns || [];
-      });
-
-      setTasks((prev) => {
-        // 🛡️ Guard: If user is actively dragging tasks, DO NOT overwrite the task array.
-        // The KanbanBoard is currently managing the optimistic state, and onTasksReordered
-        // will commit the final positions once the API call completes.
-        if (isDraggingRef.current) return prev;
-
-        // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project,
-        // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
-        if (
-          !bypassLocalWriteGuard &&
-          Date.now() - lastLocalWriteRef.current < 3500 &&
-          lastLocalWriteProjectIdRef.current === projectId
-        )
-          return prev;
-
-        const fetchedTasks = data.tasks || [];
-        if (pendingTogglesRef.current.size === 0) return fetchedTasks;
-
-        // 🛡️ Merge: If a task has a pending toggle update, preserve its
-        // local completion state instead of letting stale DB data overwrite it.
-        return fetchedTasks.map((ft: Task) => {
-          if (pendingTogglesRef.current.has(ft.id)) {
-            const localTask = prev.find((t) => t.id === ft.id);
-            if (localTask) {
-              return { ...ft, is_completed: localTask.is_completed };
-            }
-          }
-          return ft;
+        setColumns((prev) => {
+          // 🛡️ Guard: If dragging columns, don't overwrite with potentially stale data
+          if (isDraggingRef.current) return prev;
+          return data.columns || [];
         });
-      });
-      setBoardLabels(data.labels || []);
-    } catch (error) {
-      console.error("Failed to fetch kanban data:", error);
-      setColumns([]);
-      setTasks([]);
-      setBoardLabels([]);
-      toast.error("Failed to load kanban data");
-    } finally {
-      setIsLoading(false);
-      isInitialLoad.current = false;
-    }
-  }, [projectId]);
+
+        setTasks((prev) => {
+          // 🛡️ Guard: If user is actively dragging tasks, DO NOT overwrite the task array.
+          // The KanbanBoard is currently managing the optimistic state, and onTasksReordered
+          // will commit the final positions once the API call completes.
+          if (isDraggingRef.current) return prev;
+
+          // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project,
+          // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
+          if (
+            !bypassLocalWriteGuard &&
+            Date.now() - lastLocalWriteRef.current < 3500 &&
+            lastLocalWriteProjectIdRef.current === projectId
+          )
+            return prev;
+
+          const fetchedTasks = data.tasks || [];
+          if (pendingTogglesRef.current.size === 0) return fetchedTasks;
+
+          // 🛡️ Merge: If a task has a pending toggle update, preserve its
+          // local completion state instead of letting stale DB data overwrite it.
+          return fetchedTasks.map((ft: Task) => {
+            if (pendingTogglesRef.current.has(ft.id)) {
+              const localTask = prev.find((t) => t.id === ft.id);
+              if (localTask) {
+                return { ...ft, is_completed: localTask.is_completed };
+              }
+            }
+            return ft;
+          });
+        });
+        setBoardLabels(data.labels || []);
+      } catch (error) {
+        console.error("Failed to fetch kanban data:", error);
+        setColumns([]);
+        setTasks([]);
+        setBoardLabels([]);
+        toast.error("Failed to load kanban data");
+      } finally {
+        setIsLoading(false);
+        isInitialLoad.current = false;
+      }
+    },
+    [projectId],
+  );
 
   // Fetch board members for filter bar
   useEffect(() => {
@@ -287,23 +291,23 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
       setCommentsLoading(true);
       const res = await fetch(`/api/tasks/${taskId}/comments`, {
-        signal: controller.signal
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
-      
+
       if (!controller.signal.aborted) {
         setTaskComments(data || []);
       }
     } catch (error: any) {
-      if (error.name === 'AbortError') return;
+      if (error.name === "AbortError") return;
       console.error("Failed to fetch comments:", error);
       setTaskComments([]);
       toast.error("Failed to load comments");

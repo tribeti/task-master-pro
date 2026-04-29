@@ -44,22 +44,25 @@ export function TaskChecklist({
     null,
   );
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
-  const [initError, setInitError] = useState<string | null>(null);
-  const [supabase] = useState(() => {
+  const [{ supabase, initError }] = useState(() => {
     try {
       const client = createClient();
       if (!client) {
-        setInitError("Không thể khởi tạo kết nối cơ sở dữ liệu.");
-        return null;
+        return {
+          supabase: null,
+          initError: "Không thể khởi tạo kết nối cơ sở dữ liệu.",
+        };
       }
-      return client;
+      return { supabase: client, initError: null };
     } catch (err: any) {
       console.error(
         "Failed to initialize Supabase client in TaskChecklist:",
         err,
       );
-      setInitError(err.message || "Lỗi khởi tạo Supabase.");
-      return null;
+      return {
+        supabase: null,
+        initError: err.message || "Lỗi khởi tạo Supabase.",
+      };
     }
   });
 
@@ -95,7 +98,9 @@ export function TaskChecklist({
         if (!supabase) {
           setChecklists([]);
           setChecklistsLoading(false);
-          setChecklistsError(null);
+          if (initError) {
+            setChecklistsError(initError);
+          }
           return;
         }
         const { data, error } = await supabase
@@ -136,7 +141,7 @@ export function TaskChecklist({
     return () => {
       ignore = true;
     };
-  }, [taskId, supabase]);
+  }, [taskId, supabase, initError]);
 
   useEffect(() => {
     if (checklistsError) {

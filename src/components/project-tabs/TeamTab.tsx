@@ -46,58 +46,55 @@ function useFocusTrap(isOpen: boolean, onClose: () => void) {
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement as HTMLElement;
-      
-      const container = containerRef.current;
-      if (container) {
-        const focusableElements = container.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements.length > 0) {
-          // Small delay to ensure modal is rendered and visible before focusing
-          const timer = setTimeout(() => focusableElements[0].focus(), 50);
-          return () => clearTimeout(timer);
-        }
+    if (!isOpen) return;
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    let focusTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const container = containerRef.current;
+    if (container) {
+      const focusableElements = container.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusableElements.length > 0) {
+        focusTimer = setTimeout(() => focusableElements[0].focus(), 50);
       }
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-          const container = containerRef.current;
-          if (!container) return;
-
-          const focusableElements = container.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (focusableElements.length === 0) return;
-
-          const firstElement = focusableElements[0];
-          const lastElement = focusableElements[focusableElements.length - 1];
-
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              lastElement.focus();
-              e.preventDefault();
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              firstElement.focus();
-              e.preventDefault();
-            }
-          }
-        } else if (e.key === 'Escape') {
-          onClose();
-        }
-      };
-
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        // Delay restoring focus slightly to avoid immediate re-triggering of whatever opened the modal
-        const prev = previousFocusRef.current;
-        setTimeout(() => prev?.focus(), 50);
-      };
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const focusableElements = container.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      if (focusTimer) clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      const prev = previousFocusRef.current;
+      setTimeout(() => prev?.focus(), 50);
+    };
   }, [isOpen, onClose]);
 
   return containerRef;
@@ -221,9 +218,14 @@ export function TeamTab({ boardId }: TeamTabProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const autoCloseRef = useRef<NodeJS.Timeout | null>(null);
+  const addMemberAbortRef = useRef<AbortController | null>(null);
 
   const closeAddModal = useCallback(() => {
     setIsAddOpen(false);
+    if (addMemberAbortRef.current) {
+      addMemberAbortRef.current.abort();
+      addMemberAbortRef.current = null;
+    }
     if (autoCloseRef.current) {
       clearTimeout(autoCloseRef.current);
       autoCloseRef.current = null;
@@ -234,6 +236,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
   useEffect(() => {
     return () => {
       if (autoCloseRef.current) clearTimeout(autoCloseRef.current);
+      if (addMemberAbortRef.current) addMemberAbortRef.current.abort();
     };
   }, []);
 
@@ -277,6 +280,13 @@ export function TeamTab({ boardId }: TeamTabProps) {
     e.preventDefault();
     if (!email.trim()) return;
 
+    // Abort previous request if any
+    if (addMemberAbortRef.current) {
+      addMemberAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    addMemberAbortRef.current = controller;
+
     setSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -286,6 +296,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -295,21 +306,26 @@ export function TeamTab({ boardId }: TeamTabProps) {
         return;
       }
 
-      // Success – invitation was created (user is NOT added yet)
+      // Success – invitation was created
       setSuccessMsg(`Lời mời đã được gửi đến ${email}!`);
       setEmail("");
 
       // Auto close after 2.5 seconds
       if (autoCloseRef.current) clearTimeout(autoCloseRef.current);
       autoCloseRef.current = setTimeout(() => {
-        setSuccessMsg(null);
-        setIsAddOpen(false);
-        autoCloseRef.current = null;
+        if (!controller.signal.aborted) {
+          setSuccessMsg(null);
+          setIsAddOpen(false);
+          autoCloseRef.current = null;
+        }
       }, 2500);
-    } catch {
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
       setErrorMsg("Network error");
     } finally {
-      setSubmitting(false);
+      if (!controller.signal.aborted) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -544,9 +560,9 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
       {/* ── Add Member Modal ── */}
       {isAddOpen && (
-        <ModalWrapper 
-          isOpen={isAddOpen} 
-          onClose={closeAddModal} 
+        <ModalWrapper
+          isOpen={isAddOpen}
+          onClose={closeAddModal}
           isCozy={isCozy}
           handleAddMember={handleAddMember}
           email={email}
@@ -612,7 +628,7 @@ export function TeamTab({ boardId }: TeamTabProps) {
                 className={`flex-[1] py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md ${
                   isCozy
                     ? "bg-rose-600 hover:bg-rose-700 shadow-rose-950/40"
-                    : "bg-rose-50 hover:bg-rose-600 shadow-rose-200"
+                    : "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
                 }`}
               >
                 {isRemoving ? (
@@ -658,18 +674,18 @@ interface ModalWrapperProps {
   submitting: boolean;
 }
 
-function ModalWrapper({ 
-  isOpen, 
-  onClose, 
-  isCozy, 
-  handleAddMember, 
-  email, 
-  setEmail, 
-  setErrorMsg, 
-  setSuccessMsg, 
-  errorMsg, 
-  successMsg, 
-  submitting 
+function ModalWrapper({
+  isOpen,
+  onClose,
+  isCozy,
+  handleAddMember,
+  email,
+  setEmail,
+  setErrorMsg,
+  setSuccessMsg,
+  errorMsg,
+  successMsg,
+  submitting,
 }: ModalWrapperProps) {
   const modalRef = useFocusTrap(isOpen, onClose);
 
@@ -689,9 +705,9 @@ function ModalWrapper({
             ? "bg-[#0F172A] border-slate-800"
             : "bg-white border-transparent"
         }`}
-        style={{ 
-          transitionProperty: 'color, background-color, border-color',
-          transitionDuration: '500ms'
+        style={{
+          transitionProperty: "color, background-color, border-color",
+          transitionDuration: "500ms",
         }}
         role="dialog"
         aria-modal="true"
@@ -704,8 +720,8 @@ function ModalWrapper({
           Gửi lời mời
         </h2>
         <p className="text-sm text-slate-400 mb-6">
-          Nhập email của người dùng. Họ sẽ nhận được lời mời qua email và
-          cần chấp nhận để tham gia.
+          Nhập email của người dùng. Họ sẽ nhận được lời mời qua email và cần
+          chấp nhận để tham gia.
         </p>
 
         <form onSubmit={handleAddMember}>

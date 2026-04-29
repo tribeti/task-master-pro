@@ -61,9 +61,14 @@ function ProjectUrlHandler({
           joinedBoards.find((b) => b.id === id);
         if (found) {
           onProjectFound(found, urlTab);
-          lastAppliedRef.current = currentKey;
         }
       }
+      
+      // Always update lastAppliedRef once we've processed this URL key,
+      // whether we actually called onProjectFound or not. This prevents
+      // the handler from "reverting" state if the state changed locally
+      // but the URL hasn't caught up yet.
+      lastAppliedRef.current = currentKey;
     } else if (!urlProjectId) {
       // Clear the ref when url clears, so they can reopen it later
       if (selectedProjectId !== null && selectedProjectId !== undefined) {
@@ -77,9 +82,8 @@ function ProjectUrlHandler({
     urlTab,
     ownedBoards,
     joinedBoards,
-    selectedProjectId,
-    currentTab,
     onProjectFound,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
 
   return null;
@@ -130,14 +134,17 @@ export default function ProjectsPage() {
       if (currentUrlId !== selectedProject.id.toString() || currentUrlTab !== projectTab) {
         params.set("projectId", selectedProject.id.toString());
         params.set("tab", projectTab);
-        router.push(`/projects?${params.toString()}`, { scroll: false });
+        router.replace(`/projects?${params.toString()}`, { scroll: false });
       }
     }
   }, [selectedProject, projectTab, router, searchParams]);
 
   const handleProjectFoundFromUrl = useCallback(
     (foundProject: Board | null, tab: string | null) => {
-      setSelectedProject(foundProject);
+      setSelectedProject((prev) => {
+        if (prev?.id === foundProject?.id) return prev;
+        return foundProject;
+      });
       if (
         tab === "Tasks" ||
         tab === "Chat" ||
@@ -213,7 +220,7 @@ export default function ProjectsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, fetchBoards, handleCloseProject]);
+  }, [userId]);
 
   // --- HANDLERS ---
   const handleDeleteProject = (projectId: number, projectTitle: string) => {
@@ -324,6 +331,7 @@ export default function ProjectsPage() {
               handleUpdateProject={handleUpdateProject}
               handleDeleteProject={handleDeleteProject}
               setSelectedProject={setSelectedProject}
+              isCozy={isCozy}
               currentUserId={userId}
               memberRole="Owner"
             />
@@ -378,6 +386,7 @@ export default function ProjectsPage() {
                 handleUpdateProject={handleUpdateProject}
                 handleDeleteProject={handleDeleteProject}
                 setSelectedProject={setSelectedProject}
+                isCozy={isCozy}
                 currentUserId={userId}
                 memberRole={proj.member_role || "Member"}
               />

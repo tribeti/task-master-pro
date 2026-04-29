@@ -4,8 +4,6 @@ import { Board } from "@/lib/types/project";
 
 const DEFAULT_COLORS = ["#FF8B5E", "#28B8FA", "#34D399", "#A78BFA", "#F472B6"];
 
-import { useDashboardUser } from "@/app/(dashboard)/provider";
-
 interface ProjectCardProps {
   proj: Board;
   index: number;
@@ -15,6 +13,7 @@ interface ProjectCardProps {
   handleUpdateProject: (proj: Board) => void;
   handleDeleteProject: (id: number, title: string) => void;
   setSelectedProject: (proj: Board) => void;
+  isCozy: boolean;
   currentUserId?: string;
   memberRole?: string;
 }
@@ -28,11 +27,10 @@ export default function ProjectCard({
   handleUpdateProject,
   handleDeleteProject,
   setSelectedProject,
+  isCozy,
   currentUserId,
   memberRole,
 }: ProjectCardProps) {
-  const { profile } = useDashboardUser();
-  const isCozy = profile?.theme === "cozy";
   const projColor = proj.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
   const projTag = proj.tag || "Dự án";
 
