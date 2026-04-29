@@ -28,7 +28,10 @@ export function useChat(boardId: number, currentUserId?: string) {
     setHasMore(false);
     setLoading(true);
 
-    if (!supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -56,7 +59,10 @@ export function useChat(boardId: number, currentUserId?: string) {
 
     const oldestMessageDate = messages[0].created_at;
 
-    if (!supabase) return;
+    if (!supabase) {
+      setLoadingMore(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("messages")
       .select("*, users!messages_sender_id_fkey(display_name, avatar_url)")
@@ -107,9 +113,9 @@ export function useChat(boardId: number, currentUserId?: string) {
       },
     };
 
+    if (!supabase) return;
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    if (!supabase) return;
     const { data, error } = await supabase
       .from("messages")
       .insert({
@@ -141,6 +147,8 @@ export function useChat(boardId: number, currentUserId?: string) {
   const deleteMessage = async (messageId: string) => {
     if (!currentUserId) return;
 
+    if (!supabase) return;
+
     // Optimistic delete: find the message first so we can re-insert on failure
     let deletedMsg: ChatMessage | undefined;
     setMessages((prev) => {
@@ -148,7 +156,6 @@ export function useChat(boardId: number, currentUserId?: string) {
       return prev.filter((m) => m.id !== messageId);
     });
 
-    if (!supabase) return;
     const { error } = await supabase
       .from("messages")
       .delete()
@@ -180,6 +187,8 @@ export function useChat(boardId: number, currentUserId?: string) {
     const prevMessage = messages.find((m) => m.id === messageId);
     if (!prevMessage) return;
 
+    if (!supabase) return;
+
     setMessages((prev) =>
       prev.map((m) =>
         m.id === messageId
@@ -193,7 +202,6 @@ export function useChat(boardId: number, currentUserId?: string) {
       ),
     );
 
-    if (!supabase) return;
     const { error } = await supabase
       .from("messages")
       .update({
@@ -229,9 +237,7 @@ export function useChat(boardId: number, currentUserId?: string) {
     // Invalidate any in-flight fetches from the previous boardId immediately.
     requestSeqRef.current++;
 
-    setTimeout(() => {
-      loadMessages();
-    }, 0);
+    Promise.resolve().then(() => loadMessages());
 
     if (!supabase) return;
     // Initialize Realtime Channel for messages and presence

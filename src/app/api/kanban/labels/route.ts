@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { verifyBoardAccess, validateString } from "@/utils/board-access";
+import { verifyBoardAccess, validateString, ValidationError } from "@/utils/board-access";
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +10,12 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    // Validate body is a non-null plain object and not an Array
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+
     const { boardId, name, color_hex } = body;
     const supabase = await createClient();
     if (!supabase) return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu." }, { status: 500 });
@@ -22,10 +28,16 @@ export async function POST(request: Request) {
     let cleanName;
     try {
       cleanName = validateString(name, "Label name", 50);
-    } catch (validationError: any) {
-      // Return validation error with 400 status
+    } catch (error: any) {
+      if (error instanceof ValidationError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 },
+        );
+      }
+      console.error("Unexpected error during validation:", error);
       return NextResponse.json(
-        { error: validationError.message },
+        { error: "Invalid input" },
         { status: 400 },
       );
     }

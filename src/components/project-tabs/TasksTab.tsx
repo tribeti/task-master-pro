@@ -94,10 +94,11 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   // ══════════════════════════════════════════════════════════════
   const isDraggingRef = useRef(false);
 
-  // Tracks the timestamp of our most recent local write operation.
+  // Tracks the timestamp and projectId of our most recent local write operation.
   // Realtime events arriving within 3.5s of a local write are suppressed
   // because they're echoes of our OWN changes (not other users').
   const lastLocalWriteRef = useRef(0);
+  const lastLocalWriteProjectIdRef = useRef<number | null>(null);
 
   // Tracks tasks that have a pending toggle to avoid overwriting them
   // with stale data during fetchData (handles the race between API and Realtime)
@@ -106,6 +107,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   // Wrapper: call this around any CRUD action to stamp the write time
   const markLocalWrite = () => {
     lastLocalWriteRef.current = Date.now();
+    lastLocalWriteProjectIdRef.current = projectId;
   };
 
   const fetchData = useCallback(async () => {
@@ -130,9 +132,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         // will commit the final positions once the API call completes.
         if (isDraggingRef.current) return prev;
 
-        // 🛡️ Guard: If we just performed a local write (within 3.5s), the data from 
-        // this fetch might still be stale (e.g. from a slightly delayed DB replica).
-        if (Date.now() - lastLocalWriteRef.current < 3500) return prev;
+        // 🛡️ Guard: If we just performed a local write (within 3.5s) for THIS project, 
+        // the data from this fetch might still be stale (e.g. from a slightly delayed DB replica).
+        if (Date.now() - lastLocalWriteRef.current < 3500 && lastLocalWriteProjectIdRef.current === projectId) return prev;
 
         const fetchedTasks = data.tasks || [];
         if (pendingTogglesRef.current.size === 0) return fetchedTasks;
@@ -204,7 +206,13 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   }, [columns]);
 
   useEffect(() => {
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (err) {
+      console.error("Failed to create supabase client in TasksTab:", err);
+      return;
+    }
     if (!supabase) return;
     let debounceTimer: NodeJS.Timeout;
 
@@ -212,9 +220,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
       // 🛡️ Guard 1: If user is actively dragging, skip entirely
       if (isDraggingRef.current) return;
 
-      // 🛡️ Guard 2: If this is an echo of our own recent write, skip
+      // 🛡️ Guard 2: If this is an echo of our own recent write for THIS project, skip
       // Increased to 3.5s to account for potentially slow Vercel cold starts/latency
-      if (Date.now() - lastLocalWriteRef.current < 3500) return;
+      if (Date.now() - lastLocalWriteRef.current < 3500 && lastLocalWriteProjectIdRef.current === projectId) return;
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -769,6 +777,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     // 🛡️ FIX: Extend the localWrite protection window WITHOUT overwriting it.
     const now = Date.now();
     lastLocalWriteRef.current = Math.max(lastLocalWriteRef.current, now);
+    lastLocalWriteProjectIdRef.current = projectId;
 
     fetch(`/api/kanban/tasks/${taskId}`, {
       method: "PUT",
@@ -782,6 +791,7 @@ function TasksTabInner({ projectId }: { projectId: number }) {
           lastLocalWriteRef.current,
           Date.now(),
         );
+        lastLocalWriteProjectIdRef.current = projectId;
       })
       .catch(() => {
         // Rollback on failure
@@ -799,7 +809,9 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         toast.error("Cập nhật trạng thái thất bại");
       })
       .finally(() => {
-        pendingTogglesRef.current.delete(taskId);
+        if (completionToggleSeqRef.current[taskId] === requestSeq) {
+          pendingTogglesRef.current.delete(taskId);
+        }
       });
   };
 

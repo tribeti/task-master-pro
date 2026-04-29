@@ -186,4 +186,4 @@ export async function syncPrimaryAssignee(
 }
 
 // Re-export from dedicated utility for backward compatibility
-export { validateString } from "@/utils/validate-string";
+export { validateString, ValidationError } from "@/utils/validate-string";

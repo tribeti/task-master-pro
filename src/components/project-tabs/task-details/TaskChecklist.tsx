@@ -75,7 +75,12 @@ export function TaskChecklist({
       setChecklistsError(null);
 
       try {
-        if (!supabase) return;
+        if (!supabase) {
+          setChecklists([]);
+          setChecklistsLoading(false);
+          setChecklistsError(null);
+          return;
+        }
         const { data, error } = await supabase
           .from("checklists")
           .select("*, items:checklist_items(*)")
@@ -126,6 +131,8 @@ export function TaskChecklist({
   }, [checklistsError]);
 
   const handleAddChecklist = async (title: string = "Việc cần làm") => {
+    if (!supabase) return;
+
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
@@ -142,7 +149,6 @@ export function TaskChecklist({
     setChecklists((prev) => [...prev, newChecklist]);
 
     try {
-      if (!supabase) return;
       const { data, error } = await supabase
         .from("checklists")
         .insert({ task_id: taskId, title: trimmedTitle })
@@ -176,6 +182,8 @@ export function TaskChecklist({
   };
 
   const handleUpdateChecklistTitle = async (id: string, newTitle: string) => {
+    if (!supabase) return;
+
     const trimmedTitle = newTitle.trim();
     if (!trimmedTitle) return;
 
@@ -190,7 +198,6 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
-      if (!supabase) return;
       const { error } = await supabase
         .from("checklists")
         .update({ title: trimmedTitle })
@@ -211,6 +218,8 @@ export function TaskChecklist({
   };
 
   const handleDeleteChecklist = async (id: string) => {
+    if (!supabase) return;
+
     const checklist = checklists.find((c) => c.id === id);
     if (!checklist || checklist.isPending) return;
 
@@ -220,7 +229,6 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
-      if (!supabase) return;
       const { error } = await supabase.from("checklists").delete().eq("id", id);
       if (error) throw error;
     } catch (err: any) {
@@ -237,6 +245,8 @@ export function TaskChecklist({
   };
 
   const handleAddItem = async (checklistId: string, content: string) => {
+    if (!supabase) return;
+
     const trimmedContent = content.trim();
     if (!trimmedContent) return;
 
@@ -260,7 +270,6 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
-      if (!supabase) return;
       const { data, error } = await supabase
         .from("checklist_items")
         .insert({ checklist_id: checklistId, content: trimmedContent })
@@ -313,6 +322,8 @@ export function TaskChecklist({
     itemId: string,
     isCompleted: boolean,
   ) => {
+    if (!supabase) return;
+
     const checklist = checklists.find((c) => c.id === checklistId);
     if (!checklist || checklist.isPending) return;
 
@@ -334,7 +345,6 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
-      if (!supabase) return;
       const { error } = await supabase
         .from("checklist_items")
         .update({ is_completed: isCompleted })
@@ -364,6 +374,8 @@ export function TaskChecklist({
   };
 
   const handleDeleteItem = async (checklistId: string, itemId: string) => {
+    if (!supabase) return;
+
     const checklist = checklists.find((c) => c.id === checklistId);
     if (!checklist || checklist.isPending) return;
 
@@ -380,7 +392,6 @@ export function TaskChecklist({
     markParentDirty();
 
     try {
-      if (!supabase) return;
       const { error } = await supabase
         .from("checklist_items")
         .delete()

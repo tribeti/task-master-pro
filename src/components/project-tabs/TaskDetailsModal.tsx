@@ -209,7 +209,7 @@ export function TaskDetailsModal({
             <div className="flex flex-col gap-6 w-full">
               <div>
                 <label
-                  className={`text-xs font-bold uppercase tracking-wider block mb-2 ${isCozy ? "text-slate-500" : "text-slate-500"}`}
+                  className="text-xs font-bold uppercase tracking-wider block mb-2 text-slate-500"
                 >
                   Tên nhiệm vụ <span className="text-red-400">*</span>
                 </label>
@@ -236,7 +236,13 @@ export function TaskDetailsModal({
                         await onUpdateTask?.(initialData.id, {
                           title: trimmedTitle,
                         });
-                      } catch {
+                      } catch (err) {
+                        console.error("Failed to update task title:", {
+                          field: "title",
+                          sessionId: session,
+                          original,
+                          error: err,
+                        });
                         if (session === updateSessionsRef.current.title) {
                           setTitle(original);
                         }
@@ -296,7 +302,13 @@ export function TaskDetailsModal({
                                 await onUpdateTask?.(initialData.id, {
                                   priority: p,
                                 });
-                              } catch {
+                              } catch (err) {
+                                console.error("Failed to update task priority:", {
+                                  field: "priority",
+                                  sessionId: session,
+                                  original,
+                                  error: err,
+                                });
                                 if (
                                   session ===
                                     updateSessionsRef.current.priority &&
@@ -342,7 +354,13 @@ export function TaskDetailsModal({
                           await onUpdateTask?.(initialData.id, {
                             deadline: deadline || null,
                           });
-                        } catch {
+                        } catch (err) {
+                          console.error("Failed to update task deadline:", {
+                            field: "deadline",
+                            sessionId: session,
+                            original,
+                            error: err,
+                          });
                           if (session === updateSessionsRef.current.deadline) {
                             setDeadline(original);
                           }
@@ -385,7 +403,13 @@ export function TaskDetailsModal({
                       const session = ++updateSessionsRef.current.description;
                       try {
                         await onUpdateTask?.(initialData.id, { description });
-                      } catch {
+                      } catch (err) {
+                        console.error("Failed to update task description:", {
+                          field: "description",
+                          sessionId: session,
+                          original,
+                          error: err,
+                        });
                         if (session === updateSessionsRef.current.description) {
                           setDescription(original);
                         }

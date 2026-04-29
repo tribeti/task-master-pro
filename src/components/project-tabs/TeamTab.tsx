@@ -521,9 +521,15 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
               {/* Error message */}
               {errorMsg && (
-                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2">
+                <div
+                  className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
+                    isCozy
+                      ? "bg-rose-950/20 border-rose-900/50"
+                      : "bg-rose-50 border-rose-200"
+                  }`}
+                >
                   <svg
-                    className="w-5 h-5 text-rose-500 shrink-0"
+                    className={`w-5 h-5 shrink-0 ${isCozy ? "text-rose-400" : "text-rose-500"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -533,7 +539,9 @@ export function TeamTab({ boardId }: TeamTabProps) {
                     <line x1="15" y1="9" x2="9" y2="15" />
                     <line x1="9" y1="9" x2="15" y2="15" />
                   </svg>
-                  <span className="text-sm font-semibold text-rose-600">
+                  <span
+                    className={`text-sm font-semibold ${isCozy ? "text-rose-400" : "text-rose-600"}`}
+                  >
                     {errorMsg}
                   </span>
                 </div>
@@ -541,9 +549,15 @@ export function TeamTab({ boardId }: TeamTabProps) {
 
               {/* Success message */}
               {successMsg && (
-                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                <div
+                  className={`mb-4 p-3 rounded-xl flex items-center gap-2 border ${
+                    isCozy
+                      ? "bg-emerald-950/20 border-emerald-900/50"
+                      : "bg-emerald-50 border-emerald-200"
+                  }`}
+                >
                   <svg
-                    className="w-5 h-5 text-emerald-500 shrink-0"
+                    className={`w-5 h-5 shrink-0 ${isCozy ? "text-emerald-400" : "text-emerald-500"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

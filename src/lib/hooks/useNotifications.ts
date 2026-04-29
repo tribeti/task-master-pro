@@ -17,6 +17,8 @@ export function useNotifications(userId: string | undefined) {
   const supabase = useMemo(() => createClient(), []);
 
   const hideNotification = async (notificationId: number) => {
+    if (!supabase) return;
+
     const notification = notifications.find(n => n.id === notificationId);
     if (!notification) return;
 
@@ -33,7 +35,6 @@ export function useNotifications(userId: string | undefined) {
       ? notification.content
       : `[DELETED]${notification.content}`;
 
-    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ content: newContent })
@@ -82,7 +83,10 @@ export function useNotifications(userId: string | undefined) {
 
     const fetchNotifications = async () => {
       setIsLoading(true);
-      if (!supabase) return;
+      if (!supabase) {
+        setIsLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("notifications")
         .select("*, task:tasks(title, deadline), project:boards(title)")
@@ -209,6 +213,11 @@ export function useNotifications(userId: string | undefined) {
   }, [userId, supabase]);
 
   const markAsRead = async (notificationId: number) => {
+    if (!supabase) return;
+
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     // Optimistic UI update
     setNotifications((prev) => {
       const next = prev.map((n) =>
@@ -218,7 +227,6 @@ export function useNotifications(userId: string | undefined) {
       return next;
     });
 
-    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -226,10 +234,17 @@ export function useNotifications(userId: string | undefined) {
 
     if (error) {
       console.error("Error marking as read:", error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 
   const markAllAsRead = async () => {
+    if (!supabase) return;
+
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
     // Optimistic update
     setNotifications((prev) => {
       const next = prev.map((n) => ({ ...n, is_read: true }));
@@ -237,7 +252,6 @@ export function useNotifications(userId: string | undefined) {
       return next;
     });
 
-    if (!supabase) return;
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -246,6 +260,8 @@ export function useNotifications(userId: string | undefined) {
 
     if (error) {
       console.error("Error marking all as read:", error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
     }
   };
 
