@@ -19,15 +19,15 @@ export function useNotifications(userId: string | undefined) {
   const hideNotification = async (notificationId: number) => {
     if (!supabase) return;
 
-    const notification = notifications.find(n => n.id === notificationId);
+    const notification = notifications.find((n) => n.id === notificationId);
     if (!notification) return;
 
     const previousNotifications = [...notifications];
     const previousUnreadCount = unreadCount;
 
-    setNotifications(prev => {
-      const next = prev.filter(n => n.id !== notificationId);
-      setUnreadCount(next.filter(n => !n.is_read).length);
+    setNotifications((prev) => {
+      const next = prev.filter((n) => n.id !== notificationId);
+      setUnreadCount(next.filter((n) => !n.is_read).length);
       return next;
     });
 
@@ -49,7 +49,9 @@ export function useNotifications(userId: string | undefined) {
   };
 
   const hideAllNotifications = async () => {
-    const toHide = notifications.filter(n => !n.content.startsWith("[DELETED]"));
+    const toHide = notifications.filter(
+      (n) => !n.content.startsWith("[DELETED]"),
+    );
 
     const previousNotifications = [...notifications];
     const previousUnreadCount = unreadCount;
@@ -60,15 +62,18 @@ export function useNotifications(userId: string | undefined) {
     if (toHide.length > 0) {
       const results = await Promise.all(
         toHide.map((n) => {
-          if (!supabase) return Promise.resolve({ error: { message: "Supabase client not initialized" } });
+          if (!supabase)
+            return Promise.resolve({
+              error: { message: "Supabase client not initialized" },
+            });
           return supabase
             .from("notifications")
             .update({ content: `[DELETED]${n.content}` })
             .eq("id", n.id);
-        })
+        }),
       );
 
-      const hasError = results.some(res => res.error);
+      const hasError = results.some((res) => res.error);
       if (hasError) {
         console.error("Failed to hide all notifications");
         toast.error("Đã xảy ra lỗi khi xóa tất cả thông báo.");
@@ -100,10 +105,12 @@ export function useNotifications(userId: string | undefined) {
           .filter((n: Notification) => !n.content.startsWith("[DELETED]"))
           .map((n: Notification) => ({
             ...n,
-            content: n.content.replace(/\[DEADLINE_ISO:.*?\]/, "")
+            content: n.content.replace(/\[DEADLINE_ISO:.*?\]/, ""),
           }));
         setNotifications(visibleData as Notification[]);
-        setUnreadCount(visibleData.filter((n: Notification) => !n.is_read).length);
+        setUnreadCount(
+          visibleData.filter((n: Notification) => !n.is_read).length,
+        );
       }
       setIsLoading(false);
     };
@@ -138,12 +145,20 @@ export function useNotifications(userId: string | undefined) {
             if (rawNotification.content.startsWith("[DELETED]")) return;
 
             // Extract deadline ISO if embedded to synchronously render correct colors without fetching
-            const deadlineMatch = rawNotification.content.match(/\[DEADLINE_ISO:(.*?)\]/);
+            const deadlineMatch = rawNotification.content.match(
+              /\[DEADLINE_ISO:(.*?)\]/,
+            );
 
             const finalNotification = { ...rawNotification } as Notification;
-            finalNotification.content = rawNotification.content.replace(/\[DEADLINE_ISO:.*?\]/, "");
+            finalNotification.content = rawNotification.content.replace(
+              /\[DEADLINE_ISO:.*?\]/,
+              "",
+            );
             if (deadlineMatch) {
-              finalNotification.task = { title: "", deadline: deadlineMatch[1] };
+              finalNotification.task = {
+                title: "",
+                deadline: deadlineMatch[1],
+              };
             }
 
             setNotifications((prev) => {
@@ -159,7 +174,14 @@ export function useNotifications(userId: string | undefined) {
             if (rawNotification.type === "Invite") {
               try {
                 const payload = JSON.parse(rawNotification.content);
-                toastDescription = `${payload.inviterName} đã mời bạn tham gia "${payload.boardTitle}"`;
+                if (
+                  typeof payload.inviterName === "string" &&
+                  typeof payload.boardTitle === "string"
+                ) {
+                  toastDescription = `${payload.inviterName} đã mời bạn tham gia "${payload.boardTitle}"`;
+                } else {
+                  toastDescription = "Bạn có một lời mời tham gia dự án mới";
+                }
               } catch {
                 toastDescription = "Bạn có một lời mời tham gia dự án mới";
               }
@@ -183,13 +205,18 @@ export function useNotifications(userId: string | undefined) {
 
             setNotifications((prev) => {
               if (rawUpdated.content.startsWith("[DELETED]")) {
-                const next = prev.filter(n => n.id !== rawUpdated.id);
+                const next = prev.filter((n) => n.id !== rawUpdated.id);
                 setUnreadCount(next.filter((n) => !n.is_read).length);
                 return next;
               }
 
-              const deadlineMatch = rawUpdated.content.match(/\[DEADLINE_ISO:(.*?)\]/);
-              const updated = { ...rawUpdated, content: rawUpdated.content.replace(/\[DEADLINE_ISO:.*?\]/, "") };
+              const deadlineMatch = rawUpdated.content.match(
+                /\[DEADLINE_ISO:(.*?)\]/,
+              );
+              const updated = {
+                ...rawUpdated,
+                content: rawUpdated.content.replace(/\[DEADLINE_ISO:.*?\]/, ""),
+              };
               if (deadlineMatch) {
                 updated.task = { title: "", deadline: deadlineMatch[1] };
               }
@@ -197,7 +224,7 @@ export function useNotifications(userId: string | undefined) {
               const next = prev.map((n) =>
                 n.id === updated.id ? { ...n, ...updated } : n,
               );
-              if (!prev.some(n => n.id === updated.id)) {
+              if (!prev.some((n) => n.id === updated.id)) {
                 next.unshift(updated);
               }
               setUnreadCount(next.filter((n) => !n.is_read).length);
@@ -275,5 +302,13 @@ export function useNotifications(userId: string | undefined) {
     }
   };
 
-  return { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, hideNotification, hideAllNotifications };
+  return {
+    notifications,
+    unreadCount,
+    isLoading,
+    markAsRead,
+    markAllAsRead,
+    hideNotification,
+    hideAllNotifications,
+  };
 }
