@@ -87,6 +87,12 @@ const mockRemoteData: Record<string, any> = {
     tasks: [
       { col_id: "rc1", title: "Investigate hydration error", description: "Check server/client mismatch", position: 0 }
     ]
+  },
+  "tr-4": {
+    name: "Empty Project",
+    description: "Dự án trống không có cột/công việc",
+    columns: [],
+    tasks: []
   }
 };
 
@@ -104,6 +110,14 @@ export async function POST(request: NextRequest) {
 
     if (!platform || !token || !Array.isArray(projects) || projects.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    // AC 5.1: Validate trước khi tiến hành import
+    for (const project of projects) {
+      const mockProject = mockRemoteData[project.id];
+      if (mockProject && (!mockProject.columns || mockProject.columns.length === 0) && (!mockProject.tasks || mockProject.tasks.length === 0)) {
+        return NextResponse.json({ error: `Dự án nguồn "${mockProject.name}" không có dữ liệu để import` }, { status: 400 });
+      }
     }
 
     const importedBoards = [];

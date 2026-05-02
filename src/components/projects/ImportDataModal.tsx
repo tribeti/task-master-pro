@@ -99,6 +99,7 @@ export default function ImportDataModal({
         { id: "tr-1", name: "Website Redesign", description: "Bảng quản lý dự án thiết kế lại website" },
         { id: "tr-2", name: "Marketing Campaign", description: "Chiến dịch Q3/2026" },
         { id: "tr-3", name: "Product Roadmap", description: "Kế hoạch phát triển sản phẩm" },
+        { id: "tr-4", name: "Empty Project", description: "Dự án trống không có cột/công việc" },
       ],
       jira: [
         { id: "ji-1", name: "Task Master Pro (TMP)", description: "Dự án phát triển phần mềm quản lý" },
