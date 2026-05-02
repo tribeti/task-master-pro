@@ -681,3 +681,61 @@ export const EyeOffIcon = ({ className }: React.SVGProps<SVGSVGElement>) => (
     <line x1="2" y1="2" x2="22" y2="22" />
   </svg>
 );
+
+export const ImportIcon = ({ className }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+export const TrelloIcon = ({ className }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={`text-[#0052CC] ${className || ""}`}
+  >
+    <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM10 14C10 14.55 9.55 15 9 15H6C5.45 15 5 14.55 5 14V6C5 5.45 5.45 5 6 5H9C9.55 5 10 5.45 10 6V14ZM19 11C19 11.55 18.55 12 18 12H15C14.45 12 14 11.55 14 11V6C14 5.45 14.45 5 15 5H18C18.55 5 19 5.45 19 6V11Z" />
+  </svg>
+);
+
+export const JiraIcon = ({ className }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={`text-[#0052CC] ${className || ""}`}
+  >
+    <path d="M11.53 10.47a1.5 1.5 0 0 0-2.12 0l-5.65 5.66a1.5 1.5 0 0 0 0 2.12l4.24 4.24a1.5 1.5 0 0 0 2.12 0l5.66-5.65a1.5 1.5 0 0 0 0-2.12l-4.25-4.25ZM20.25 10.47a1.5 1.5 0 0 0-2.12 0l-5.65 5.66a1.5 1.5 0 0 0 0 2.12l4.24 4.24a1.5 1.5 0 0 0 2.12 0l5.66-5.65a1.5 1.5 0 0 0 0-2.12l-4.25-4.25ZM10.47 2.81a1.5 1.5 0 0 0-2.12 0L2.7 8.47a1.5 1.5 0 0 0 0 2.12l4.24 4.24a1.5 1.5 0 0 0 2.12 0l5.66-5.65a1.5 1.5 0 0 0 0-2.12L10.47 2.81Z" />
+  </svg>
+);
+
+export const GitHubIcon = ({ className }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
+  </svg>
+);
