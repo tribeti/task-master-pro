@@ -666,8 +666,23 @@ export default function ProjectsPage() {
         isOpen={isImportDataOpen}
         onClose={() => setIsImportDataOpen(false)}
         onSuccess={(platform, token, selectedProjects) => {
-          toast.success(`Đã import thành công ${selectedProjects.length} dự án từ ${platform}!`);
-          // Note: In real app, you would fetch and import data here
+          const importPromise = fetch("/api/integrations/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ platform, token, projects: selectedProjects }),
+          }).then(async (res) => {
+            if (!res.ok) throw new Error("Import failed");
+            return res.json();
+          });
+
+          toast.promise(importPromise, {
+            loading: `Đang import ${selectedProjects.length} dự án từ ${platform}...`,
+            success: (data) => {
+              fetchBoards(true);
+              return `Đã import thành công ${data.importedBoards?.length || 0} dự án kèm theo ${data.totalTasks || 0} công việc!`;
+            },
+            error: "Có lỗi xảy ra khi import dữ liệu.",
+          });
         }}
       />
     </div>

@@ -121,11 +121,7 @@ export default function ImportDataModal({
     );
   };
 
-  const handleImport = async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    
+  const handleImport = () => {
     if (onSuccess && selectedPlatform) {
       const selectedData = remoteProjects.filter((p) => selectedProjectIds.includes(p.id));
       onSuccess(selectedPlatform, token, selectedData);
