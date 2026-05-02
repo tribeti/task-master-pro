@@ -1,101 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-const mockRemoteData: Record<string, any> = {
-  "tr-1": {
-    name: "Website Redesign",
-    description: "Bảng quản lý dự án thiết kế lại website",
-    columns: [
-      { id: "col1", title: "To Do", position: 0 },
-      { id: "col2", title: "In Progress", position: 1 },
-      { id: "col3", title: "Done", position: 2 }
-    ],
-    tasks: [
-      { col_id: "col1", title: "Thiết kế Homepage", description: "Design Figma cho trang chủ", position: 0 },
-      { col_id: "col1", title: "Thiết kế About Page", description: "Cập nhật thông tin công ty", position: 1 },
-      { col_id: "col2", title: "Setup Next.js", description: "Khởi tạo project Next.js và Tailwind CSS", position: 0 },
-      { col_id: "col3", title: "Lấy yêu cầu KH", description: "Xong requirement specs", position: 0 }
-    ]
-  },
-  "tr-2": {
-    name: "Marketing Campaign",
-    description: "Chiến dịch Q3/2026",
-    columns: [
-      { id: "c1", title: "Ideas", position: 0 },
-      { id: "c2", title: "Executing", position: 1 }
-    ],
-    tasks: [
-      { col_id: "c1", title: "Nghiên cứu đối thủ", description: "Tập hợp các quảng cáo của đối thủ", position: 0 },
-      { col_id: "c2", title: "Chạy Ads Facebook", description: "Ngân sách 5tr", position: 0 }
-    ]
-  },
-  "tr-3": {
-    name: "Product Roadmap",
-    description: "Kế hoạch phát triển sản phẩm",
-    columns: [
-      { id: "c1", title: "Q3", position: 0 },
-      { id: "c2", title: "Q4", position: 1 }
-    ],
-    tasks: [
-      { col_id: "c1", title: "Ra mắt tính năng Import", description: "Import Trello/Jira", position: 0 }
-    ]
-  },
-  "ji-1": {
-    name: "Task Master Pro (TMP)",
-    description: "Dự án phát triển phần mềm quản lý",
-    columns: [
-      { id: "jc1", title: "Backlog", position: 0 },
-      { id: "jc2", title: "In Development", position: 1 },
-      { id: "jc3", title: "QA", position: 2 }
-    ],
-    tasks: [
-      { col_id: "jc1", title: "TMP-1: Setup DB", description: "Cấu hình Supabase", position: 0 },
-      { col_id: "jc2", title: "TMP-2: Authentication", description: "Sử dụng NextAuth hoặc Supabase Auth", position: 0 }
-    ]
-  },
-  "ji-2": {
-    name: "Mobile App (MOB)",
-    description: "Ứng dụng di động iOS/Android",
-    columns: [
-      { id: "mc1", title: "Sprint 1", position: 0 },
-      { id: "mc2", title: "Sprint 2", position: 1 }
-    ],
-    tasks: [
-      { col_id: "mc1", title: "MOB-1: UI Login", description: "Màn hình đăng nhập", position: 0 },
-      { col_id: "mc2", title: "MOB-2: Tích hợp API", description: "Kết nối backend", position: 0 }
-    ]
-  },
-  "gh-1": {
-    name: "tamcu/task-master-pro",
-    description: "Repository chính của dự án",
-    columns: [
-      { id: "gc1", title: "Open Issues", position: 0 },
-      { id: "gc2", title: "In Progress", position: 1 },
-      { id: "gc3", title: "Closed", position: 2 }
-    ],
-    tasks: [
-      { col_id: "gc1", title: "Bug: Header overlap", description: "Header đang đè lên content ở mobile", position: 0 },
-      { col_id: "gc2", title: "Feature: Import", description: "Đang làm tính năng import data", position: 0 }
-    ]
-  },
-  "gh-2": {
-    name: "facebook/react",
-    description: "Thư viện ReactJS",
-    columns: [
-      { id: "rc1", title: "Issues", position: 0 }
-    ],
-    tasks: [
-      { col_id: "rc1", title: "Investigate hydration error", description: "Check server/client mismatch", position: 0 }
-    ]
-  },
-  "tr-4": {
-    name: "Empty Project",
-    description: "Dự án trống không có cột/công việc",
-    columns: [],
-    tasks: []
-  }
-};
-
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -106,18 +11,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { platform, token, projects } = await request.json();
+    const { platform, credentials, projects } = await request.json();
 
-    if (!platform || !token || !Array.isArray(projects) || projects.length === 0) {
+    if (!platform || !credentials || !credentials.token || !Array.isArray(projects) || projects.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
-
-    // AC 5.1: Validate trước khi tiến hành import
-    for (const project of projects) {
-      const mockProject = mockRemoteData[project.id];
-      if (mockProject && (!mockProject.columns || mockProject.columns.length === 0) && (!mockProject.tasks || mockProject.tasks.length === 0)) {
-        return NextResponse.json({ error: `Dự án nguồn "${mockProject.name}" không có dữ liệu để import` }, { status: 400 });
-      }
     }
 
     const importedBoards = [];
@@ -125,16 +22,96 @@ export async function POST(request: NextRequest) {
 
     // Lặp qua từng project để import
     for (const project of projects) {
-      const mockProject = mockRemoteData[project.id];
-      if (!mockProject) continue; // Nếu không tìm thấy mock data
+      let remoteColumns: any[] = [];
+      let remoteTasks: any[] = [];
+
+      try {
+        if (platform === "github") {
+          const issuesRes = await fetch(`https://api.github.com/repos/${project.name}/issues?state=all&per_page=100`, {
+            headers: { Authorization: `Bearer ${credentials.token}` }
+          });
+          if (issuesRes.ok) {
+            const issues = await issuesRes.json();
+            remoteColumns = [
+              { id: "open", title: "Open", position: 0 },
+              { id: "closed", title: "Closed", position: 1 }
+            ];
+            remoteTasks = issues.filter((i: any) => !i.pull_request).map((issue: any, idx: number) => ({
+              col_id: issue.state === "closed" ? "closed" : "open",
+              title: issue.title,
+              description: issue.body ? String(issue.body).substring(0, 2000) : "",
+              position: idx
+            }));
+          }
+        } else if (platform === "trello") {
+          const listsRes = await fetch(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`);
+          if (listsRes.ok) {
+            const lists = await listsRes.json();
+            remoteColumns = lists.map((l: any, idx: number) => ({ id: l.id, title: l.name, position: idx }));
+          }
+          const cardsRes = await fetch(`https://api.trello.com/1/boards/${project.id}/cards?key=${credentials.key}&token=${credentials.token}`);
+          if (cardsRes.ok) {
+            const cards = await cardsRes.json();
+            remoteTasks = cards.map((c: any, idx: number) => ({
+              col_id: c.idList,
+              title: c.name,
+              description: c.desc ? String(c.desc).substring(0, 2000) : "",
+              position: idx
+            }));
+          }
+        } else if (platform === "jira") {
+          const auth = Buffer.from(`${credentials.email}:${credentials.token}`).toString("base64");
+          let domain = credentials.domain;
+          if (!domain.startsWith("http")) domain = `https://${domain}`;
+          
+          const statusesRes = await fetch(`${domain}/rest/api/3/project/${project.id}/statuses`, {
+            headers: { Authorization: `Basic ${auth}` }
+          });
+          if (statusesRes.ok) {
+            const statuses = await statusesRes.json();
+            if (statuses && statuses.length > 0) {
+              remoteColumns = statuses[0].statuses.map((s: any, idx: number) => ({ id: s.id, title: s.name, position: idx }));
+            }
+          }
+
+          const jql = encodeURIComponent(`project=${project.id}`);
+          const searchRes = await fetch(`${domain}/rest/api/3/search?jql=${jql}&maxResults=100`, {
+            headers: { Authorization: `Basic ${auth}` }
+          });
+          if (searchRes.ok) {
+            const search = await searchRes.json();
+            if (search.issues) {
+              remoteTasks = search.issues.map((issue: any, idx: number) => {
+                let desc = "";
+                try {
+                  desc = issue.fields.description?.content?.[0]?.content?.[0]?.text || "";
+                } catch(e) {}
+                return {
+                  col_id: issue.fields.status?.id,
+                  title: issue.fields.summary,
+                  description: String(desc).substring(0, 2000),
+                  position: idx
+                };
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Lỗi kéo dữ liệu từ ${platform}:`, err);
+      }
+
+      // AC 5.1: Validate dự án trống
+      if (remoteColumns.length === 0 && remoteTasks.length === 0) {
+        return NextResponse.json({ error: `Dự án nguồn "${project.name}" không có dữ liệu để import` }, { status: 400 });
+      }
 
       // 1. Tạo Board (AC 3.1 & AC 3.2)
       const { data: boardData, error: boardError } = await supabase
         .from("boards")
         .insert([
           {
-            title: mockProject.name,
-            description: mockProject.description || null,
+            title: project.name,
+            description: project.description || null,
             is_private: true, // AC 3.2
             owner_id: user.id, // AC 3.2
             tag: "Imported",
@@ -151,8 +128,8 @@ export async function POST(request: NextRequest) {
       importedBoards.push(boardData);
 
       // 2. Tạo Columns (AC 3.3)
-      if (mockProject.columns && mockProject.columns.length > 0) {
-        const columnsToInsert = mockProject.columns.map((c: any) => ({
+      if (remoteColumns.length > 0) {
+        const columnsToInsert = remoteColumns.map((c: any) => ({
           board_id: boardData.id,
           title: c.title,
           position: c.position
@@ -168,18 +145,18 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Tạo map: mock_column_id -> new_db_column_id
+        // Tạo map: remote_column_id -> new_db_column_id
         const colMap: Record<string, number> = {};
-        mockProject.columns.forEach((mockCol: any) => {
-          const insertedCol = insertedColumns.find((c) => c.title === mockCol.title && c.position === mockCol.position);
+        remoteColumns.forEach((remoteCol: any) => {
+          const insertedCol = insertedColumns.find((c) => c.title === remoteCol.title && c.position === remoteCol.position);
           if (insertedCol) {
-            colMap[mockCol.id] = insertedCol.id;
+            colMap[remoteCol.id] = insertedCol.id;
           }
         });
 
         // 3. Tạo Tasks (AC 3.4)
-        if (mockProject.tasks && mockProject.tasks.length > 0) {
-          const tasksToInsert = mockProject.tasks
+        if (remoteTasks.length > 0) {
+          const tasksToInsert = remoteTasks
             .filter((t: any) => colMap[t.col_id] !== undefined)
             .map((t: any) => ({
               column_id: colMap[t.col_id],

@@ -22,7 +22,7 @@ export type RemoteProject = {
 interface ImportDataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (platform: string, token: string, selectedProjects: RemoteProject[]) => void;
+  onSuccess?: (platform: string, credentials: any, selectedProjects: RemoteProject[]) => void;
 }
 
 export default function ImportDataModal({
@@ -35,7 +35,7 @@ export default function ImportDataModal({
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>(null);
-  const [token, setToken] = useState("");
+  const [credentials, setCredentials] = useState<{ token: string; key?: string; domain?: string; email?: string }>({ token: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [remoteProjects, setRemoteProjects] = useState<RemoteProject[]>([]);
@@ -44,7 +44,7 @@ export default function ImportDataModal({
   const resetAndClose = () => {
     setStep(1);
     setSelectedPlatform(null);
-    setToken("");
+    setCredentials({ token: "" });
     setError("");
     setIsLoading(false);
     setRemoteProjects([]);
@@ -64,7 +64,7 @@ export default function ImportDataModal({
     if (step === 2) {
       setStep(1);
       setError("");
-      setToken("");
+      setCredentials({ token: "" });
     } else if (step === 3) {
       setStep(2);
       setSelectedProjectIds([]);
@@ -76,44 +76,41 @@ export default function ImportDataModal({
 
   const handleConnect = async () => {
     setError("");
-    if (!token.trim()) {
+    if (selectedPlatform === "github" && !credentials.token.trim()) {
       setError("Token không được để trống.");
+      return;
+    }
+    if (selectedPlatform === "trello" && (!credentials.key?.trim() || !credentials.token.trim())) {
+      setError("API Key và Token không được để trống.");
+      return;
+    }
+    if (selectedPlatform === "jira" && (!credentials.domain?.trim() || !credentials.email?.trim() || !credentials.token.trim())) {
+      setError("Domain, Email và Token không được để trống.");
       return;
     }
 
     setIsLoading(true);
 
-    // Mock connection delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Mock validation: fail if token length <= 10
-    if (token.length <= 10) {
-      setError("Kết nối thất bại. Vui lòng kiểm tra lại thông tin xác thực");
+    try {
+      const res = await fetch("/api/integrations/fetch-projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: selectedPlatform, credentials })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Kết nối thất bại. Vui lòng kiểm tra lại thông tin xác thực");
+      }
+      
+      const data = await res.json();
+      setRemoteProjects(data.projects || []);
+      setStep(3);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Success -> Fetch mock projects based on platform
-    const mockData: Record<string, RemoteProject[]> = {
-      trello: [
-        { id: "tr-1", name: "Website Redesign", description: "Bảng quản lý dự án thiết kế lại website" },
-        { id: "tr-2", name: "Marketing Campaign", description: "Chiến dịch Q3/2026" },
-        { id: "tr-3", name: "Product Roadmap", description: "Kế hoạch phát triển sản phẩm" },
-        { id: "tr-4", name: "Empty Project", description: "Dự án trống không có cột/công việc" },
-      ],
-      jira: [
-        { id: "ji-1", name: "Task Master Pro (TMP)", description: "Dự án phát triển phần mềm quản lý" },
-        { id: "ji-2", name: "Mobile App (MOB)", description: "Ứng dụng di động iOS/Android" },
-      ],
-      github: [
-        { id: "gh-1", name: "tamcu/task-master-pro", description: "Repository chính của dự án" },
-        { id: "gh-2", name: "facebook/react", description: "Thư viện ReactJS" },
-      ],
-    };
-
-    setRemoteProjects(mockData[selectedPlatform as string] || []);
-    setIsLoading(false);
-    setStep(3);
   };
 
   const toggleProjectSelection = (id: string) => {
@@ -125,7 +122,7 @@ export default function ImportDataModal({
   const handleImport = () => {
     if (onSuccess && selectedPlatform) {
       const selectedData = remoteProjects.filter((p) => selectedProjectIds.includes(p.id));
-      onSuccess(selectedPlatform, token, selectedData);
+      onSuccess(selectedPlatform, credentials, selectedData);
     }
     resetAndClose();
   };
@@ -326,34 +323,39 @@ export default function ImportDataModal({
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-3">
-                  API Key / Access Token <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nhập mã xác thực..."
-                  value={token}
-                  onChange={(e) => {
-                    setToken(e.target.value);
-                    if (e.target.value.trim()) setError("");
-                  }}
-                  className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${
-                    isCozy
-                      ? error
-                        ? "border-red-500 bg-slate-900 text-white"
-                        : "bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500 focus:bg-slate-900"
-                      : error
-                      ? "border-red-400 focus:border-red-400 bg-white"
-                      : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500"
-                  }`}
-                  disabled={isLoading}
-                />
-                {error && (
-                  <p className="text-xs font-medium text-red-400 mt-2 ml-1">
-                    {error}
-                  </p>
+              <div className="flex flex-col gap-3">
+                {selectedPlatform === "trello" && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">API Key <span className="text-red-400">*</span></label>
+                    <input type="text" placeholder="Nhập API Key..." value={credentials.key || ""} onChange={(e) => { setCredentials({ ...credentials, key: e.target.value }); setError(""); }} className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${isCozy ? "bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500" : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500"}`} disabled={isLoading} />
+                  </div>
                 )}
+                {selectedPlatform === "jira" && (
+                  <>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Domain <span className="text-red-400">*</span></label>
+                      <input type="text" placeholder="Ví dụ: your-domain.atlassian.net" value={credentials.domain || ""} onChange={(e) => { setCredentials({ ...credentials, domain: e.target.value }); setError(""); }} className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${isCozy ? "bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500" : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500"}`} disabled={isLoading} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Email <span className="text-red-400">*</span></label>
+                      <input type="email" placeholder="Nhập Email tài khoản Atlassian..." value={credentials.email || ""} onChange={(e) => { setCredentials({ ...credentials, email: e.target.value }); setError(""); }} className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${isCozy ? "bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500" : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500"}`} disabled={isLoading} />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                    {selectedPlatform === "github" ? "Personal Access Token" : "API Token"} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Nhập mã xác thực..."
+                    value={credentials.token}
+                    onChange={(e) => { setCredentials({ ...credentials, token: e.target.value }); setError(""); }}
+                    className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all ${isCozy ? "bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500" : "border-slate-200 bg-white text-slate-900 focus:border-indigo-500"}`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {error && <p className="text-xs font-medium text-red-400 ml-1">{error}</p>}
               </div>
             </div>
           )}
@@ -476,7 +478,7 @@ export default function ImportDataModal({
           {step === 2 && (
             <button
               onClick={handleConnect}
-              disabled={isLoading || !token.trim()}
+              disabled={isLoading || !credentials.token.trim()}
               className={`w-full py-3 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isCozy
                   ? "bg-indigo-600 text-white hover:shadow-lg hover:shadow-indigo-900/20"

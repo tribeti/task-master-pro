@@ -665,11 +665,11 @@ export default function ProjectsPage() {
       <ImportDataModal
         isOpen={isImportDataOpen}
         onClose={() => setIsImportDataOpen(false)}
-        onSuccess={(platform, token, selectedProjects) => {
+        onSuccess={(platform, credentials, selectedProjects) => {
           const importPromise = fetch("/api/integrations/import", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform, token, projects: selectedProjects }),
+            body: JSON.stringify({ platform, credentials, projects: selectedProjects }),
           }).then(async (res) => {
             if (!res.ok) throw new Error("Import failed");
             return res.json();
