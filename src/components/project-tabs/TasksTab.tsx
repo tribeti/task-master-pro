@@ -22,6 +22,7 @@ import {
   KanbanColumn as Column,
   KanbanTask as Task,
   BoardMember,
+  TaskAttachment,
 } from "@/lib/types/project";
 
 function TaskUrlHandler({
@@ -69,6 +70,8 @@ function TasksTabInner({ projectId }: { projectId: number }) {
   const [boardLabels, setBoardLabels] = useState<Label[]>([]);
   const [taskComments, setTaskComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<TaskAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [filterUserId, setFilterUserId] = useState<string | null>(null);
   const [filterLabelIds, setFilterLabelIds] = useState<number[]>([]);
@@ -264,11 +267,27 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   }, []);
 
+  const fetchAttachments = useCallback(async (taskId: number) => {
+    try {
+      setAttachmentsLoading(true);
+      const res = await fetch(`/api/tasks/${taskId}/attachments`);
+      if (!res.ok) throw new Error("Failed to fetch attachments");
+      const data = await res.json();
+      setTaskAttachments(data || []);
+    } catch (error) {
+      console.error("Failed to fetch attachments:", error);
+      setTaskAttachments([]);
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, []);
+
   const openCreateModal = (columnId: number) => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     setEditingTask(null);
     setSelectedColumnId(columnId);
     setTaskComments([]);
+    setTaskAttachments([]);
     setIsModalOpen(true);
   };
 
@@ -277,7 +296,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     setEditingTask(task);
     setSelectedColumnId(task.column_id);
     setIsModalOpen(true);
-    await fetchComments(task.id);
+    await Promise.all([
+      fetchComments(task.id),
+      fetchAttachments(task.id),
+    ]);
   };
 
   const handleTaskFoundFromUrl = useCallback(
@@ -587,6 +609,43 @@ function TasksTabInner({ projectId }: { projectId: number }) {
     }
   };
 
+  const handleUploadAttachment = async (taskId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload thất bại");
+      }
+      await fetchAttachments(taskId);
+      toast.success("Tải file lên thành công");
+    } catch (error: any) {
+      console.error("Failed to upload attachment:", error);
+      toast.error(error.message || "Tải file lên thất bại");
+      throw error;
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number, taskId: number) => {
+    try {
+      const res = await fetch(
+        `/api/tasks/${taskId}/attachments?attachmentId=${attachmentId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
+      await fetchAttachments(taskId);
+      toast.success("Xóa file thành công");
+    } catch (error) {
+      console.error("Failed to delete attachment:", error);
+      toast.error("Xóa file thất bại");
+      throw error;
+    }
+  };
+
   const handleDeleteComment = async (commentId: number) => {
     if (!editingTask?.id) return;
 
@@ -880,6 +939,10 @@ function TasksTabInner({ projectId }: { projectId: number }) {
         onDeleteComment={handleDeleteComment}
         onUpdateTask={handleUpdateTaskField}
         onChecklistsUpdate={handleChecklistsUpdate}
+        attachments={taskAttachments}
+        attachmentsLoading={attachmentsLoading}
+        onUploadAttachment={handleUploadAttachment}
+        onDeleteAttachment={handleDeleteAttachment}
       />
 
       {/* Manage Labels Modal */}

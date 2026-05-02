@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { XIcon } from "@/components/icons";
-import { Label, Comment, TaskAssignee, BoardMember } from "@/lib/types/project";
+import { Label, Comment, TaskAssignee, BoardMember, TaskAttachment } from "@/lib/types/project";
 import { TaskLabels } from "./task-details/TaskLabels";
 import { TaskChecklist } from "./task-details/TaskChecklist";
 import { TaskAssignees } from "./task-details/TaskAssignees";
 import { TaskComments } from "./task-details/TaskComments";
+import { TaskAttachments } from "./task-details/TaskAttachments";
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
@@ -58,6 +59,10 @@ interface TaskDetailsModalProps {
     }>,
   ) => Promise<void>;
   onChecklistsUpdate?: (taskId: number, checklists: any[]) => void;
+  attachments: TaskAttachment[];
+  attachmentsLoading: boolean;
+  onUploadAttachment: (taskId: number, file: File) => Promise<void>;
+  onDeleteAttachment: (attachmentId: number, taskId: number) => Promise<void>;
 }
 
 export function TaskDetailsModal({
@@ -83,6 +88,10 @@ export function TaskDetailsModal({
   onDeleteComment,
   onUpdateTask,
   onChecklistsUpdate,
+  attachments,
+  attachmentsLoading,
+  onUploadAttachment,
+  onDeleteAttachment,
 }: TaskDetailsModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -374,6 +383,18 @@ export function TaskDetailsModal({
                   onChecklistsUpdate={(data) =>
                     onChecklistsUpdate?.(initialData.id!, data)
                   }
+                />
+              )}
+
+              {initialData?.id && (
+                <TaskAttachments
+                  taskId={initialData.id}
+                  attachments={attachments}
+                  attachmentsLoading={attachmentsLoading}
+                  currentUserId={currentUserId}
+                  isSubmitting={isSubmitting}
+                  onUpload={onUploadAttachment}
+                  onDelete={onDeleteAttachment}
                 />
               )}
             </div>

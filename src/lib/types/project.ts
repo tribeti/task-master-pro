@@ -105,6 +105,22 @@ export interface JoinedBoard extends Board {
   member_role: string;
 }
 
+export interface TaskAttachment {
+  id: number;
+  task_id: number;
+  uploaded_by: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  public_url: string;
+  created_at: string;
+  uploader?: {
+    display_name: string;
+    avatar_url: string | null;
+  };
+}
+
 export interface Notification {
   id: number;
   user_id: string;
