@@ -665,8 +665,8 @@ export default function ProjectsPage() {
       <ImportDataModal
         isOpen={isImportDataOpen}
         onClose={() => setIsImportDataOpen(false)}
-        onSuccess={(platform, token) => {
-          toast.success(`Kết nối thành công với ${platform}!`);
+        onSuccess={(platform, token, selectedProjects) => {
+          toast.success(`Đã import thành công ${selectedProjects.length} dự án từ ${platform}!`);
           // Note: In real app, you would fetch and import data here
         }}
       />

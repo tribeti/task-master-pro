@@ -13,10 +13,16 @@ import { useDashboardUser } from "@/app/(dashboard)/provider";
 
 type Platform = "trello" | "jira" | "github" | null;
 
+export type RemoteProject = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
 interface ImportDataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (platform: string, token: string) => void;
+  onSuccess?: (platform: string, token: string, selectedProjects: RemoteProject[]) => void;
 }
 
 export default function ImportDataModal({
@@ -27,11 +33,13 @@ export default function ImportDataModal({
   const { profile } = useDashboardUser();
   const isCozy = profile?.theme === "cozy";
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>(null);
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [remoteProjects, setRemoteProjects] = useState<RemoteProject[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   const resetAndClose = () => {
     setStep(1);
@@ -39,12 +47,16 @@ export default function ImportDataModal({
     setToken("");
     setError("");
     setIsLoading(false);
+    setRemoteProjects([]);
+    setSelectedProjectIds([]);
     onClose();
   };
 
   const handleNext = () => {
     if (step === 1 && selectedPlatform) {
       setStep(2);
+    } else if (step === 3 && selectedProjectIds.length > 0) {
+      setStep(4);
     }
   };
 
@@ -53,6 +65,12 @@ export default function ImportDataModal({
       setStep(1);
       setError("");
       setToken("");
+    } else if (step === 3) {
+      setStep(2);
+      setSelectedProjectIds([]);
+      setRemoteProjects([]);
+    } else if (step === 4) {
+      setStep(3);
     }
   };
 
@@ -75,10 +93,42 @@ export default function ImportDataModal({
       return;
     }
 
-    // Success
+    // Success -> Fetch mock projects based on platform
+    const mockData: Record<string, RemoteProject[]> = {
+      trello: [
+        { id: "tr-1", name: "Website Redesign", description: "Bảng quản lý dự án thiết kế lại website" },
+        { id: "tr-2", name: "Marketing Campaign", description: "Chiến dịch Q3/2026" },
+        { id: "tr-3", name: "Product Roadmap", description: "Kế hoạch phát triển sản phẩm" },
+      ],
+      jira: [
+        { id: "ji-1", name: "Task Master Pro (TMP)", description: "Dự án phát triển phần mềm quản lý" },
+        { id: "ji-2", name: "Mobile App (MOB)", description: "Ứng dụng di động iOS/Android" },
+      ],
+      github: [
+        { id: "gh-1", name: "tamcu/task-master-pro", description: "Repository chính của dự án" },
+        { id: "gh-2", name: "facebook/react", description: "Thư viện ReactJS" },
+      ],
+    };
+
+    setRemoteProjects(mockData[selectedPlatform as string] || []);
     setIsLoading(false);
+    setStep(3);
+  };
+
+  const toggleProjectSelection = (id: string) => {
+    setSelectedProjectIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const handleImport = async () => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsLoading(false);
+    
     if (onSuccess && selectedPlatform) {
-      onSuccess(selectedPlatform, token);
+      const selectedData = remoteProjects.filter((p) => selectedProjectIds.includes(p.id));
+      onSuccess(selectedPlatform, token, selectedData);
     }
     resetAndClose();
   };
@@ -143,7 +193,7 @@ export default function ImportDataModal({
             <XIcon />
           </button>
         </div>
-        {step === 2 && (
+        {step > 1 && (
           <div className="absolute top-6 left-6 z-10 flex gap-2">
             <button
               onClick={handleBack}
@@ -180,9 +230,10 @@ export default function ImportDataModal({
                 isCozy ? "text-slate-500" : "text-slate-400"
               }`}
             >
-              {step === 1
-                ? "Chọn nền tảng bạn muốn kết nối và đồng bộ dự án."
-                : `Xác thực kết nối tới ${currentPlatformDetails?.name}`}
+              {step === 1 && "Chọn nền tảng bạn muốn kết nối và đồng bộ dự án."}
+              {step === 2 && `Xác thực kết nối tới ${currentPlatformDetails?.name}`}
+              {step === 3 && "Chọn dự án bạn muốn import dữ liệu."}
+              {step === 4 && "Xác nhận và tiến hành import."}
             </p>
           </div>
 
@@ -310,8 +361,108 @@ export default function ImportDataModal({
             </div>
           )}
 
+          {step === 3 && (
+            <div className="flex flex-col gap-3 mt-2 animate-in slide-in-from-right-4 duration-300">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                Danh sách dự án ({remoteProjects.length})
+              </label>
+              <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                {remoteProjects.map((proj) => {
+                  const isSelected = selectedProjectIds.includes(proj.id);
+                  return (
+                    <label
+                      key={proj.id}
+                      className={`flex items-center gap-4 p-4 border rounded-2xl cursor-pointer transition-all ${
+                        isSelected
+                          ? isCozy
+                            ? "border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500"
+                            : "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                          : isCozy
+                          ? "border-slate-800 bg-slate-900/50 hover:border-slate-700"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleProjectSelection(proj.id)}
+                        className="w-5 h-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+                      />
+                      <div className="flex-1">
+                        <h4
+                          className={`text-sm font-bold ${
+                            isCozy ? "text-white" : "text-slate-900"
+                          }`}
+                        >
+                          {proj.name}
+                        </h4>
+                        {proj.description && (
+                          <p
+                            className={`text-xs mt-1 ${
+                              isCozy ? "text-slate-500" : "text-slate-500"
+                            }`}
+                          >
+                            {proj.description}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+                {remoteProjects.length === 0 && (
+                  <p className="text-sm text-center py-4 text-slate-500">
+                    Không tìm thấy dự án nào.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="flex flex-col gap-4 mt-2 animate-in slide-in-from-right-4 duration-300">
+              <div
+                className={`p-5 rounded-2xl ${
+                  isCozy ? "bg-slate-900 border border-slate-800" : "bg-slate-50 border border-slate-100"
+                }`}
+              >
+                <h4
+                  className={`text-base font-bold mb-4 flex items-center gap-2 ${
+                    isCozy ? "text-slate-200" : "text-slate-800"
+                  }`}
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-500 text-xs">
+                    i
+                  </span>
+                  Xác nhận import
+                </h4>
+                <p
+                  className={`text-sm mb-4 ${
+                    isCozy ? "text-slate-400" : "text-slate-600"
+                  }`}
+                >
+                  Bạn đang chuẩn bị import <strong className={isCozy ? "text-white" : "text-slate-900"}>{selectedProjectIds.length}</strong> dự án từ{" "}
+                  <strong className={isCozy ? "text-white" : "text-slate-900"}>{currentPlatformDetails?.name}</strong>.
+                </p>
+                <div className={`space-y-2 max-h-[20vh] overflow-y-auto pr-2 ${
+                  isCozy ? "text-slate-300" : "text-slate-700"
+                }`}>
+                  {remoteProjects
+                    .filter((p) => selectedProjectIds.includes(p.id))
+                    .map((proj) => (
+                      <div key={proj.id} className="flex items-center gap-2 text-sm font-medium">
+                        <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="truncate">{proj.name}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Button */}
-          {step === 1 ? (
+          {step === 1 && (
             <button
               onClick={handleNext}
               disabled={!selectedPlatform}
@@ -323,7 +474,9 @@ export default function ImportDataModal({
             >
               Tiếp tục
             </button>
-          ) : (
+          )}
+
+          {step === 2 && (
             <button
               onClick={handleConnect}
               disabled={isLoading || !token.trim()}
@@ -340,6 +493,41 @@ export default function ImportDataModal({
                 </>
               ) : (
                 "Kết nối"
+              )}
+            </button>
+          )}
+
+          {step === 3 && (
+            <button
+              onClick={handleNext}
+              disabled={selectedProjectIds.length === 0}
+              className={`w-full py-3 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isCozy
+                  ? "bg-indigo-600 text-white hover:shadow-lg hover:shadow-indigo-900/20"
+                  : "bg-indigo-500 text-white hover:shadow-lg hover:shadow-indigo-200"
+              }`}
+            >
+              Tiếp tục ({selectedProjectIds.length})
+            </button>
+          )}
+
+          {step === 4 && (
+            <button
+              onClick={handleImport}
+              disabled={isLoading}
+              className={`w-full py-3 rounded-full font-bold text-base transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isCozy
+                  ? "bg-indigo-600 text-white hover:shadow-lg hover:shadow-indigo-900/20"
+                  : "bg-indigo-500 text-white hover:shadow-lg hover:shadow-indigo-200"
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Đang xử lý...
+                </>
+              ) : (
+                "Xác nhận và Import"
               )}
             </button>
           )}
