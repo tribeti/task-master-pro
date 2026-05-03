@@ -343,8 +343,7 @@ export async function POST(request: NextRequest) {
     success: true, 
     partialSuccess: failedProjects.length > 0,
     importedBoards, 
-    failedProjects, // This now includes warnings about skipped tasks
+    failedProjects,
     totalTasks 
   });
-}
 }

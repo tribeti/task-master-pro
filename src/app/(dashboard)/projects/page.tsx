@@ -84,8 +84,10 @@ function ProjectUrlHandler({
     urlTab,
     ownedBoards,
     joinedBoards,
+    selectedProjectId,
+    currentTab,
     onProjectFound,
-  ]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]);
 
   return null;
 }
@@ -682,6 +684,13 @@ export default function ProjectsPage() {
             loading: `Đang import ${selectedProjects.length} dự án từ ${platform}...`,
             success: (data) => {
               fetchBoards(true);
+              if (data.partialSuccess) {
+                const failedNames = data.failedProjects.map((p: any) => p.name).join(", ");
+                toast.warning(`Import hoàn tất một phần. Một số dự án gặp lỗi: ${failedNames}`, {
+                  description: "Vui lòng kiểm tra lại quyền truy cập hoặc dữ liệu nguồn.",
+                  duration: 6000
+                });
+              }
               return `Đã import thành công ${data.importedBoards?.length || 0} dự án kèm theo ${data.totalTasks || 0} công việc!`;
             },
             error: (err) => err.message || "Có lỗi xảy ra khi import dữ liệu.",
