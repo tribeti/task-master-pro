@@ -84,10 +84,8 @@ function ProjectUrlHandler({
     urlTab,
     ownedBoards,
     joinedBoards,
-    selectedProjectId,
-    currentTab,
     onProjectFound,
-  ]);
+  ]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   return null;
 }
