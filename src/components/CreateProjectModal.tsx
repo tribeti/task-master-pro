@@ -113,7 +113,7 @@ export default function CreateProjectModal({
                 : (nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 bg-white text-slate-900 focus:border-[#FF8B5E]")
                 }`}
               required
-              maxLength={100}
+              maxLength={30}
               autoFocus
               disabled={isSubmitting}
             />
@@ -156,6 +156,7 @@ export default function CreateProjectModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+              maxLength={200}
               disabled={isSubmitting}
               className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all resize-none ${isCozy
                 ? "bg-slate-900/30 hover:bg-slate-900/50 focus:bg-slate-900 border-slate-800 text-white focus:border-[#FF8B5E]"

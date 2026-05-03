@@ -26,8 +26,8 @@ export const BoardCard: React.FC<BoardCardProps> = ({
             <span className={`text-[10px] font-bold w-max px-2 py-1 rounded-md uppercase ${tagColorClass} ${tagBgClass}`}>
                 {tagLabel}
             </span>
-            <h4 className="font-bold text-slate-800">{title}</h4>
-            {description && <p className="text-xs text-slate-500 line-clamp-2">{description}</p>}
+            <h4 className="font-bold text-slate-800 break-words whitespace-pre-wrap">{title}</h4>
+            {description && <p className="text-xs text-slate-500 line-clamp-2 break-words whitespace-pre-wrap">{description}</p>}
             {progressValue !== undefined && (
                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
                     <div className={`h-full ${progressColorClass}`} style={{ width: `${progressValue}%` }}></div>

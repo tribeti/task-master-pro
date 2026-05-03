@@ -259,7 +259,7 @@ export function TaskDetailsModal({
                         : "bg-white border-slate-200 text-slate-900 focus:border-[#28B8FA]"
                   }`}
                   required
-                  maxLength={29}
+                  maxLength={30}
                   autoFocus
                   disabled={isSubmitting}
                 />
@@ -417,6 +417,7 @@ export function TaskDetailsModal({
                     }
                   }}
                   rows={4}
+                  maxLength={200}
                   disabled={isSubmitting}
                   className={`w-full px-4 py-3 border rounded-xl text-sm font-medium placeholder-slate-500 focus:outline-none transition-colors resize-y min-h-[100px] ${
                     isCozy

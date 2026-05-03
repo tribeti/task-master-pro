@@ -176,7 +176,7 @@ export default function ProjectCard({
       </div>
 
       <h3
-        className={`text-2xl font-black mb-3 transition-colors tracking-tight ${
+        className={`text-2xl font-black mb-3 transition-colors tracking-tight break-words whitespace-pre-wrap ${
           isCozy
             ? "text-white group-hover:text-[#FF8B5E]"
             : "text-slate-800 group-hover:text-[#28B8FA]"
@@ -185,7 +185,7 @@ export default function ProjectCard({
         {proj.title}
       </h3>
       <p
-        className={`text-sm font-medium mb-8 flex-1 leading-relaxed ${isCozy ? "text-slate-400" : "text-slate-500"}`}
+        className={`text-sm font-medium mb-8 flex-1 leading-relaxed break-words whitespace-pre-wrap line-clamp-3 ${isCozy ? "text-slate-400" : "text-slate-500"}`}
       >
         {proj.description ||
           "A comprehensive sub-project focusing on delivering specific objectives for the next sprint iteration."}

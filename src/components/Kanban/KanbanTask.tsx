@@ -250,7 +250,7 @@ export function KanbanTask({
                 {PRIORITY_BADGE[priority]?.label || "?"}
               </span>
               <h4
-                className={`text-sm font-semibold leading-snug line-clamp-2 transition-all ${localCompleted
+                className={`text-sm font-semibold leading-snug line-clamp-2 transition-all break-words whitespace-pre-wrap ${localCompleted
                   ? (isCozy ? "line-through text-slate-600" : "line-through text-slate-400")
                   : (isCozy ? "text-slate-200 group-hover/card:text-white" : "text-slate-800")
                   }`}

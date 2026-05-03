@@ -84,7 +84,7 @@ export function TaskPreviewModal({
                 )}
             </div>
             <h2
-              className={`text-2xl font-bold mt-3 ${isCozy ? "text-white" : "text-slate-900"}`}
+              className={`text-2xl font-bold mt-3 break-words whitespace-pre-wrap ${isCozy ? "text-white" : "text-slate-900"}`}
             >
               {task.title}
             </h2>
@@ -97,7 +97,7 @@ export function TaskPreviewModal({
                 Mô tả
               </label>
               <p
-                className={`text-sm leading-relaxed rounded-2xl p-4 border ${
+                className={`text-sm leading-relaxed rounded-2xl p-4 border break-words whitespace-pre-wrap ${
                   isCozy
                     ? "bg-slate-900 border-slate-800 text-slate-400"
                     : "bg-slate-50 text-slate-600 border-slate-100"

@@ -125,7 +125,7 @@ export default function UpdateProjectModal({
                                 : (nameError ? "border-red-400 focus:border-red-400" : "border-slate-200 bg-white text-slate-900 focus:border-[#28B8FA]")
                             }`}
                             required
-                            maxLength={100}
+                            maxLength={30}
                             autoFocus
                             disabled={isSubmitting}
                         />
@@ -169,6 +169,7 @@ export default function UpdateProjectModal({
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
+                            maxLength={200}
                             disabled={isSubmitting}
                             className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder-slate-300 focus:outline-none transition-all resize-none ${
                               isCozy 

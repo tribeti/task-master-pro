@@ -161,7 +161,7 @@ export function KanbanColumn({
               />
             ) : (
               <span
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-2 cursor-pointer truncate flex-1"
                 onDoubleClick={() => setIsEditing(true)}
               >
                 {colIndex > 0 && (
