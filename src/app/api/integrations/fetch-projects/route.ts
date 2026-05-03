@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 15000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error: any) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs}ms)`);
+    }
+    throw error;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { platform, credentials } = await request.json();
@@ -14,7 +30,7 @@ export async function POST(request: NextRequest) {
       let page = 1;
       let hasMore = true;
       while (hasMore) {
-        const res = await fetch(`https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`, {
+        const res = await fetchWithTimeout(`https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`, {
           headers: { Authorization: `Bearer ${credentials.token}` }
         });
         
@@ -44,7 +60,7 @@ export async function POST(request: NextRequest) {
     } else if (platform === "trello") {
       if (!credentials.key) throw new Error("Thiếu Trello API Key");
       
-      const res = await fetch(`https://api.trello.com/1/members/me/boards?key=${credentials.key}&token=${credentials.token}`);
+      const res = await fetchWithTimeout(`https://api.trello.com/1/members/me/boards?key=${credentials.key}&token=${credentials.token}`);
       if (!res.ok) throw new Error("Trello Key hoặc Token không hợp lệ");
       
       const data = await res.json();
@@ -68,7 +84,7 @@ export async function POST(request: NextRequest) {
         throw new Error(e.message || "Domain Jira không hợp lệ.");
       }
       
-      const res = await fetch(`${domain}/rest/api/3/project`, {
+      const res = await fetchWithTimeout(`${domain}/rest/api/3/project`, {
         headers: { Authorization: `Basic ${auth}` }
       });
       if (!res.ok) throw new Error("Jira Domain, Email hoặc Token không hợp lệ");

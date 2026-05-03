@@ -671,7 +671,10 @@ export default function ProjectsPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ platform, credentials, projects: selectedProjects }),
           }).then(async (res) => {
-            if (!res.ok) throw new Error("Import failed");
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({}));
+              throw new Error(errorData.error || "Import failed");
+            }
             return res.json();
           });
 
@@ -681,7 +684,7 @@ export default function ProjectsPage() {
               fetchBoards(true);
               return `Đã import thành công ${data.importedBoards?.length || 0} dự án kèm theo ${data.totalTasks || 0} công việc!`;
             },
-            error: "Có lỗi xảy ra khi import dữ liệu.",
+            error: (err) => err.message || "Có lỗi xảy ra khi import dữ liệu.",
           });
         }}
       />

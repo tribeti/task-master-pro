@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 15000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error: any) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs}ms)`);
+    }
+    throw error;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -33,7 +49,7 @@ export async function POST(request: NextRequest) {
 
       try {
         if (platform === "github") {
-          const issuesRes = await fetch(`https://api.github.com/repos/${project.name}/issues?state=all&per_page=100`, {
+          const issuesRes = await fetchWithTimeout(`https://api.github.com/repos/${project.name}/issues?state=all&per_page=100`, {
             headers: { Authorization: `Bearer ${credentials.token}` }
           });
           if (issuesRes.ok) {
@@ -50,12 +66,12 @@ export async function POST(request: NextRequest) {
             }));
           }
         } else if (platform === "trello") {
-          const listsRes = await fetch(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`);
+          const listsRes = await fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`);
           if (listsRes.ok) {
             const lists = await listsRes.json();
             remoteColumns = lists.map((l: any, idx: number) => ({ id: l.id, title: l.name, position: idx }));
           }
-          const cardsRes = await fetch(`https://api.trello.com/1/boards/${project.id}/cards?key=${credentials.key}&token=${credentials.token}`);
+          const cardsRes = await fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/cards?key=${credentials.key}&token=${credentials.token}`);
           if (cardsRes.ok) {
             const cards = await cardsRes.json();
             remoteTasks = cards.map((c: any, idx: number) => ({
@@ -79,7 +95,7 @@ export async function POST(request: NextRequest) {
             continue; // Skip this project if invalid domain
           }
           
-          const statusesRes = await fetch(`${domain}/rest/api/3/project/${project.id}/statuses`, {
+          const statusesRes = await fetchWithTimeout(`${domain}/rest/api/3/project/${project.id}/statuses`, {
             headers: { Authorization: `Basic ${auth}` }
           });
           if (statusesRes.ok) {
@@ -90,7 +106,7 @@ export async function POST(request: NextRequest) {
           }
 
           const jql = encodeURIComponent(`project=${project.id}`);
-          const searchRes = await fetch(`${domain}/rest/api/3/search?jql=${jql}&maxResults=100`, {
+          const searchRes = await fetchWithTimeout(`${domain}/rest/api/3/search?jql=${jql}&maxResults=100`, {
             headers: { Authorization: `Basic ${auth}` }
           });
           if (searchRes.ok) {
