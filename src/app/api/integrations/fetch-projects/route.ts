@@ -56,62 +56,84 @@ export async function POST(request: NextRequest) {
     };
 
     if (platform === "github") {
-      const query = `
-        query {
-          viewer {
-            projectsV2(first: 50) {
-              nodes {
-                id
-                title
-                shortDescription
-              }
-            }
-            organizations(first: 20) {
-              nodes {
-                projectsV2(first: 50) {
-                  nodes {
-                    id
-                    title
-                    shortDescription
-                  }
-                }
+      // ── Pagination Helper for GitHub GraphQL ──
+      const fetchGitHub = async (query: string, variables: any) => {
+        const res = await fetchWithTimeout("https://api.github.com/graphql", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${credentials.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query, variables }),
+        });
+        await handleUpstreamError(res, "GitHub");
+        const json = await res.json();
+        if (json.errors && json.errors.length > 0) {
+          throw new Error(`GitHub GraphQL Error: ${json.errors[0].message}`);
+        }
+        return json.data;
+      };
+
+      // 1. Fetch personal projects
+      let hasNextPage = true;
+      let after: string | null = null;
+      let pageCount = 0;
+      while (hasNextPage && pageCount < 10) {
+        const data = await fetchGitHub(`
+          query($after: String) {
+            viewer {
+              projectsV2(first: 50, after: $after) {
+                nodes { id title shortDescription }
+                pageInfo { hasNextPage endCursor }
               }
             }
           }
-        }
-      `;
-
-      const res = await fetchWithTimeout("https://api.github.com/graphql", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      await handleUpstreamError(res, "GitHub");
-      const { data, errors } = await res.json();
-      
-      if (errors && errors.length > 0) {
-        throw new Error(`GitHub GraphQL Error: ${errors[0].message}`);
-      }
-
-      const personalProjects = data.viewer.projectsV2.nodes.map((p: any) => ({
-        id: p.id,
-        name: p.title,
-        description: p.shortDescription || "GitHub Project (Personal)",
-      }));
-
-      const orgProjects = data.viewer.organizations.nodes.flatMap((org: any) => 
-        org.projectsV2.nodes.map((p: any) => ({
+        `, { after });
+        
+        const p2 = data.viewer.projectsV2;
+        projects.push(...p2.nodes.map((p: any) => ({
           id: p.id,
           name: p.title,
-          description: p.shortDescription || "GitHub Project (Org)",
-        }))
-      );
+          description: p.shortDescription || "GitHub Project (Personal)",
+        })));
+        
+        hasNextPage = p2.pageInfo.hasNextPage;
+        after = p2.pageInfo.endCursor;
+        pageCount++;
+      }
 
-      projects = [...personalProjects, ...orgProjects];
+      // 2. Fetch organization projects
+      let orgHasNextPage = true;
+      let orgAfter: string | null = null;
+      let orgPageCount = 0;
+      while (orgHasNextPage && orgPageCount < 10) {
+        const data = await fetchGitHub(`
+          query($after: String) {
+            viewer {
+              organizations(first: 20, after: $after) {
+                nodes {
+                  projectsV2(first: 50) {
+                    nodes { id title shortDescription }
+                  }
+                }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+          }
+        `, { after: orgAfter });
+
+        data.viewer.organizations.nodes.forEach((org: any) => {
+          projects.push(...org.projectsV2.nodes.map((p: any) => ({
+            id: p.id,
+            name: p.title,
+            description: p.shortDescription || "GitHub Project (Org)",
+          })));
+        });
+
+        orgHasNextPage = data.viewer.organizations.pageInfo.hasNextPage;
+        orgAfter = data.viewer.organizations.pageInfo.endCursor;
+        orgPageCount++;
+      }
     } else if (platform === "trello") {
       const res = await fetchWithTimeout(
         `https://api.trello.com/1/members/me/boards?key=${credentials.key}&token=${credentials.token}`

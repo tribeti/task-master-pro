@@ -67,83 +67,91 @@ export async function POST(request: NextRequest) {
     // ── Fetch remote data ──
     try {
       if (platform === "github") {
-        const query = `
-          query getProjectData($projectId: ID!) {
-            node(id: $projectId) {
-              ... on ProjectV2 {
-                fields(first: 50) {
-                  nodes {
-                    ... on ProjectV2SingleSelectField {
-                      id
-                      name
-                      options {
+        const fetchItems = async (cursor: string | null) => {
+          const query = `
+            query getProjectData($projectId: ID!, $cursor: String) {
+              node(id: $projectId) {
+                ... on ProjectV2 {
+                  fields(first: 50) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
                         id
                         name
+                        options { id name }
                       }
                     }
                   }
-                }
-                items(first: 100) {
-                  nodes {
-                    id
-                    content {
-                      ... on Issue { title body }
-                      ... on PullRequest { title body }
-                      ... on DraftIssue { title body }
-                    }
-                    fieldValues(first: 20) {
-                      nodes {
-                        ... on ProjectV2ItemFieldSingleSelectValue {
-                          optionId
-                          field {
-                            ... on ProjectV2SingleSelectField { name }
+                  items(first: 100, after: $cursor) {
+                    nodes {
+                      id
+                      content {
+                        ... on Issue { title body }
+                        ... on PullRequest { title body }
+                        ... on DraftIssue { title body }
+                      }
+                      fieldValues(first: 20) {
+                        nodes {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            optionId
+                            field { ... on ProjectV2SingleSelectField { name } }
                           }
                         }
                       }
                     }
+                    pageInfo { hasNextPage endCursor }
                   }
                 }
               }
             }
+          `;
+          const res = await fetchWithTimeout("https://api.github.com/graphql", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${credentials.token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query, variables: { projectId: project.id, cursor } }),
+          });
+          if (!res.ok) throw new Error(`GitHub trả lỗi ${res.status}`);
+          const { data, errors } = await res.json();
+          if (errors && errors.length > 0) throw new Error(errors[0].message);
+          return data.node;
+        };
+
+        let hasNextPage = true;
+        let cursor: string | null = null;
+        let pageCount = 0;
+
+        while (hasNextPage && pageCount < 10) {
+          const projectData = await fetchItems(cursor);
+          if (!projectData) throw new Error("Không tìm thấy dự án GitHub");
+
+          if (pageCount === 0) {
+            const statusField = projectData.fields.nodes.find((f: any) => f.name === "Status");
+            if (!statusField) throw new Error("Dự án GitHub không có cột 'Status'");
+            remoteColumns = statusField.options.map((opt: any, idx: number) => ({
+              id: opt.id,
+              title: opt.name,
+              position: idx,
+            }));
           }
-        `;
 
-        const res = await fetchWithTimeout("https://api.github.com/graphql", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${credentials.token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query, variables: { projectId: project.id } }),
-        });
+          const pageTasks = projectData.items.nodes.map((item: any, idx: number) => {
+            const statusValue = item.fieldValues.nodes.find((fv: any) => fv.field?.name === "Status");
+            const content = item.content || {};
+            return {
+              col_id: statusValue?.optionId || remoteColumns[0]?.id,
+              title: content.title || "Untitled Item",
+              description: content.body ? String(content.body).substring(0, 2000) : "",
+              position: remoteTasks.length + idx,
+            };
+          });
 
-        if (!res.ok) throw new Error(`GitHub trả lỗi ${res.status}`);
-        const { data, errors } = await res.json();
-        if (errors && errors.length > 0) throw new Error(errors[0].message);
-
-        const projectData = data.node;
-        if (!projectData) throw new Error("Không tìm thấy dự án GitHub");
-
-        // Find the "Status" field
-        const statusField = projectData.fields.nodes.find((f: any) => f.name === "Status");
-        if (!statusField) throw new Error("Dự án GitHub không có cột 'Status'");
-
-        remoteColumns = statusField.options.map((opt: any, idx: number) => ({
-          id: opt.id,
-          title: opt.name,
-          position: idx,
-        }));
-
-        remoteTasks = projectData.items.nodes.map((item: any, idx: number) => {
-          const statusValue = item.fieldValues.nodes.find((fv: any) => fv.field?.name === "Status");
-          const content = item.content || {};
-          return {
-            col_id: statusValue?.optionId || remoteColumns[0]?.id,
-            title: content.title || "Untitled Item",
-            description: content.body ? String(content.body).substring(0, 2000) : "",
-            position: idx,
-          };
-        });
+          remoteTasks.push(...pageTasks);
+          hasNextPage = projectData.items.pageInfo.hasNextPage;
+          cursor = projectData.items.pageInfo.endCursor;
+          pageCount++;
+        }
       } else if (platform === "trello") {
         const [listsRes, cardsRes] = await Promise.all([
           fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`),
@@ -287,14 +295,23 @@ export async function POST(request: NextRequest) {
       });
 
       if (remoteTasks.length > 0) {
-        const tasksToInsert = remoteTasks
-          .filter((t) => colMap[t.col_id] !== undefined)
-          .map((t) => ({
-            column_id: colMap[t.col_id],
-            title: t.title,
-            description: t.description || null,
-            position: t.position,
-          }));
+        const validTasks = remoteTasks.filter((t) => colMap[t.col_id] !== undefined);
+        const skippedCount = remoteTasks.length - validTasks.length;
+        
+        if (skippedCount > 0) {
+          console.warn(`Dự án "${project.name}": Bỏ qua ${skippedCount} thẻ do không khớp cột.`);
+          failedProjects.push({ 
+            name: project.name, 
+            error: `Cảnh báo: Đã bỏ qua ${skippedCount} thẻ không tìm thấy cột tương ứng.` 
+          });
+        }
+
+        const tasksToInsert = validTasks.map((t) => ({
+          column_id: colMap[t.col_id],
+          title: t.title,
+          description: t.description || null,
+          position: t.position,
+        }));
 
         if (tasksToInsert.length > 0) {
           const { error: taskError } = await supabase.from("tasks").insert(tasksToInsert);
@@ -326,7 +343,8 @@ export async function POST(request: NextRequest) {
     success: true, 
     partialSuccess: failedProjects.length > 0,
     importedBoards, 
-    failedProjects,
+    failedProjects, // This now includes warnings about skipped tasks
     totalTasks 
   });
+}
 }
