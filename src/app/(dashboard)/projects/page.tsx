@@ -14,6 +14,8 @@ import QuickEntryModal from "@/components/projects/QuickEntryModal";
 import DeleteConfirmModal from "@/components/projects/DeleteConfirmModal";
 import CreateProjectModal from "@/components/CreateProjectModal";
 import UpdateProjectModal from "@/components/projects/UpdateProjectModal";
+import ImportDataModal from "@/components/projects/ImportDataModal";
+import { ImportIcon } from "@/components/icons";
 import { useDashboardUser } from "../provider";
 import { useProjects } from "@/lib/hooks/useProjects";
 import { Board } from "@/lib/types/project";
@@ -171,6 +173,7 @@ export default function ProjectsPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isUpdateProjectOpen, setIsUpdateProjectOpen] = useState(false);
+  const [isImportDataOpen, setIsImportDataOpen] = useState(false);
   const [projectToUpdate, setProjectToUpdate] = useState<Board | null>(null);
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -529,19 +532,34 @@ export default function ProjectsPage() {
               )}
             </>
           ) : (
-            <button
-              onClick={() => setIsCreateProjectOpen(true)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg hover:scale-105 ${
-                isCozy
-                  ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-orange-900/20"
-                  : "bg-[#1E293B] hover:bg-slate-800 text-white shadow-slate-300"
-              }`}
-            >
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                <PlusIcon />
-              </div>
-              Dự án mới
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsImportDataOpen(true)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg hover:scale-105 ${
+                  isCozy
+                    ? "bg-slate-800 hover:bg-slate-700 text-slate-200 shadow-slate-900/20"
+                    : "bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isCozy ? "bg-slate-700" : "bg-slate-100"}`}>
+                  <ImportIcon />
+                </div>
+                Import dữ liệu
+              </button>
+              <button
+                onClick={() => setIsCreateProjectOpen(true)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg hover:scale-105 ${
+                  isCozy
+                    ? "bg-[#FF8B5E] hover:bg-orange-600 text-white shadow-orange-900/20"
+                    : "bg-[#1E293B] hover:bg-slate-800 text-white shadow-slate-300"
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                  <PlusIcon />
+                </div>
+                Dự án mới
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -641,6 +659,52 @@ export default function ProjectsPage() {
         initialData={projectToUpdate}
         onSubmit={onUpdateProjectSubmit}
         isSubmitting={isSubmitting}
+      />
+
+      {/* IMPORT DATA MODAL */}
+      <ImportDataModal
+        isOpen={isImportDataOpen}
+        onClose={() => setIsImportDataOpen(false)}
+        onSuccess={(platform, credentials, selectedProjects) => {
+          const importPromise = fetch("/api/integrations/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ platform, credentials, projects: selectedProjects }),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({}));
+              throw new Error(errorData.error || "Import failed");
+            }
+            return res.json();
+          });
+
+          toast.promise(importPromise, {
+            loading: `Đang import ${selectedProjects.length} dự án từ ${platform}...`,
+            success: (data) => {
+              fetchBoards(true);
+              if (data.failedProjects?.length > 0 || data.warnings?.length > 0) {
+                let desc = "";
+                if (data.failedProjects?.length > 0) {
+                  const names = data.failedProjects.map((p: any) => p.name).join(", ");
+                  desc += `Lỗi tại: ${names}. `;
+                }
+                if (data.warnings?.length > 0) {
+                  const names = data.warnings.map((w: any) => w.name).join(", ");
+                  desc += `Thẻ bị bỏ qua tại: ${names}.`;
+                }
+
+                toast.warning("Import hoàn tất với một số lưu ý", {
+                  description: desc,
+                  duration: 8000
+                });
+              }
+              return `Đã import thành công ${data.importedBoards?.length || 0} dự án kèm theo ${data.totalTasks || 0} công việc!`;
+            },
+            error: (err) => err.message || "Có lỗi xảy ra khi import dữ liệu.",
+          });
+
+          return importPromise;
+        }}
       />
     </div>
   );
