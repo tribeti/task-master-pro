@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
         
         const data = await res.json();
         if (!Array.isArray(data) || data.length === 0) {
-          hasMore = false;
           break;
         }
         
