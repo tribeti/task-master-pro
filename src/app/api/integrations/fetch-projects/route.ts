@@ -39,46 +39,85 @@ export async function POST(request: NextRequest) {
   try {
     let projects: any[] = [];
 
-    if (platform === "github") {
-      // Paginate fully – fail hard if any page fails so the list is never silently truncated
-      let page = 1;
-      while (true) {
-        const res = await fetchWithTimeout(
-          `https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`,
-          { headers: { Authorization: `Bearer ${credentials.token}` } }
-        );
-
-        if (!res.ok) {
-          if (page === 1) {
-            // First page failure = invalid token → client error
-            const status = res.status === 401 ? 401 : 400;
-            throw Object.assign(new Error("Token GitHub không hợp lệ hoặc hết hạn"), { status });
-          }
-          // Subsequent page failure = upstream error → propagate so caller knows list is incomplete
-          throw new Error(`GitHub trả lỗi ${res.status} khi lấy trang ${page}. Danh sách repo có thể chưa đầy đủ.`);
-        }
-
-        const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) break;
-
-        projects.push(
-          ...data.map((repo: any) => ({
-            id: repo.id.toString(),
-            name: repo.full_name,
-            description: repo.description || "Không có mô tả",
-          }))
-        );
-
-        if (data.length < 100 || page >= 10) break; // safety cap: 1 000 repos
-        page++;
+    const handleUpstreamError = async (res: Response, platformName: string) => {
+      if (res.ok) return;
+      const status = res.status;
+      let message = `${platformName} trả lỗi ${status}`;
+      
+      if (status === 401 || status === 403) {
+        message = `Thông tin xác thực ${platformName} không hợp lệ hoặc không đủ quyền truy cập (yêu cầu 'read:project' đối với GitHub)`;
+      } else if (status === 429) {
+        message = `Đang bị giới hạn yêu cầu (Rate limit) từ ${platformName}. Vui lòng thử lại sau.`;
+      } else if (status >= 500) {
+        message = `Dịch vụ ${platformName} đang gặp sự cố. Vui lòng thử lại sau.`;
       }
+      
+      throw Object.assign(new Error(message), { status });
+    };
+
+    if (platform === "github") {
+      const query = `
+        query {
+          viewer {
+            projectsV2(first: 50) {
+              nodes {
+                id
+                title
+                shortDescription
+              }
+            }
+            organizations(first: 20) {
+              nodes {
+                projectsV2(first: 50) {
+                  nodes {
+                    id
+                    title
+                    shortDescription
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const res = await fetchWithTimeout("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${credentials.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      await handleUpstreamError(res, "GitHub");
+      const { data, errors } = await res.json();
+      
+      if (errors && errors.length > 0) {
+        throw new Error(`GitHub GraphQL Error: ${errors[0].message}`);
+      }
+
+      const personalProjects = data.viewer.projectsV2.nodes.map((p: any) => ({
+        id: p.id,
+        name: p.title,
+        description: p.shortDescription || "GitHub Project (Personal)",
+      }));
+
+      const orgProjects = data.viewer.organizations.nodes.flatMap((org: any) => 
+        org.projectsV2.nodes.map((p: any) => ({
+          id: p.id,
+          name: p.title,
+          description: p.shortDescription || "GitHub Project (Org)",
+        }))
+      );
+
+      projects = [...personalProjects, ...orgProjects];
     } else if (platform === "trello") {
       const res = await fetchWithTimeout(
         `https://api.trello.com/1/members/me/boards?key=${credentials.key}&token=${credentials.token}`
       );
-      if (!res.ok) {
-        throw Object.assign(new Error("Trello Key hoặc Token không hợp lệ"), { status: 400 });
-      }
+      await handleUpstreamError(res, "Trello");
+      
       const data = await res.json();
       projects = data.map((board: any) => ({
         id: board.id,
@@ -102,9 +141,8 @@ export async function POST(request: NextRequest) {
       const res = await fetchWithTimeout(`${domain}/rest/api/3/project`, {
         headers: { Authorization: `Basic ${auth}` },
       });
-      if (!res.ok) {
-        throw Object.assign(new Error("Jira Domain, Email hoặc Token không hợp lệ"), { status: 400 });
-      }
+      await handleUpstreamError(res, "Jira");
+      
       const data = await res.json();
       projects = data.map((project: any) => ({
         id: project.id,

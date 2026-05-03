@@ -8,7 +8,9 @@ export const fetchWithTimeout = async (url: string, options: RequestInit = {}, t
   } catch (error: any) {
     clearTimeout(id);
     if (error.name === "AbortError") {
-      throw new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs / 1000}s)`);
+      const timeoutError = new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs / 1000}s)`);
+      (timeoutError as any).status = 504;
+      throw timeoutError;
     }
     throw error;
   }
