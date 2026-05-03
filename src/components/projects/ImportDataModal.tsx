@@ -22,7 +22,7 @@ export type RemoteProject = {
 interface ImportDataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (platform: string, credentials: any, selectedProjects: RemoteProject[]) => void;
+  onSuccess?: (platform: string, credentials: any, selectedProjects: RemoteProject[]) => void | Promise<any>;
 }
 
 export default function ImportDataModal({
@@ -119,12 +119,19 @@ export default function ImportDataModal({
     );
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (onSuccess && selectedPlatform) {
+      setIsLoading(true);
       const selectedData = remoteProjects.filter((p) => selectedProjectIds.includes(p.id));
-      onSuccess(selectedPlatform, credentials, selectedData);
+      try {
+        await onSuccess(selectedPlatform, credentials, selectedData);
+        resetAndClose();
+      } catch (err) {
+        setIsLoading(false);
+      }
+    } else {
+      resetAndClose();
     }
-    resetAndClose();
   };
 
   if (!isOpen) return null;

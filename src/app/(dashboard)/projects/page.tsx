@@ -686,6 +686,8 @@ export default function ProjectsPage() {
             },
             error: (err) => err.message || "Có lỗi xảy ra khi import dữ liệu.",
           });
+
+          return importPromise;
         }}
       />
     </div>

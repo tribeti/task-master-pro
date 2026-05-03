@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          const jql = encodeURIComponent(`project=${project.id}`);
+          const jql = encodeURIComponent(`project="${project.id}"`);
           const searchRes = await fetchWithTimeout(`${domain}/rest/api/3/search?jql=${jql}&maxResults=100`, {
             headers: { Authorization: `Basic ${auth}` }
           });
