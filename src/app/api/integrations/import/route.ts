@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
     if (!platform || !credentials || !credentials.token || !Array.isArray(projects) || projects.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
+    if (platform === "trello" && !credentials.key) {
+      return NextResponse.json({ error: "Missing Trello API Key" }, { status: 400 });
+    }
+    if (platform === "jira" && (!credentials.domain || !credentials.email)) {
+      return NextResponse.json({ error: "Missing Jira domain or email" }, { status: 400 });
+    }
 
     const importedBoards = [];
     let totalTasks = 0;
@@ -91,9 +97,20 @@ export async function POST(request: NextRequest) {
             const search = await searchRes.json();
             if (search.issues) {
               remoteTasks = search.issues.map((issue: any, idx: number) => {
+                const extractADFText = (node: any): string => {
+                  if (!node) return "";
+                  if (node.type === "text" && node.text) return node.text;
+                  if (Array.isArray(node.content)) {
+                    return node.content.map(extractADFText).join(" ");
+                  }
+                  return "";
+                };
+
                 let desc = "";
                 try {
-                  desc = issue.fields.description?.content?.[0]?.content?.[0]?.text || "";
+                  if (issue.fields.description) {
+                    desc = extractADFText(issue.fields.description);
+                  }
                 } catch(e) {}
                 return {
                   col_id: issue.fields.status?.id,

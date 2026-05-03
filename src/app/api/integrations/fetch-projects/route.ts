@@ -11,18 +11,36 @@ export async function POST(request: NextRequest) {
     let projects = [];
 
     if (platform === "github") {
-      const res = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
-        headers: { Authorization: `Bearer ${credentials.token}` }
-      });
-      
-      if (!res.ok) throw new Error("Token GitHub không hợp lệ hoặc hết hạn");
-      
-      const data = await res.json();
-      projects = data.map((repo: any) => ({
-        id: repo.id.toString(),
-        name: repo.full_name,
-        description: repo.description || "Không có mô tả"
-      }));
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const res = await fetch(`https://api.github.com/user/repos?per_page=100&page=${page}&sort=updated`, {
+          headers: { Authorization: `Bearer ${credentials.token}` }
+        });
+        
+        if (!res.ok) {
+          if (page === 1) throw new Error("Token GitHub không hợp lệ hoặc hết hạn");
+          break;
+        }
+        
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) {
+          hasMore = false;
+          break;
+        }
+        
+        projects.push(...data.map((repo: any) => ({
+          id: repo.id.toString(),
+          name: repo.full_name,
+          description: repo.description || "Không có mô tả"
+        })));
+        
+        if (data.length < 100 || page >= 10) { // Limit to 10 pages for safety
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
     } else if (platform === "trello") {
       if (!credentials.key) throw new Error("Thiếu Trello API Key");
       
