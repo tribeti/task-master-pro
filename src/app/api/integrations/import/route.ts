@@ -137,22 +137,23 @@ export async function POST(request: NextRequest) {
             }));
           }
 
-          const pageTasks = projectData.items.nodes.flatMap((item: any, idx: number) => {
+          const pageTasks: typeof remoteTasks = [];
+          for (const item of projectData.items.nodes) {
             const statusValue = item.fieldValues.nodes.find((fv: any) => fv.field?.name === "Status");
             const content = item.content || {};
 
             if (!statusValue?.optionId) {
               console.warn(`GitHub item "${content.title || item.id}" không có Status, bỏ qua để tránh map sai cột.`);
-              return [];
+              continue;
             }
 
-            return [{
+            pageTasks.push({
               col_id: statusValue.optionId,
               title: content.title || "Untitled Item",
               description: content.body ? String(content.body).substring(0, 2000) : "",
-              position: remoteTasks.length + idx,
-            }];
-          });
+              position: remoteTasks.length + pageTasks.length,
+            });
+          }
 
           remoteTasks.push(...pageTasks);
           hasNextPage = projectData.items.pageInfo.hasNextPage;
