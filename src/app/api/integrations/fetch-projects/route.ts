@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 15000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (error: any) {
-    clearTimeout(id);
-    if (error.name === "AbortError") {
-      throw new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs / 1000}s)`);
-    }
-    throw error;
-  }
-};
+import { fetchWithTimeout } from "@/utils/fetch-utils";
 
 export async function POST(request: NextRequest) {
   // ── Auth guard: block anonymous proxy abuse ──
@@ -103,11 +88,16 @@ export async function POST(request: NextRequest) {
     } else if (platform === "jira") {
       const auth = Buffer.from(`${credentials.email}:${credentials.token}`).toString("base64");
       let domain = credentials.domain as string;
-      const url = new URL(domain.startsWith("http") ? domain : `https://${domain}`);
-      if (!url.hostname.endsWith(".atlassian.net")) {
-        throw Object.assign(new Error("Domain Jira không hợp lệ. Domain phải kết thúc bằng '.atlassian.net'"), { status: 400 });
+      
+      try {
+        const url = new URL(domain.startsWith("http") ? domain : `https://${domain}`);
+        if (!url.hostname.endsWith(".atlassian.net")) {
+          throw new Error("Domain Jira không hợp lệ. Domain phải kết thúc bằng '.atlassian.net'");
+        }
+        domain = url.origin;
+      } catch (e: any) {
+        throw Object.assign(new Error(e.message || "Domain Jira không hợp lệ."), { status: 400 });
       }
-      domain = url.origin;
 
       const res = await fetchWithTimeout(`${domain}/rest/api/3/project`, {
         headers: { Authorization: `Basic ${auth}` },

@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 15000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (error: any) {
-    clearTimeout(id);
-    if (error.name === "AbortError") {
-      throw new Error(`Kết nối bị gián đoạn (timeout sau ${timeoutMs / 1000}s)`);
-    }
-    throw error;
-  }
-};
+import { fetchWithTimeout } from "@/utils/fetch-utils";
 
 // Recursively convert Atlassian Document Format (ADF) to plain text
 const extractADFText = (node: any): string => {
@@ -83,8 +68,7 @@ export async function POST(request: NextRequest) {
           { headers: { Authorization: `Bearer ${credentials.token}` } }
         );
         if (!issuesRes.ok) {
-          console.warn(`GitHub trả lỗi ${issuesRes.status} cho repo ${project.name}. Bỏ qua.`);
-          continue;
+          throw new Error(`GitHub trả lỗi ${issuesRes.status} cho repo ${project.name}`);
         }
         const issues = await issuesRes.json();
         remoteColumns = [
@@ -104,34 +88,32 @@ export async function POST(request: NextRequest) {
           fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`),
           fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/cards?key=${credentials.key}&token=${credentials.token}`),
         ]);
-        if (listsRes.ok) {
-          const lists = await listsRes.json();
-          remoteColumns = lists.map((l: any, idx: number) => ({ id: l.id, title: l.name, position: idx }));
-        }
-        if (cardsRes.ok) {
-          const cards = await cardsRes.json();
-          remoteTasks = cards.map((c: any, idx: number) => ({
-            col_id: c.idList,
-            title: c.name,
-            description: c.desc ? String(c.desc).substring(0, 2000) : "",
-            position: idx,
-          }));
-        }
+        if (!listsRes.ok) throw new Error(`Trello trả lỗi ${listsRes.status} khi lấy danh sách cột`);
+        if (!cardsRes.ok) throw new Error(`Trello trả lỗi ${cardsRes.status} khi lấy danh sách thẻ`);
+
+        const [lists, cards] = await Promise.all([listsRes.json(), cardsRes.json()]);
+        remoteColumns = lists.map((l: any, idx: number) => ({ id: l.id, title: l.name, position: idx }));
+        remoteTasks = cards.map((c: any, idx: number) => ({
+          col_id: c.idList,
+          title: c.name,
+          description: c.desc ? String(c.desc).substring(0, 2000) : "",
+          position: idx,
+        }));
       } else if (platform === "jira") {
         const auth = Buffer.from(`${credentials.email}:${credentials.token}`).toString("base64");
 
         const statusesRes = await fetchWithTimeout(`${jiraDomain}/rest/api/3/project/${project.id}/statuses`, {
           headers: { Authorization: `Basic ${auth}` },
         });
-        if (statusesRes.ok) {
-          const statuses = await statusesRes.json();
-          if (Array.isArray(statuses) && statuses.length > 0) {
-            remoteColumns = statuses[0].statuses.map((s: any, idx: number) => ({
-              id: s.id,
-              title: s.name,
-              position: idx,
-            }));
-          }
+        if (!statusesRes.ok) throw new Error(`Jira trả lỗi ${statusesRes.status} khi lấy trạng thái`);
+        
+        const statuses = await statusesRes.json();
+        if (Array.isArray(statuses) && statuses.length > 0) {
+          remoteColumns = statuses[0].statuses.map((s: any, idx: number) => ({
+            id: s.id,
+            title: s.name,
+            position: idx,
+          }));
         }
 
         // Paginate Jira issues (default page size = 50, maxResults capped by Jira)
@@ -143,7 +125,7 @@ export async function POST(request: NextRequest) {
             `${jiraDomain}/rest/api/3/search?jql=${jql}&maxResults=${PAGE_SIZE}&startAt=${startAt}`,
             { headers: { Authorization: `Basic ${auth}` } }
           );
-          if (!searchRes.ok) break;
+          if (!searchRes.ok) throw new Error(`Jira trả lỗi ${searchRes.status} khi lấy danh sách issue (startAt: ${startAt})`);
 
           const search = await searchRes.json();
           if (!search.issues || search.issues.length === 0) break;
