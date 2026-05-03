@@ -126,7 +126,7 @@ export default function ImportDataModal({
       try {
         await onSuccess(selectedPlatform, credentials, selectedData);
         resetAndClose();
-      } catch (err) {
+      } catch {
         setIsLoading(false);
       }
     } else {
