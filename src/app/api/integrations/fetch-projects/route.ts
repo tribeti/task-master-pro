@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await res.json();
+<<<<<<< HEAD
         if (!Array.isArray(data) || data.length === 0) break;
 
         projects.push(
@@ -86,6 +87,23 @@ export async function POST(request: NextRequest) {
 
         if (data.length < 100 || page >= 10) break; // safety cap: 1 000 repos
         page++;
+=======
+        if (!Array.isArray(data) || data.length === 0) {
+          break;
+        }
+        
+        projects.push(...data.map((repo: any) => ({
+          id: repo.id.toString(),
+          name: repo.full_name,
+          description: repo.description || "Không có mô tả"
+        })));
+        
+        if (data.length < 100 || page >= 10) { // Limit to 10 pages for safety
+          hasMore = false;
+        } else {
+          page++;
+        }
+>>>>>>> d65d75a95ad528ba96eae02d0e7c1b5b3002b02f
       }
     } else if (platform === "trello") {
       const res = await fetchWithTimeout(
