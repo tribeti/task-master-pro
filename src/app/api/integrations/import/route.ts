@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
 
   const importedBoards: any[] = [];
   const failedProjects: { name: string; error: string }[] = [];
+  const warnings: { name: string; message: string }[] = [];
   let totalTasks = 0;
 
   for (const project of projects) {
@@ -300,9 +301,9 @@ export async function POST(request: NextRequest) {
         
         if (skippedCount > 0) {
           console.warn(`Dự án "${project.name}": Bỏ qua ${skippedCount} thẻ do không khớp cột.`);
-          failedProjects.push({ 
+          warnings.push({ 
             name: project.name, 
-            error: `Cảnh báo: Đã bỏ qua ${skippedCount} thẻ không tìm thấy cột tương ứng.` 
+            message: `Đã bỏ qua ${skippedCount} thẻ không tìm thấy cột tương ứng.` 
           });
         }
 
@@ -341,9 +342,10 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ 
     success: true, 
-    partialSuccess: failedProjects.length > 0,
+    partialSuccess: failedProjects.length > 0 || warnings.length > 0,
     importedBoards, 
     failedProjects,
+    warnings,
     totalTasks 
   });
 }
