@@ -137,15 +137,21 @@ export async function POST(request: NextRequest) {
             }));
           }
 
-          const pageTasks = projectData.items.nodes.map((item: any, idx: number) => {
+          const pageTasks = projectData.items.nodes.flatMap((item: any, idx: number) => {
             const statusValue = item.fieldValues.nodes.find((fv: any) => fv.field?.name === "Status");
             const content = item.content || {};
-            return {
-              col_id: statusValue?.optionId || remoteColumns[0]?.id,
+
+            if (!statusValue?.optionId) {
+              console.warn(`GitHub item "${content.title || item.id}" không có Status, bỏ qua để tránh map sai cột.`);
+              return [];
+            }
+
+            return [{
+              col_id: statusValue.optionId,
               title: content.title || "Untitled Item",
               description: content.body ? String(content.body).substring(0, 2000) : "",
               position: remoteTasks.length + idx,
-            };
+            }];
           });
 
           remoteTasks.push(...pageTasks);
@@ -153,6 +159,13 @@ export async function POST(request: NextRequest) {
           cursor = projectData.items.pageInfo.endCursor;
           pageCount++;
         }
+
+        if (hasNextPage) {
+          throw new Error(
+            `Dự án GitHub "${project.name}" có nhiều hơn ${pageCount * 100} item. Import đã dừng để tránh cắt cụt dữ liệu.`
+          );
+        }
+
       } else if (platform === "trello") {
         const [listsRes, cardsRes] = await Promise.all([
           fetchWithTimeout(`https://api.trello.com/1/boards/${project.id}/lists?key=${credentials.key}&token=${credentials.token}`),
@@ -176,7 +189,7 @@ export async function POST(request: NextRequest) {
           headers: { Authorization: `Basic ${auth}` },
         });
         if (!statusesRes.ok) throw new Error(`Jira trả lỗi ${statusesRes.status} khi lấy trạng thái`);
-        
+
         const statuses = await statusesRes.json();
         const allStatusesMap = new Map<string, any>();
         if (Array.isArray(statuses)) {
@@ -190,7 +203,7 @@ export async function POST(request: NextRequest) {
             }
           });
         }
-        
+
         remoteColumns = Array.from(allStatusesMap.values()).map((s: any, idx: number) => ({
           id: s.id,
           title: s.name,
@@ -298,12 +311,12 @@ export async function POST(request: NextRequest) {
       if (remoteTasks.length > 0) {
         const validTasks = remoteTasks.filter((t) => colMap[t.col_id] !== undefined);
         const skippedCount = remoteTasks.length - validTasks.length;
-        
+
         if (skippedCount > 0) {
           console.warn(`Dự án "${project.name}": Bỏ qua ${skippedCount} thẻ do không khớp cột.`);
-          warnings.push({ 
-            name: project.name, 
-            message: `Đã bỏ qua ${skippedCount} thẻ không tìm thấy cột tương ứng.` 
+          warnings.push({
+            name: project.name,
+            message: `Đã bỏ qua ${skippedCount} thẻ không tìm thấy cột tương ứng.`
           });
         }
 
@@ -333,19 +346,19 @@ export async function POST(request: NextRequest) {
   }
 
   if (importedBoards.length === 0 && projects.length > 0) {
-    return NextResponse.json({ 
-      success: false, 
-      error: "Không thể import bất kỳ dự án nào.", 
-      failedProjects 
+    return NextResponse.json({
+      success: false,
+      error: "Không thể import bất kỳ dự án nào.",
+      failedProjects
     }, { status: 500 });
   }
 
-  return NextResponse.json({ 
-    success: true, 
+  return NextResponse.json({
+    success: true,
     partialSuccess: failedProjects.length > 0 || warnings.length > 0,
-    importedBoards, 
+    importedBoards,
     failedProjects,
     warnings,
-    totalTasks 
+    totalTasks
   });
 }
