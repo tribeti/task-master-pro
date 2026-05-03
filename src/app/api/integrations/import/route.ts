@@ -62,7 +62,16 @@ export async function POST(request: NextRequest) {
         } else if (platform === "jira") {
           const auth = Buffer.from(`${credentials.email}:${credentials.token}`).toString("base64");
           let domain = credentials.domain;
-          if (!domain.startsWith("http")) domain = `https://${domain}`;
+          try {
+            const url = new URL(domain.startsWith("http") ? domain : `https://${domain}`);
+            if (!url.hostname.endsWith(".atlassian.net")) {
+              throw new Error("Domain Jira không hợp lệ.");
+            }
+            domain = url.origin;
+          } catch (e) {
+            console.error("Lỗi xác thực domain Jira:", e);
+            continue; // Skip this project if invalid domain
+          }
           
           const statusesRes = await fetch(`${domain}/rest/api/3/project/${project.id}/statuses`, {
             headers: { Authorization: `Basic ${auth}` }
@@ -102,7 +111,8 @@ export async function POST(request: NextRequest) {
 
       // AC 5.1: Validate dự án trống
       if (remoteColumns.length === 0 && remoteTasks.length === 0) {
-        return NextResponse.json({ error: `Dự án nguồn "${project.name}" không có dữ liệu để import` }, { status: 400 });
+        console.warn(`Dự án nguồn "${project.name}" không có dữ liệu để import. Bỏ qua.`);
+        continue;
       }
 
       // 1. Tạo Board (AC 3.1 & AC 3.2)

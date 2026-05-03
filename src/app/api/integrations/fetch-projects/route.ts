@@ -40,7 +40,15 @@ export async function POST(request: NextRequest) {
       
       const auth = Buffer.from(`${credentials.email}:${credentials.token}`).toString("base64");
       let domain = credentials.domain;
-      if (!domain.startsWith("http")) domain = `https://${domain}`;
+      try {
+        const url = new URL(domain.startsWith("http") ? domain : `https://${domain}`);
+        if (!url.hostname.endsWith(".atlassian.net")) {
+          throw new Error("Domain Jira không hợp lệ. Domain phải kết thúc bằng '.atlassian.net'");
+        }
+        domain = url.origin;
+      } catch (e: any) {
+        throw new Error(e.message || "Domain Jira không hợp lệ.");
+      }
       
       const res = await fetch(`${domain}/rest/api/3/project`, {
         headers: { Authorization: `Basic ${auth}` }
