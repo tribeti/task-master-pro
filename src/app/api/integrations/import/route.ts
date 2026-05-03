@@ -31,6 +31,13 @@ export async function POST(request: NextRequest) {
   if (!platform || !credentials || !credentials.token || !Array.isArray(projects) || projects.length === 0) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+
+  for (const project of projects) {
+    if (typeof project !== "object" || project === null || !project.id || typeof project.name !== "string" || !project.name.trim()) {
+      return NextResponse.json({ error: "Invalid project payload" }, { status: 400 });
+    }
+  }
+
   if (!["github", "trello", "jira"].includes(platform)) {
     return NextResponse.json({ error: "Platform not supported" }, { status: 400 });
   }
