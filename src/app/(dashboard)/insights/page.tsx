@@ -36,10 +36,8 @@ export default function InsightsPage() {
   const [data, setData] = useState<InsightsTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     async function fetchData() {
       try {
         const supabase = createClient();
@@ -342,7 +340,7 @@ export default function InsightsPage() {
               Phân bố Trạng thái Công việc
             </h2>
             <div className="w-full h-75">
-              {mounted && pieChartData.length > 0 ? (
+              {pieChartData.length > 0 ? (
                 <ResponsiveContainer
                   width="100%"
                   height={300}
@@ -399,7 +397,7 @@ export default function InsightsPage() {
               Phân tích Mức độ Ưu tiên
             </h2>
             <div className="w-full h-75">
-              {mounted && (
+              {(
                 <ResponsiveContainer
                   width="100%"
                   height={300}
