@@ -44,8 +44,10 @@ export async function updateSession(request: NextRequest) {
     "/api/cron",
   ];
   const isPublicApiRoute =
-    publicApiRoutes.some((route) => pathname.startsWith(route)) ||
-    pathname.includes("/invitations/accept");
+    publicApiRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route + "/"),
+    ) ||
+    /^\/api\/boards\/[^/]+\/invitations\/accept(\/|$)/.test(pathname);
 
   if (isApiRoute && !isPublicApiRoute && !user) {
     const authError = NextResponse.json(
